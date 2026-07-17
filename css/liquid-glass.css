@@ -3461,3 +3461,60 @@ body.stage-manager-on .window.is-active:not(.is-minimized):not(.is-staged),
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* Notifications dismiss */
+.notification-card {
+  position: relative;
+  cursor: default;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.notification-card.is-new {
+  animation: nc-in 0.35s ease;
+}
+@keyframes nc-in {
+  from { opacity: 0; transform: translateX(12px); }
+  to { opacity: 1; transform: none; }
+}
+.notification-dismiss {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(120, 120, 128, 0.25);
+  color: inherit;
+  font-size: 11px;
+  line-height: 1;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  cursor: default;
+  z-index: 2;
+}
+.notification-card:hover .notification-dismiss {
+  opacity: 1;
+}
+.widget-event.is-selected {
+  background: rgba(10, 132, 255, 0.2);
+  border-radius: 8px;
+}
+.widget-music-controls {
+  pointer-events: auto !important;
+  gap: 10px;
+  display: flex;
+  align-items: center;
+}
+.widget-music-controls span {
+  padding: 4px 6px;
+  border-radius: 6px;
+}
+.widget-music-controls span:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+#battery-level {
+  display: block;
+  height: 100%;
+  border-radius: 1px;
+  transition: width 0.4s ease, background 0.4s ease;
+}

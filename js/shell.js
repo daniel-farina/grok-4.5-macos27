@@ -149,6 +149,9 @@
     return h12 + ':' + mm;
   }
 
+  var batteryPercent = 100;
+  var batteryTimer = null;
+
   function updateClock() {
     var now = new Date();
     var el = $('#clock-text');
@@ -168,6 +171,150 @@
     }
     var calDay = $('#widget-cal-day');
     if (calDay) calDay.textContent = String(now.getDate());
+  }
+
+  function wireBattery() {
+    var btn = $('#menubar-battery');
+    var level = $('#battery-level');
+    var pct = $('#battery-percent');
+    function paint() {
+      if (pct) pct.textContent = Math.round(batteryPercent) + '%';
+      if (level) {
+        level.style.width = Math.max(8, batteryPercent) + '%';
+        level.style.background =
+          batteryPercent < 20 ? '#ff453a' : batteryPercent < 40 ? '#ffd60a' : '#30d158';
+      }
+    }
+    paint();
+    if (batteryTimer) clearInterval(batteryTimer);
+    batteryTimer = setInterval(function () {
+      batteryPercent = Math.max(5, batteryPercent - 0.15);
+      if (batteryPercent < 8) batteryPercent = 100; // "charged" cycle for demo
+      paint();
+    }, 12000);
+    if (btn) {
+      btn.addEventListener('click', function (e) {
+        // also opens CC via data-action; add toast
+        notify(
+          'Battery',
+          Math.round(batteryPercent) + '%',
+          batteryPercent > 80 ? 'Power Source: Power Adapter (sim)' : 'Power Source: Battery (sim)',
+          'now'
+        );
+        if (global.MacSounds && MacSounds.play) MacSounds.play('tink');
+      });
+    }
+  }
+
+  function wireNotificationList() {
+    var list = $('#notification-list');
+    if (!list || list.dataset.wired) return;
+    list.dataset.wired = '1';
+    list.addEventListener('click', function (e) {
+      var dismiss = e.target.closest('.notification-dismiss');
+      var card = e.target.closest('.notification-card');
+      if (dismiss && card) {
+        e.preventDefault();
+        card.remove();
+        if (!list.querySelector('.notification-card')) {
+          list.innerHTML = '<p class="muted nc-empty" style="padding:16px">No Notifications</p>';
+        }
+        return;
+      }
+    });
+    // Ensure sample cards have dismiss
+    $$('.notification-card', list).forEach(function (card) {
+      if (!card.querySelector('.notification-dismiss')) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'notification-dismiss';
+        b.setAttribute('aria-label', 'Dismiss');
+        b.textContent = '✕';
+        card.insertBefore(b, card.firstChild);
+      }
+    });
+  }
+
+  function wireDesktopWidgets(root) {
+    if (!root || root.dataset.wiredWidgets) return;
+    root.dataset.wiredWidgets = '1';
+
+    // Weather widget: click cycles city
+    var wxCities = [
+      { city: 'Cupertino', cond: 'Partly Cloudy', temp: '72°', hl: 'H:78°  L:58°' },
+      { city: 'Seattle', cond: 'Light Rain', temp: '59°', hl: 'H:62°  L:50°' },
+      { city: 'Miami', cond: 'Sunny', temp: '86°', hl: 'H:90°  L:76°' },
+      { city: 'Denver', cond: 'Clear', temp: '64°', hl: 'H:71°  L:48°' },
+    ];
+    var wxIdx = 0;
+    var wx = root.querySelector('.widget-weather');
+    if (wx) {
+      wx.style.cursor = 'pointer';
+      wx.title = 'Click to change city · Double-click for Weather app';
+      wx.addEventListener('click', function (e) {
+        if (e.detail > 1) return;
+        wxIdx = (wxIdx + 1) % wxCities.length;
+        var c = wxCities[wxIdx];
+        var city = wx.querySelector('.widget-wx-city');
+        var cond = wx.querySelector('.widget-wx-cond');
+        var temp = wx.querySelector('.widget-wx-temp');
+        var hl = wx.querySelector('.widget-wx-hl');
+        if (city) city.textContent = c.city;
+        if (cond) cond.textContent = c.cond;
+        if (temp) temp.textContent = c.temp;
+        if (hl) hl.textContent = c.hl;
+        if (global.MacSounds && MacSounds.play) MacSounds.play('pop');
+      });
+    }
+
+    // Music widget controls
+    var music = root.querySelector('.widget-music');
+    if (music) {
+      var playing = false;
+      var playEl = music.querySelector('.play, .widget-music-controls .play, .widget-music-controls span:nth-child(2)');
+      var controls = music.querySelector('.widget-music-controls');
+      if (controls) {
+        controls.setAttribute('aria-hidden', 'false');
+        controls.style.pointerEvents = 'auto';
+        controls.style.cursor = 'default';
+        $$('span', controls).forEach(function (span, i) {
+          span.style.cursor = 'pointer';
+          span.addEventListener('click', function (e) {
+            e.stopPropagation();
+            if (i === 1 || span.classList.contains('play')) {
+              playing = !playing;
+              span.textContent = playing ? '❚❚' : '▶';
+              if (global.MacSounds && MacSounds.play) MacSounds.play(playing ? 'funk' : 'pop');
+            } else {
+              if (global.MacSounds && MacSounds.play) MacSounds.play('tink');
+              var title = music.querySelector('.widget-music-title');
+              var tracks = ['Liquid Glass', 'Neon Rain', 'Soft Static', 'Harbor Lights'];
+              if (title) title.textContent = tracks[Math.floor(Math.random() * tracks.length)];
+            }
+          });
+        });
+      }
+      music.addEventListener('click', function (e) {
+        if (e.target.closest('.widget-music-controls')) return;
+        // single click selects feel
+      });
+    }
+
+    // Calendar widget click selects event / opens on dblclick already
+    var cal = root.querySelector('.widget-calendar');
+    if (cal) {
+      $$('.widget-event', cal).forEach(function (ev) {
+        ev.style.cursor = 'pointer';
+        ev.addEventListener('click', function (e) {
+          e.stopPropagation();
+          $$('.widget-event', cal).forEach(function (x) {
+            x.classList.remove('is-selected');
+          });
+          ev.classList.add('is-selected');
+          if (global.MacSounds && MacSounds.play) MacSounds.play('tink');
+        });
+      });
+    }
   }
 
   /* ── Appearance (Light / Dark / Auto) ──────────────── */
@@ -348,11 +495,16 @@
     var list = $('#notification-list');
     if (!list) return;
     // Remove empty state
-    var empty = list.querySelector('.muted');
-    if (empty && list.children.length === 1) list.innerHTML = '';
+    var empty = list.querySelector('.nc-empty, .muted');
+    if (empty && !empty.classList.contains('notification-message')) {
+      if (list.querySelector('.nc-empty') || (list.children.length === 1 && empty.classList.contains('muted'))) {
+        list.innerHTML = '';
+      }
+    }
     var card = document.createElement('div');
-    card.className = 'notification-card';
+    card.className = 'notification-card is-new';
     card.innerHTML =
+      '<button type="button" class="notification-dismiss" aria-label="Dismiss">✕</button>' +
       '<div class="notification-icon">💻</div>' +
       '<div class="notification-body">' +
       '<div class="notification-app">' + escapeHtml(app || 'macOS') + '</div>' +
@@ -361,6 +513,29 @@
       '<div class="notification-time">' + escapeHtml(time || 'now') + '</div>' +
       '</div>';
     list.insertBefore(card, list.firstChild);
+    var dismiss = card.querySelector('.notification-dismiss');
+    if (dismiss) {
+      dismiss.addEventListener('click', function (e) {
+        e.stopPropagation();
+        card.remove();
+        if (!list.children.length) {
+          list.innerHTML = '<p class="muted nc-empty" style="padding:16px">No Notifications</p>';
+        }
+        if (global.MacSounds && MacSounds.play) MacSounds.play('pop');
+      });
+    }
+    card.addEventListener('click', function () {
+      card.classList.remove('is-new');
+    });
+    // Cap list length
+    while (list.querySelectorAll('.notification-card').length > 12) {
+      var last = list.querySelector('.notification-card:last-child');
+      if (last) last.remove();
+      else break;
+    }
+    setTimeout(function () {
+      card.classList.remove('is-new');
+    }, 4000);
   }
 
   /* ── Overlay helpers (CSS uses .is-open + aria-hidden) ─ */
@@ -1846,7 +2021,7 @@
     if (desktop) desktop.addEventListener('contextmenu', onContext);
     if (widgets) widgets.addEventListener('contextmenu', onContext);
 
-    // Widget double-click opens related apps
+    // Widget double-click opens related apps; single-click interactions
     if (widgets) {
       widgets.addEventListener('dblclick', function (e) {
         var w = e.target.closest('[data-widget]');
@@ -1856,8 +2031,16 @@
         else if (kind === 'weather') openApp('weather');
         else if (kind === 'calendar') openApp('calendar');
         else if (kind === 'music') openApp('music');
+        if (global.MacSounds && MacSounds.play) MacSounds.play('pop');
       });
+      wireDesktopWidgets(widgets);
     }
+
+    // Battery: click shows status; slow drain simulation
+    wireBattery();
+
+    // Notification dismiss on sample cards
+    wireNotificationList();
 
     // Sync wallpaper index from current background if set in CSS
     if (wallpaper) {
