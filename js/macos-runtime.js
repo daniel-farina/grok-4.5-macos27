@@ -2736,6 +2736,349 @@
     apply();
   }
 
+  /* ── GarageBand ─────────────────────────────────────── */
+  function wireGarageBand(el) {
+    if (!el || el.dataset.wired) return;
+    el.dataset.wired = '1';
+    var playing = false;
+    var beat = 0;
+    var timer = null;
+    var timeEl = el.querySelector('#gb-time');
+    var play = el.querySelector('#gb-play');
+    var stop = el.querySelector('#gb-stop');
+    function setPlay(on) {
+      playing = on;
+      if (play) play.textContent = on ? '❚❚ Pause' : '▶ Play';
+      clearInterval(timer);
+      if (on) {
+        sound('funk');
+        timer = setInterval(function () {
+          beat++;
+          var bar = 1 + Math.floor(beat / 4);
+          var b = 1 + (beat % 4);
+          if (timeEl) timeEl.textContent = bar + '.' + b + '.1';
+          if (beat % 4 === 0) sound('tink');
+        }, 350);
+      } else sound('pop');
+    }
+    if (play) play.addEventListener('click', function () { setPlay(!playing); });
+    if (stop) {
+      stop.addEventListener('click', function () {
+        beat = 0;
+        setPlay(false);
+        if (timeEl) timeEl.textContent = '1.1.1';
+      });
+    }
+    el.querySelectorAll('.gb-mute').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        btn.classList.toggle('is-on');
+        btn.closest('.gb-track').classList.toggle('is-muted');
+        sound('tink');
+      });
+    });
+    el.querySelectorAll('.gb-solo').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        btn.classList.toggle('is-on');
+        sound('pop');
+      });
+    });
+    el.querySelectorAll('.gb-key').forEach(function (key) {
+      key.addEventListener('click', function () {
+        sound('volume');
+        key.classList.add('is-down');
+        setTimeout(function () {
+          key.classList.remove('is-down');
+        }, 120);
+      });
+    });
+  }
+
+  /* ── iMovie ─────────────────────────────────────────── */
+  function wireIMovie(el) {
+    if (!el || el.dataset.wired) return;
+    el.dataset.wired = '1';
+    var track = el.querySelector('#im-tl-track');
+    var playhead = el.querySelector('#im-playhead');
+    var preview = el.querySelector('#im-preview .im-frame');
+    var playing = false;
+    var pos = 0;
+    var timer = null;
+    el.querySelectorAll('.im-clip').forEach(function (clip) {
+      clip.addEventListener('click', function () {
+        if (!track) return;
+        var c = document.createElement('div');
+        c.className = 'im-tl-clip';
+        c.style.backgroundImage = 'url(' + clip.querySelector('img').src + ')';
+        c.textContent = clip.querySelector('span').textContent;
+        track.appendChild(c);
+        if (preview) {
+          preview.style.backgroundImage = 'url(' + clip.querySelector('img').src + ')';
+          preview.style.backgroundSize = 'cover';
+          preview.textContent = '';
+        }
+        sound('pop');
+      });
+    });
+    var play = el.querySelector('#im-play');
+    if (play) {
+      play.addEventListener('click', function () {
+        playing = !playing;
+        play.textContent = playing ? '❚❚ Pause' : '▶ Play';
+        sound(playing ? 'funk' : 'pop');
+        clearInterval(timer);
+        if (playing) {
+          timer = setInterval(function () {
+            pos = (pos + 2) % 100;
+            if (playhead) playhead.style.left = pos + '%';
+          }, 80);
+        }
+      });
+    }
+    var exp = el.querySelector('#im-export');
+    if (exp) {
+      exp.addEventListener('click', function () {
+        sound('hero');
+        if (global.MacShell && MacShell.notify) {
+          MacShell.notify('iMovie', 'Share', 'Exported movie to Desktop (demo)', 'now');
+        }
+      });
+    }
+  }
+
+  /* ── Font Book ──────────────────────────────────────── */
+  function wireFontBook(el) {
+    if (!el || el.dataset.wired) return;
+    el.dataset.wired = '1';
+    var preview = el.querySelector('#fb-preview');
+    var name = el.querySelector('#fb-name');
+    el.querySelectorAll('.fb-font').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        el.querySelectorAll('.fb-font').forEach(function (b) {
+          b.classList.remove('active');
+        });
+        btn.classList.add('active');
+        var font = btn.getAttribute('data-font') || 'SF Pro';
+        var sample = btn.getAttribute('data-sample') || 'Sample';
+        if (name) name.textContent = font;
+        if (preview) {
+          preview.style.fontFamily = font === 'Menlo' ? 'Menlo, monospace' : font === 'Georgia' ? 'Georgia, serif' : font === 'New York' ? 'Georgia, serif' : '-apple-system, "' + font + '", system-ui, sans-serif';
+          preview.textContent = sample + ' — The quick brown fox jumps over the lazy dog 0123456789';
+        }
+        sound('pop');
+      });
+    });
+    el.querySelectorAll('.fb-size').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        if (preview) preview.style.fontSize = btn.getAttribute('data-size') + 'px';
+        sound('tink');
+      });
+    });
+  }
+
+  /* ── Journal ────────────────────────────────────────── */
+  function wireJournal(el) {
+    if (!el || el.dataset.wired) return;
+    el.dataset.wired = '1';
+    var entries = [
+      { t: 'July 17, 2026', body: 'Built a virtual Mac today with Liquid Glass chrome and interactive apps. Feeling productive.' },
+      { t: 'July 14, 2026', body: 'Beautiful golden hour walk. Captured ideas for the demo desktop.' },
+    ];
+    var title = el.querySelector('#journal-title');
+    var text = el.querySelector('#journal-text');
+    var list = el.querySelector('#journal-list');
+    function show(i) {
+      var e = entries[i] || entries[0];
+      if (title) title.value = e.t;
+      if (text) text.value = e.body;
+      el.querySelectorAll('.journal-item').forEach(function (item, j) {
+        item.classList.toggle('is-active', j === i);
+      });
+      sound('pop');
+    }
+    el.querySelectorAll('.journal-item').forEach(function (item) {
+      item.addEventListener('click', function () {
+        show(parseInt(item.getAttribute('data-j'), 10) || 0);
+      });
+    });
+    if (title) {
+      title.addEventListener('input', function () {
+        var active = el.querySelector('.journal-item.is-active');
+        if (active) {
+          var s = active.querySelector('strong');
+          if (s) s.textContent = title.value;
+          var idx = parseInt(active.getAttribute('data-j'), 10);
+          if (entries[idx]) entries[idx].t = title.value;
+        }
+      });
+    }
+    if (text) {
+      text.addEventListener('input', function () {
+        var active = el.querySelector('.journal-item.is-active');
+        if (active) {
+          var m = active.querySelector('.muted');
+          if (m) m.textContent = text.value.slice(0, 40) + (text.value.length > 40 ? '…' : '');
+          var idx = parseInt(active.getAttribute('data-j'), 10);
+          if (entries[idx]) entries[idx].body = text.value;
+        }
+      });
+    }
+    var neu = el.querySelector('#journal-new');
+    if (neu && list) {
+      neu.addEventListener('click', function () {
+        var d = new Date();
+        var t =
+          d.toLocaleString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+        entries.unshift({ t: t, body: '' });
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'journal-item is-active';
+        btn.setAttribute('data-j', '0');
+        btn.innerHTML = '<strong></strong><span class="muted">New entry…</span>';
+        btn.querySelector('strong').textContent = t;
+        el.querySelectorAll('.journal-item').forEach(function (item, i) {
+          item.classList.remove('is-active');
+          item.setAttribute('data-j', String(i + 1));
+        });
+        list.insertBefore(btn, list.firstChild);
+        btn.addEventListener('click', function () {
+          show(0);
+        });
+        show(0);
+        if (text) text.focus();
+        sound('hero');
+      });
+    }
+  }
+
+  /* ── Games ──────────────────────────────────────────── */
+  function wireGames(el) {
+    if (!el || el.dataset.wired) return;
+    el.dataset.wired = '1';
+    el.querySelectorAll('.game-card').forEach(function (card) {
+      card.addEventListener('click', function () {
+        var name = card.getAttribute('data-game') || 'Game';
+        sound('funk');
+        if (name === 'Chess' && global.MacShell && MacShell.openApp) {
+          MacShell.openApp('chess');
+          return;
+        }
+        if (global.MacShell && MacShell.notify) {
+          MacShell.notify('Games', 'Launching', name + ' (demo)', 'now');
+        }
+      });
+    });
+  }
+
+  /* ── System Information ─────────────────────────────── */
+  function wireSystemInfo(el) {
+    if (!el || el.dataset.wired) return;
+    el.dataset.wired = '1';
+    var panes = {
+      overview: [
+        ['Model Name', 'Virtual Mac'],
+        ['Chip', 'Apple Silicon (sim)'],
+        ['Memory', (navigator.deviceMemory || 16) + ' GB'],
+        ['macOS', '27.0 (Liquid Glass)'],
+        ['Browser', navigator.userAgent.split(' ').slice(-1)[0] || 'Web'],
+      ],
+      display: [
+        ['Resolution', screen.width + ' × ' + screen.height],
+        ['Color Profile', 'sRGB'],
+        ['Pixel Ratio', String(window.devicePixelRatio || 1)],
+      ],
+      storage: [
+        ['Macintosh HD', '1 TB APFS'],
+        ['Available', '494 GB'],
+        ['Used', '530 GB'],
+      ],
+      network: [
+        ['Wi‑Fi', 'Home Network'],
+        ['Online', navigator.onLine ? 'Yes' : 'No'],
+        ['Language', navigator.language || 'en-US'],
+      ],
+    };
+    el.querySelectorAll('.si-nav').forEach(function (nav) {
+      nav.addEventListener('click', function () {
+        el.querySelectorAll('.si-nav').forEach(function (n) {
+          n.classList.remove('active');
+        });
+        nav.classList.add('active');
+        var key = nav.getAttribute('data-si');
+        var rows = panes[key] || panes.overview;
+        var host = el.querySelector('#si-rows');
+        var title = el.querySelector('#si-title');
+        if (title) title.textContent = nav.textContent;
+        if (host) {
+          host.innerHTML = rows
+            .map(function (r) {
+              return (
+                '<div class="settings-row"><span>' +
+                r[0] +
+                '</span><strong>' +
+                r[1] +
+                '</strong></div>'
+              );
+            })
+            .join('');
+        }
+        sound('pop');
+      });
+    });
+  }
+
+  /* ── Print Center ───────────────────────────────────── */
+  function wirePrintCenter(el) {
+    if (!el || el.dataset.wired) return;
+    el.dataset.wired = '1';
+    el.querySelectorAll('.pc-printer').forEach(function (p) {
+      p.addEventListener('click', function () {
+        el.querySelectorAll('.pc-printer').forEach(function (x) {
+          x.classList.remove('is-selected');
+        });
+        p.classList.add('is-selected');
+        sound('pop');
+      });
+    });
+    var jobs = el.querySelector('#pc-jobs');
+    var add = el.querySelector('#pc-add');
+    if (add && jobs) {
+      add.addEventListener('click', function () {
+        if (jobs.querySelector('.muted')) jobs.innerHTML = '';
+        var row = document.createElement('div');
+        row.className = 'pc-job';
+        row.innerHTML =
+          '<strong>Document.pdf</strong><span class="muted">Queued · 2 pages</span><button type="button" class="btn-glass pc-job-del">✕</button>';
+        jobs.appendChild(row);
+        row.querySelector('.pc-job-del').addEventListener('click', function () {
+          row.remove();
+          sound('emptyTrash');
+        });
+        sound('hero');
+      });
+    }
+    var del = el.querySelector('#pc-delete');
+    if (del && jobs) {
+      del.addEventListener('click', function () {
+        var job = jobs.querySelector('.pc-job');
+        if (job) {
+          job.remove();
+          sound('emptyTrash');
+        }
+      });
+    }
+    var resume = el.querySelector('#pc-resume');
+    if (resume) {
+      resume.addEventListener('click', function () {
+        sound('tink');
+        if (global.MacShell && MacShell.notify) {
+          MacShell.notify('Print Center', 'Printer', 'Queue resumed', 'now');
+        }
+      });
+    }
+  }
+
   /* ── Activity Monitor live meters ───────────────────── */
   function wireActivityMonitorLive(el) {
     if (!el || el.dataset.live) return;
@@ -3087,6 +3430,13 @@
         if (id === 'passwords') wirePasswords(body);
         if (id === 'console') wireConsole(body);
         if (id === 'magnifier') wireMagnifier(body);
+        if (id === 'garageband') wireGarageBand(body);
+        if (id === 'imovie') wireIMovie(body);
+        if (id === 'font-book') wireFontBook(body);
+        if (id === 'journal') wireJournal(body);
+        if (id === 'games') wireGames(body);
+        if (id === 'system-information') wireSystemInfo(body);
+        if (id === 'print-center') wirePrintCenter(body);
         if (id === 'system-settings') {
           wireSoundButtons(body);
           enhanceSoundPane(body);

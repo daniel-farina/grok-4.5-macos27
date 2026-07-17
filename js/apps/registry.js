@@ -4835,6 +4835,229 @@ return theGreeting</textarea>
     };
   }
 
+  if (APPS.garageband) {
+    APPS.garageband.width = 900;
+    APPS.garageband.height = 560;
+    APPS.garageband.open = function () {
+      const tracks = ['Drums', 'Bass', 'Piano', 'Synth', 'Guitar'];
+      return `<div class="app-layout col gb-app" id="garageband-app">
+        ${toolbar(`<strong>GarageBand</strong>
+          <button type="button" class="btn-primary" id="gb-play">▶ Play</button>
+          <button type="button" class="btn-glass" id="gb-stop">■</button>
+          <span class="muted" id="gb-time">1.1.1</span>`)}
+        <div class="gb-tracks">
+          ${tracks
+            .map(
+              (t, i) =>
+                `<div class="gb-track" data-track="${t}">
+                  <div class="gb-track-head">
+                    <button type="button" class="gb-mute" title="Mute">M</button>
+                    <button type="button" class="gb-solo" title="Solo">S</button>
+                    <strong>${t}</strong>
+                  </div>
+                  <div class="gb-lane"><div class="gb-region" style="left:${10 + i * 8}%;width:${28 + i * 6}%"></div></div>
+                </div>`
+            )
+            .join('')}
+        </div>
+        <div class="gb-keys" id="gb-keys">
+          ${['C', 'D', 'E', 'F', 'G', 'A', 'B', 'C']
+            .map((n, i) => `<button type="button" class="gb-key" data-note="${i}">${n}</button>`)
+            .join('')}
+        </div>
+      </div>`;
+    };
+  }
+
+  if (APPS.imovie) {
+    APPS.imovie.width = 960;
+    APPS.imovie.height = 600;
+    APPS.imovie.open = function () {
+      return `<div class="app-layout col imovie-app" id="imovie-app">
+        ${toolbar(`<strong>iMovie</strong>
+          <button type="button" class="btn-primary" id="im-play">▶ Play</button>
+          <button type="button" class="btn-glass" id="im-export">Share</button>`)}
+        <div class="im-preview" id="im-preview">
+          <div class="im-frame">Preview · Timeline clip</div>
+        </div>
+        <div class="im-library">
+          ${[1, 2, 3, 4, 5, 6]
+            .map(
+              (i) =>
+                `<button type="button" class="im-clip" data-clip="${i}" style="--h:${i * 45}">
+                  <img src="assets/photos/funny/funny-0${i}.jpg" alt="" />
+                  <span>Clip ${i}</span>
+                </button>`
+            )
+            .join('')}
+        </div>
+        <div class="im-timeline" id="im-timeline">
+          <div class="im-playhead" id="im-playhead"></div>
+          <div class="im-tl-track" id="im-tl-track"></div>
+        </div>
+      </div>`;
+    };
+  }
+
+  if (APPS['font-book']) {
+    APPS['font-book'].width = 800;
+    APPS['font-book'].height = 520;
+    APPS['font-book'].open = function () {
+      const fonts = [
+        { n: 'SF Pro', s: 'System · 12 styles', sample: 'The quick brown fox' },
+        { n: 'New York', s: 'System · 8 styles', sample: 'Editorial elegance' },
+        { n: 'Helvetica Neue', s: 'System', sample: 'Clean sans-serif' },
+        { n: 'Avenir Next', s: 'System', sample: 'Geometric clarity' },
+        { n: 'Menlo', s: 'Monospace', sample: 'code { font-family }' },
+        { n: 'Georgia', s: 'Serif', sample: 'Long-form reading' },
+      ];
+      return `<div class="app-layout fontbook-app" id="font-book-app">
+        <aside class="app-sidebar">
+          ${fonts
+            .map(
+              (f, i) =>
+                `<button type="button" class="app-sidebar-item fb-font ${i === 0 ? 'active' : ''}" data-font="${f.n}" data-sample="${f.sample}">${f.n}<span class="muted" style="display:block;font-size:11px">${f.s}</span></button>`
+            )
+            .join('')}
+        </aside>
+        <div class="app-main">
+          ${toolbar(`<strong id="fb-name">SF Pro</strong>`)}
+          <div class="fb-preview" id="fb-preview" contenteditable="true">The quick brown fox jumps over the lazy dog</div>
+          <div class="fb-sizes">
+            ${[12, 18, 24, 36, 48, 64]
+              .map((s) => `<button type="button" class="btn-glass fb-size" data-size="${s}">${s}</button>`)
+              .join('')}
+          </div>
+        </div>
+      </div>`;
+    };
+  }
+
+  if (APPS.journal) {
+    APPS.journal.width = 720;
+    APPS.journal.height = 560;
+    APPS.journal.open = function () {
+      return `<div class="app-layout col journal-app" id="journal-app">
+        ${toolbar(`<strong>Journal</strong>
+          <button type="button" class="btn-primary" id="journal-new">New Entry</button>`)}
+        <div class="journal-body">
+          <div class="journal-list" id="journal-list">
+            <button type="button" class="journal-item is-active" data-j="0"><strong>July 17, 2026</strong><span class="muted">Built a virtual Mac today…</span></button>
+            <button type="button" class="journal-item" data-j="1"><strong>July 14, 2026</strong><span class="muted">Beautiful golden hour walk</span></button>
+          </div>
+          <div class="journal-editor">
+            <input class="journal-title" id="journal-title" value="July 17, 2026" />
+            <textarea class="journal-text" id="journal-text">Built a virtual Mac today with Liquid Glass chrome and interactive apps. Feeling productive.</textarea>
+          </div>
+        </div>
+      </div>`;
+    };
+  }
+
+  if (APPS.games) {
+    APPS.games.width = 880;
+    APPS.games.height = 560;
+    APPS.games.open = function () {
+      const games = [
+        { t: 'Hello Kitty Island Adventure', m: 'Arcade' },
+        { t: 'Sonic Dream Team', m: 'Arcade' },
+        { t: 'NBA 2K', m: 'Installed' },
+        { t: 'Chess', m: 'Apple' },
+        { t: 'Retro Racer', m: 'Arcade' },
+        { t: 'Puzzle Garden', m: 'Casual' },
+      ];
+      return `<div class="app-layout col games-app" id="games-app">
+        ${toolbar(`<strong>Games</strong>`)}
+        <div class="games-grid">
+          ${games
+            .map(
+              (g, i) =>
+                `<button type="button" class="game-card" data-game="${g.t}" style="--h:${i * 50}">
+                  <div class="game-art"></div>
+                  <strong>${g.t}</strong>
+                  <span class="muted">${g.m}</span>
+                  <span class="btn-get game-play">Play</span>
+                </button>`
+            )
+            .join('')}
+        </div>
+      </div>`;
+    };
+  }
+
+  if (APPS['system-information']) {
+    APPS['system-information'].width = 720;
+    APPS['system-information'].height = 520;
+    APPS['system-information'].open = function () {
+      const panes = {
+        overview: [
+          ['Model Name', 'Virtual Mac'],
+          ['Chip', 'Apple Silicon (sim)'],
+          ['Memory', (navigator.deviceMemory || 16) + ' GB'],
+          ['macOS', '27.0 (Liquid Glass)'],
+        ],
+        display: [
+          ['Resolution', screen.width + ' × ' + screen.height],
+          ['Color Profile', 'sRGB'],
+          ['Refresh', '60 Hz (sim)'],
+        ],
+        storage: [
+          ['Macintosh HD', '1 TB APFS'],
+          ['Available', '494 GB'],
+          ['Used', '530 GB'],
+        ],
+        network: [
+          ['Wi‑Fi', 'Home Network'],
+          ['IP Address', '192.168.1.42 (sim)'],
+          ['MAC', '00:1C:B3:xx:xx:xx'],
+        ],
+      };
+      return `<div class="app-layout sysinfo-app" id="system-information-app">
+        <aside class="app-sidebar">
+          ${['overview', 'display', 'storage', 'network']
+            .map(
+              (p, i) =>
+                `<button type="button" class="app-sidebar-item si-nav ${i === 0 ? 'active' : ''}" data-si="${p}">${p[0].toUpperCase() + p.slice(1)}</button>`
+            )
+            .join('')}
+        </aside>
+        <div class="app-main">
+          ${toolbar(`<strong id="si-title">Overview</strong>`)}
+          <div class="si-rows" id="si-rows">
+            ${panes.overview
+              .map(
+                ([k, v]) =>
+                  `<div class="settings-row"><span>${k}</span><strong>${v}</strong></div>`
+              )
+              .join('')}
+          </div>
+        </div>
+      </div>`;
+    };
+    // stash panes on open via data attribute for runtime
+    APPS['system-information']._panes = true;
+  }
+
+  if (APPS['print-center']) {
+    APPS['print-center'].open = function () {
+      return `<div class="app-layout col" id="print-center-app">
+        ${toolbar(`<strong>Print Center</strong>
+          <button type="button" class="btn-glass" id="pc-resume">Resume</button>
+          <button type="button" class="btn-glass" id="pc-delete">Delete Job</button>`)}
+        <div class="pc-list">
+          <button type="button" class="pc-printer is-selected" data-printer="Studio Display"><strong>Studio Display</strong><span class="muted">Idle</span></button>
+          <button type="button" class="pc-printer" data-printer="AirPrint Office"><strong>AirPrint Office</strong><span class="muted">Offline</span></button>
+        </div>
+        <div class="pc-jobs" id="pc-jobs">
+          <div class="muted center" style="padding:24px">No print jobs</div>
+        </div>
+        <div style="padding:12px;text-align:center">
+          <button type="button" class="btn-primary" id="pc-add">+ Add Sample Job</button>
+        </div>
+      </div>`;
+    };
+  }
+
   if (APPS['digital-color-meter']) {
     APPS['digital-color-meter'].open = function () {
       return `<div class="app-layout col" id="dcm-app">
