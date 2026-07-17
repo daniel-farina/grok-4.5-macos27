@@ -13,6 +13,7 @@ Public commits track multi-minute interactive work on this virtual macOS 27 desk
 See `docs/LOOP_PRACTICE.md` for why we commit every loop.
 
 ### 2026-07-17 / 18 (loop demo)
+- App Store hero; FaceTime link; Stocks add; Contacts delete; Keynote Play slideshow
 - Finder Get Info/Duplicate; Clock add alarm; Shortcuts create; GarageBand metro/record
 - Passwords generate; Console export; Chess flip/AI; Calculator memory; Print Center
 - News save/share; Games high scores; iMovie timeline edit; Books progress; Tips apps

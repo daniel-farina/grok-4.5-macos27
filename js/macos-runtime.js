@@ -3362,6 +3362,27 @@
         });
       });
     }
+    /* New FaceTime link / leave message */
+    if (!el.querySelector('#ft-link')) {
+      var bar = el.querySelector('.ft-toolbar, .ft-actions, .facetime-app') || el;
+      var link = document.createElement('button');
+      link.type = 'button';
+      link.className = 'btn-glass';
+      link.id = 'ft-link';
+      link.textContent = 'Create Link';
+      link.style.cssText = 'margin:8px';
+      bar.appendChild(link);
+      link.addEventListener('click', function () {
+        var url = 'https://facetime.example.com/join/' + Math.random().toString(36).slice(2, 10);
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(url).catch(function () {});
+        }
+        sound('hero');
+        if (global.MacShell && MacShell.notify) {
+          MacShell.notify('FaceTime', 'Link copied', url, 'now');
+        }
+      });
+    }
   }
 
   /* ── TextEdit ───────────────────────────────────────── */
@@ -3796,6 +3817,27 @@
       ctSearch.addEventListener('input', filterContacts);
       ctSearch.addEventListener('search', filterContacts);
     }
+
+    /* Delete selected contact */
+    if (!el.querySelector('#ct-delete')) {
+      var tb = el.querySelector('.ct27-tb-left, .ct27-toolbar') || el;
+      var del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'ct27-icon-btn';
+      del.id = 'ct-delete';
+      del.title = 'Delete';
+      del.textContent = '⌫';
+      tb.appendChild(del);
+      del.addEventListener('click', function () {
+        var sel = el.querySelector('.ct27-row.active, .ct27-row.is-selected');
+        if (!sel) {
+          sound('sosumi');
+          return;
+        }
+        sel.remove();
+        sound('emptyTrash');
+      });
+    }
   }
 
   /* ── Stocks range chips + mild live tick ────────────── */
@@ -3891,6 +3933,53 @@
         }
       }
     }, 3200);
+    /* Add symbol to watchlist */
+    if (!el.querySelector('#stock-add')) {
+      var tb = el.querySelector('.stocks-toolbar') || el;
+      var add = document.createElement('button');
+      add.type = 'button';
+      add.className = 'btn-glass';
+      add.id = 'stock-add';
+      add.textContent = '+';
+      add.title = 'Add symbol';
+      add.style.cssText = 'margin-left:6px;min-width:28px';
+      tb.appendChild(add);
+      add.addEventListener('click', function () {
+        var list = el.querySelector('.stocks-list');
+        if (!list) return;
+        var symbols = ['NFLX', 'AMD', 'INTC', 'DIS', 'BA'];
+        var sym = symbols[Math.floor(Math.random() * symbols.length)];
+        if (list.querySelector('[data-sym="' + sym + '"]')) sym = 'DEMO';
+        var price = (50 + Math.random() * 400).toFixed(2);
+        var up = Math.random() > 0.5;
+        var row = document.createElement('div');
+        row.className = 'stock-row';
+        row.setAttribute('data-sym', sym);
+        row.setAttribute('data-up', up ? '1' : '0');
+        row.setAttribute('data-price', price);
+        row.setAttribute('data-change', (up ? '+' : '−') + (Math.random() * 2).toFixed(2) + '%');
+        row.setAttribute('data-name', sym + ' Inc.');
+        row.innerHTML =
+          '<div><div class="stock-sym"></div><div class="stock-name"></div></div>' +
+          '<div class="stock-price"></div>' +
+          '<div class="stock-change ' +
+          (up ? 'up' : 'down') +
+          '"></div>';
+        row.querySelector('.stock-sym').textContent = sym;
+        row.querySelector('.stock-name').textContent = sym + ' Inc.';
+        row.querySelector('.stock-price').textContent = price;
+        row.querySelector('.stock-change').textContent = row.getAttribute('data-change');
+        list.appendChild(row);
+        row.addEventListener('click', function () {
+          el.querySelectorAll('.stock-row').forEach(function (r) {
+            r.classList.remove('is-selected');
+          });
+          row.classList.add('is-selected');
+          sound('pop');
+        });
+        sound('hero');
+      });
+    }
   }
 
   /* ── Phone dialer ───────────────────────────────────── */
@@ -4432,12 +4521,47 @@
     if (search) {
       search.addEventListener('input', function () {
         var q = search.value.toLowerCase();
-        el.querySelectorAll('.store-row, .game-card').forEach(function (row) {
+        el.querySelectorAll('.store-row, .game-card, .store-card').forEach(function (row) {
           var t = (row.textContent || '').toLowerCase();
           row.style.display = !q || t.indexOf(q) >= 0 ? '' : 'none';
         });
       });
     }
+    /* Featured hero GET */
+    el.querySelectorAll('.store-hero .btn-primary, .store-hero .btn-get').forEach(function (btn) {
+      if (btn.dataset.storeHero) return;
+      btn.dataset.storeHero = '1';
+      btn.addEventListener('click', function () {
+        if (btn.textContent === 'OPEN' || btn.classList.contains('is-installed')) {
+          sound('pop');
+          if (global.MacShell && MacShell.openApp) MacShell.openApp('freeform');
+          return;
+        }
+        btn.textContent = '…';
+        sound('pop');
+        var n = 0;
+        var t = setInterval(function () {
+          n += 25;
+          btn.textContent = n + '%';
+          if (n >= 100) {
+            clearInterval(t);
+            btn.textContent = 'OPEN';
+            btn.classList.add('is-installed');
+            sound('hero');
+          }
+        }, 200);
+      });
+    });
+    /* Story / see all links */
+    el.querySelectorAll('.store-see-all, .store-link, a.store-more').forEach(function (link) {
+      link.addEventListener('click', function (e) {
+        e.preventDefault();
+        sound('tink');
+        if (global.MacShell && MacShell.notify) {
+          MacShell.notify('App Store', 'Browse', link.textContent.trim() || 'More apps', 'now');
+        }
+      });
+    });
   }
 
   /* ── Activity Monitor: select process + tabs ────────── */
@@ -6262,8 +6386,26 @@
       });
     }
 
-    /* Keynote slides */
+    /* Keynote slides + Play */
     var knSlide = 0;
+    var knSlides = el.querySelectorAll('.kn27-slide, .keynote-slide, [data-slide]');
+    function showKnSlide(i) {
+      knSlides = el.querySelectorAll('.kn27-slide, .keynote-slide, [data-slide]');
+      if (!knSlides.length) return;
+      knSlide = ((i % knSlides.length) + knSlides.length) % knSlides.length;
+      knSlides.forEach(function (s, j) {
+        s.classList.toggle('active', j === knSlide);
+        s.classList.toggle('is-active', j === knSlide);
+      });
+      var stage = el.querySelector('.kn27-stage, .keynote-stage, .kn27-canvas');
+      var src = knSlides[knSlide];
+      if (stage && src) {
+        var t = src.querySelector('strong, .kn27-title') || src;
+        var label = stage.querySelector('h1, .kn27-stage-title, strong');
+        if (label) label.textContent = t.textContent || 'Slide ' + (knSlide + 1);
+      }
+      sound('tink');
+    }
     el.querySelectorAll('.kn27-slide, .keynote-slide, [data-slide]').forEach(function (slide, i) {
       slide.addEventListener('click', function () {
         el.querySelectorAll('.kn27-slide, .keynote-slide, [data-slide]').forEach(function (s) {
@@ -6306,10 +6448,18 @@
         btn.addEventListener('click', function () {
           sound(label === 'Play' ? 'hero' : 'messageSent');
           if (label === 'Play') {
-            var slides = el.querySelectorAll('.kn27-slide, .keynote-slide, [data-slide]');
-            if (slides.length) {
-              knSlide = (knSlide + 1) % slides.length;
-              slides[knSlide].click();
+            var playing = btn.classList.toggle('is-playing');
+            btn.textContent = playing ? '❚❚' : 'Play';
+            if (el._knIv) clearInterval(el._knIv);
+            if (playing) {
+              showKnSlide(knSlide);
+              el._knIv = setInterval(function () {
+                if (!el.isConnected) {
+                  clearInterval(el._knIv);
+                  return;
+                }
+                showKnSlide(knSlide + 1);
+              }, 2200);
             }
           }
           if (global.MacShell && MacShell.notify) {
