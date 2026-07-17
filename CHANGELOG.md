@@ -13,6 +13,7 @@ Public commits track multi-minute interactive work on this virtual macOS 27 desk
 See `docs/LOOP_PRACTICE.md` for why we commit every loop.
 
 ### 2026-07-17 / 18 (loop demo)
+- Image Capture import; AirPort bases; BT send flow; Weather cities; iWork save; SI copy
 - Freeform export/clear; Stickies persist; Grapher/Automator/Script Editor depth
 - Terminal shell commands expanded; Siri more open-app intents; Books keys; Music seek
 - iPhone Calculator/Calendar/Reminders/Sounds; FaceTime timer; Sidecar Save Sketch

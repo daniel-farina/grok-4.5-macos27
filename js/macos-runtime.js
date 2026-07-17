@@ -3594,30 +3594,51 @@
 
   /* ── Weather: city switch ───────────────────────────── */
   var WX_CITIES = [
-    { city: 'City', temp: 72, cond: 'Partly Cloudy', hi: 78, lo: 58 },
     { city: 'Cupertino', temp: 68, cond: 'Foggy', hi: 72, lo: 54 },
     { city: 'Seattle', temp: 59, cond: 'Light Rain', hi: 62, lo: 50 },
     { city: 'Miami', temp: 86, cond: 'Mostly Sunny', hi: 90, lo: 76 },
     { city: 'Denver', temp: 64, cond: 'Clear', hi: 71, lo: 48 },
+    { city: 'New York', temp: 71, cond: 'Partly Cloudy', hi: 75, lo: 60 },
+    { city: 'Tokyo', temp: 79, cond: 'Humid', hi: 84, lo: 72 },
+    { city: 'London', temp: 61, cond: 'Overcast', hi: 65, lo: 52 },
+    { city: 'Sydney', temp: 70, cond: 'Sunny', hi: 76, lo: 58 },
   ];
   function wireWeather(el) {
     if (!el || el.dataset.wired) return;
     el.dataset.wired = '1';
     var idx = 0;
+    var cities = typeof WX_CITIES !== 'undefined' && WX_CITIES.length
+      ? WX_CITIES
+      : [
+          { city: 'Cupertino', temp: 68, cond: 'Foggy', hi: 72, lo: 55 },
+          { city: 'Seattle', temp: 59, cond: 'Rain', hi: 62, lo: 50 },
+          { city: 'Miami', temp: 86, cond: 'Sunny', hi: 90, lo: 78 },
+          { city: 'Denver', temp: 64, cond: 'Clear', hi: 70, lo: 48 },
+          { city: 'New York', temp: 71, cond: 'Partly Cloudy', hi: 75, lo: 60 },
+          { city: 'Tokyo', temp: 79, cond: 'Humid', hi: 84, lo: 72 },
+          { city: 'London', temp: 61, cond: 'Overcast', hi: 65, lo: 52 },
+        ];
+    function applyCity(c) {
+      var cityEl = el.querySelector('.wx-city');
+      var t = el.querySelector('.wx-temp');
+      var cond = el.querySelector('.wx-cond');
+      var hl = el.querySelector('.wx-hl');
+      if (cityEl) cityEl.textContent = c.city;
+      if (t) t.textContent = c.temp + '°';
+      if (cond) cond.textContent = c.cond;
+      if (hl) hl.textContent = 'H:' + (c.hi || c.temp + 4) + '°  L:' + (c.lo || c.temp - 10) + '°';
+      el.querySelectorAll('.wx-hour, .wx-h').forEach(function (h, i) {
+        var temp = h.querySelector('.wx-h-temp, .temp');
+        if (temp) temp.textContent = c.temp - 2 + (i % 5) + '°';
+      });
+    }
     var cityEl = el.querySelector('.wx-city');
     if (cityEl) {
       cityEl.style.cursor = 'pointer';
       cityEl.title = 'Click to change city';
       cityEl.addEventListener('click', function () {
-        idx = (idx + 1) % WX_CITIES.length;
-        var c = WX_CITIES[idx];
-        cityEl.textContent = c.city;
-        var t = el.querySelector('.wx-temp');
-        var cond = el.querySelector('.wx-cond');
-        var hl = el.querySelector('.wx-hl');
-        if (t) t.textContent = c.temp + '°';
-        if (cond) cond.textContent = c.cond;
-        if (hl) hl.textContent = 'H:' + c.hi + '°  L:' + c.lo + '°';
+        idx = (idx + 1) % cities.length;
+        applyCity(cities[idx]);
         sound('pop');
       });
     }
@@ -3632,6 +3653,18 @@
         var cond = el.querySelector('.wx-cond');
         if (cond && day) cond.textContent = day.textContent + ' forecast';
         sound('tink');
+      });
+    });
+    /* Location list if present */
+    el.querySelectorAll('.wx-loc, [data-wx-city]').forEach(function (loc, i) {
+      loc.addEventListener('click', function () {
+        idx = i % cities.length;
+        applyCity(cities[idx]);
+        el.querySelectorAll('.wx-loc, [data-wx-city]').forEach(function (l) {
+          l.classList.remove('active', 'is-selected');
+        });
+        loc.classList.add('is-selected');
+        sound('pop');
       });
     });
   }
@@ -4184,6 +4217,24 @@
   function wireImageCapture(el) {
     if (!el || el.dataset.wired) return;
     el.dataset.wired = '1';
+    var grid = el.querySelector('.ic-grid, #ic-thumbs, .ic-thumbs') || el;
+    if (!el.querySelector('.ic-thumb')) {
+      var wrap = document.createElement('div');
+      wrap.className = 'ic-grid';
+      wrap.style.cssText = 'display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:12px';
+      for (var i = 1; i <= 8; i++) {
+        var nn = i < 10 ? '0' + i : String(i);
+        var t = document.createElement('button');
+        t.type = 'button';
+        t.className = 'ic-thumb';
+        t.innerHTML =
+          '<img src="assets/photos/funny/funny-' +
+          nn +
+          '.jpg" alt="" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;display:block" />';
+        wrap.appendChild(t);
+      }
+      grid.appendChild(wrap);
+    }
     el.querySelectorAll('.ic-dev').forEach(function (d) {
       d.addEventListener('click', function () {
         el.querySelectorAll('.ic-dev').forEach(function (x) {
@@ -4198,14 +4249,31 @@
         t.classList.toggle('is-selected');
         sound('tink');
       });
+      t.addEventListener('dblclick', function () {
+        t.classList.add('is-selected');
+        var img = t.querySelector('img');
+        if (img) {
+          var a = document.createElement('a');
+          a.href = img.src;
+          a.download = 'import-' + Date.now() + '.jpg';
+          a.click();
+          sound('hero');
+        }
+      });
     });
     var imp = el.querySelector('#ic-import');
     if (imp) {
       imp.addEventListener('click', function () {
-        var n = el.querySelectorAll('.ic-thumb.is-selected').length || el.querySelectorAll('.ic-thumb').length;
+        var sel = el.querySelectorAll('.ic-thumb.is-selected');
+        var n = sel.length || el.querySelectorAll('.ic-thumb').length;
         sound('hero');
         if (global.MacShell && MacShell.notify) {
           MacShell.notify('Image Capture', 'Import', n + ' item(s) imported to Photos (demo)', 'now');
+        }
+        if (global.MacShell && MacShell.openApp) {
+          setTimeout(function () {
+            MacShell.openApp('photos');
+          }, 400);
         }
       });
     }
@@ -4217,6 +4285,23 @@
         });
         sound('emptyTrash');
       });
+    }
+    if (!el.querySelector('#ic-select-all')) {
+      var bar = imp && imp.parentNode;
+      if (bar) {
+        var all = document.createElement('button');
+        all.type = 'button';
+        all.className = 'btn-glass';
+        all.id = 'ic-select-all';
+        all.textContent = 'Select All';
+        bar.insertBefore(all, imp);
+        all.addEventListener('click', function () {
+          el.querySelectorAll('.ic-thumb').forEach(function (t) {
+            t.classList.add('is-selected');
+          });
+          sound('tink');
+        });
+      }
     }
   }
 
@@ -4550,6 +4635,20 @@
     el.dataset.wired = '1';
     var list = el.querySelector('#bt-devices');
     var status = el.querySelector('#bt-status');
+    var selected = null;
+    function wireDevs() {
+      el.querySelectorAll('.bt-dev').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          el.querySelectorAll('.bt-dev').forEach(function (b) {
+            b.classList.remove('is-selected');
+          });
+          btn.classList.add('is-selected');
+          selected = btn.textContent.trim();
+          if (status) status.textContent = 'Selected · ' + selected;
+          sound('pop');
+        });
+      });
+    }
     var browse = el.querySelector('#bt-browse');
     if (browse) {
       browse.addEventListener('click', function () {
@@ -4557,34 +4656,73 @@
           list.innerHTML =
             '<button type="button" class="btn-glass bt-dev">iPhone</button> ' +
             '<button type="button" class="btn-glass bt-dev">Magic Keyboard</button> ' +
-            '<button type="button" class="btn-glass bt-dev">Headphones</button>';
+            '<button type="button" class="btn-glass bt-dev">Headphones</button> ' +
+            '<button type="button" class="btn-glass bt-dev">iPad</button>';
         }
-        if (status) status.textContent = '3 devices found';
+        if (status) status.textContent = '4 devices found · select one';
+        wireDevs();
         sound('tink');
       });
     }
     var send = el.querySelector('#bt-send');
     if (send) {
       send.addEventListener('click', function () {
-        sound('hero');
-        if (status) status.textContent = 'Sending sample file… Done';
-        if (global.MacShell && MacShell.notify) {
-          MacShell.notify('Bluetooth File Exchange', 'Sent', 'Document.pdf', 'now');
+        if (!selected) {
+          sound('sosumi');
+          if (status) status.textContent = 'Select a device first';
+          return;
         }
+        if (status) status.textContent = 'Sending to ' + selected + '…';
+        sound('purr');
+        setTimeout(function () {
+          if (status) status.textContent = 'Sent Document.pdf to ' + selected;
+          sound('hero');
+          if (global.MacShell && MacShell.notify) {
+            MacShell.notify('Bluetooth File Exchange', 'Sent', 'Document.pdf → ' + selected, 'now');
+          }
+        }, 900);
       });
     }
+    wireDevs();
   }
 
   /* ── Boot Camp ──────────────────────────────────────── */
   function wireBootCamp(el) {
     if (!el || el.dataset.wired) return;
     el.dataset.wired = '1';
+    var status = el.querySelector('#bc-status, .bc-status');
     var ok = el.querySelector('#bc-ok');
+    el.querySelectorAll('.bc-option, [data-bc], input[name="bc-os"]').forEach(function (opt) {
+      opt.addEventListener('click', function () {
+        el.querySelectorAll('.bc-option').forEach(function (o) {
+          o.classList.remove('is-selected');
+        });
+        if (opt.classList) opt.classList.add('is-selected');
+        if (status) status.textContent = 'Selected: ' + (opt.textContent || 'Windows').trim().slice(0, 40);
+        sound('pop');
+      });
+    });
+    var start = el.querySelector('#bc-start, #bc-continue');
+    if (start) {
+      start.addEventListener('click', function () {
+        if (status) status.textContent = 'Preparing Assistants… (demo only)';
+        sound('purr');
+        setTimeout(function () {
+          if (status) status.textContent = 'Boot Camp Assistant ready · no disk changes (demo)';
+          sound('hero');
+          if (global.MacShell && MacShell.notify) {
+            MacShell.notify('Boot Camp', 'Ready', 'Demo only — no partition created', 'now');
+          }
+        }, 1200);
+      });
+    }
     if (ok) {
       ok.addEventListener('click', function () {
         sound('pop');
         if (global.WindowManager && WindowManager.closeApp) {
           WindowManager.closeApp('boot-camp');
+        } else if (global.MacShell && MacShell.closeApp) {
+          MacShell.closeApp('boot-camp');
         }
       });
     }
@@ -4596,6 +4734,53 @@
     el.dataset.wired = '1';
     var scan = el.querySelector('#ap-scan') || el.querySelector('.btn-primary');
     var list = el.querySelector('#ap-list');
+    var bases = [
+      { name: 'AirPort Extreme', model: '6th gen', ip: '10.0.1.1', signal: 'Excellent' },
+      { name: 'AirPort Express', model: '2nd gen', ip: '10.0.1.2', signal: 'Good' },
+      { name: 'Time Capsule', model: '3 TB', ip: '10.0.1.3', signal: 'Fair' },
+    ];
+    function wireBaseCards() {
+      el.querySelectorAll('.ap-base').forEach(function (card) {
+        card.addEventListener('click', function () {
+          el.querySelectorAll('.ap-base').forEach(function (c) {
+            c.classList.remove('is-selected');
+          });
+          card.classList.add('is-selected');
+          sound('pop');
+          var detail = el.querySelector('#ap-detail');
+          if (!detail) {
+            detail = document.createElement('div');
+            detail.id = 'ap-detail';
+            detail.className = 'settings-card glass';
+            detail.style.cssText = 'padding:14px;margin:12px auto;max-width:360px;text-align:left';
+            if (list) list.appendChild(detail);
+          }
+          detail.innerHTML =
+            '<strong></strong><p class="muted" style="margin:6px 0"></p>' +
+            '<button type="button" class="btn-primary ap-edit">Edit…</button> ' +
+            '<button type="button" class="btn-glass ap-restart">Restart</button>';
+          detail.querySelector('strong').textContent = card.getAttribute('data-name') || 'Base';
+          detail.querySelector('.muted').textContent =
+            (card.getAttribute('data-model') || '') +
+            ' · ' +
+            (card.getAttribute('data-ip') || '') +
+            ' · ' +
+            (card.getAttribute('data-signal') || '');
+          detail.querySelector('.ap-edit').addEventListener('click', function () {
+            sound('tink');
+            if (global.MacShell && MacShell.notify) {
+              MacShell.notify('AirPort Utility', 'Edit', 'Base station settings (demo)', 'now');
+            }
+          });
+          detail.querySelector('.ap-restart').addEventListener('click', function () {
+            sound('purr');
+            if (global.MacShell && MacShell.notify) {
+              MacShell.notify('AirPort Utility', 'Restarting…', card.getAttribute('data-name') || 'Base', 'now');
+            }
+          });
+        });
+      });
+    }
     if (scan && !scan.dataset.apWired) {
       scan.dataset.apWired = '1';
       scan.addEventListener('click', function () {
@@ -4604,17 +4789,40 @@
         if (list) list.innerHTML = '<p class="muted">Scanning…</p>';
         sound('purr');
         setTimeout(function () {
-          if (status) status.textContent = 'No AirPort base stations found (demo network)';
+          if (status) status.textContent = bases.length + ' base station(s) found';
           if (list) {
-            list.innerHTML =
-              '<div class="settings-card glass" style="padding:14px;text-align:left;max-width:360px;margin:0 auto">' +
-              '<strong>No base stations</strong><p class="muted" style="margin:6px 0 0">Still no AirPort devices on this network (demo).</p></div>';
+            list.innerHTML = bases
+              .map(function (b) {
+                return (
+                  '<button type="button" class="ap-base settings-card glass" style="display:block;width:100%;max-width:360px;margin:8px auto;padding:12px 14px;text-align:left;cursor:pointer" ' +
+                  'data-name="' +
+                  b.name +
+                  '" data-model="' +
+                  b.model +
+                  '" data-ip="' +
+                  b.ip +
+                  '" data-signal="' +
+                  b.signal +
+                  '">' +
+                  '<strong>' +
+                  b.name +
+                  '</strong><div class="muted">' +
+                  b.model +
+                  ' · ' +
+                  b.ip +
+                  ' · ' +
+                  b.signal +
+                  '</div></button>'
+                );
+              })
+              .join('');
+            wireBaseCards();
           }
-          sound('sosumi');
+          sound('hero');
           if (global.MacShell && MacShell.notify) {
-            MacShell.notify('AirPort Utility', 'Scan complete', 'No base stations nearby', 'now');
+            MacShell.notify('AirPort Utility', 'Scan complete', bases.length + ' devices', 'now');
           }
-        }, 1000);
+        }, 900);
       });
     }
   }
@@ -5242,6 +5450,35 @@
         td.classList.add('is-edited');
       });
     });
+    /* Save / export */
+    var iworkId = el.closest('[data-app]')
+      ? el.closest('[data-app]').getAttribute('data-app')
+      : el.className.indexOf('num') >= 0
+        ? 'numbers'
+        : el.className.indexOf('kn') >= 0 || el.className.indexOf('keynote') >= 0
+          ? 'keynote'
+          : 'pages';
+    if (!el.querySelector('#iwork-save')) {
+      var itb = el.querySelector('.iwork27-toolbar, .pages27-tb, .num27-tb, .kn27-tb') || el;
+      var save = document.createElement('button');
+      save.type = 'button';
+      save.className = 'btn-glass';
+      save.id = 'iwork-save';
+      save.textContent = 'Save';
+      save.style.cssText = 'margin-left:8px';
+      itb.appendChild(save);
+      save.addEventListener('click', function () {
+        try {
+          var html = page ? page.innerHTML : el.innerHTML;
+          localStorage.setItem('macos-iwork-' + iworkId, html);
+        } catch (e) {}
+        sound('hero');
+        if (global.MacShell && MacShell.notify) {
+          MacShell.notify(iworkId === 'pages' ? 'Pages' : iworkId === 'numbers' ? 'Numbers' : 'Keynote', 'Saved', 'Document saved (demo)', 'now');
+        }
+      });
+    }
+
     /* Keynote slides */
     var knSlide = 0;
     el.querySelectorAll('.kn27-slide, .keynote-slide, [data-slide]').forEach(function (slide, i) {
@@ -7425,17 +7662,47 @@
         ['Language', nav.language || 'en-US'],
       ],
     };
-    el.querySelectorAll('.si-nav').forEach(function (nav) {
-      nav.addEventListener('click', function () {
+    function reportText() {
+      var lines = ['macOS 27 System Report (demo)', '========================'];
+      Object.keys(panes).forEach(function (k) {
+        lines.push('', '## ' + k);
+        panes[k].forEach(function (row) {
+          lines.push(row[0] + ': ' + row[1]);
+        });
+      });
+      return lines.join('\n');
+    }
+    if (!el.querySelector('#si-copy')) {
+      var bar = el.querySelector('.si-toolbar, .app-toolbar') || el;
+      var copy = document.createElement('button');
+      copy.type = 'button';
+      copy.className = 'btn-glass';
+      copy.id = 'si-copy';
+      copy.textContent = 'Copy Report';
+      copy.style.cssText = 'margin:8px';
+      bar.appendChild(copy);
+      copy.addEventListener('click', function () {
+        var t = reportText();
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(t).catch(function () {});
+        }
+        sound('tink');
+        if (global.MacShell && MacShell.notify) {
+          MacShell.notify('System Information', 'Copied', 'System report on clipboard', 'now');
+        }
+      });
+    }
+    el.querySelectorAll('.si-nav').forEach(function (navItem) {
+      navItem.addEventListener('click', function () {
         el.querySelectorAll('.si-nav').forEach(function (n) {
           n.classList.remove('active');
         });
-        nav.classList.add('active');
-        var key = nav.getAttribute('data-si');
+        navItem.classList.add('active');
+        var key = navItem.getAttribute('data-si');
         var rows = panes[key] || panes.overview;
         var host = el.querySelector('#si-rows');
         var title = el.querySelector('#si-title');
-        if (title) title.textContent = nav.textContent;
+        if (title) title.textContent = navItem.textContent;
         if (host) {
           host.innerHTML = rows
             .map(function (r) {
