@@ -3653,3 +3653,27 @@ html[data-theme='light'] .force-quit-panel {
   justify-content: flex-end;
   gap: 8px;
 }
+
+/* Wi‑Fi offline state */
+#wifi-btn.is-offline {
+  opacity: 0.45;
+}
+#wifi-btn.is-offline svg {
+  opacity: 0.7;
+}
+html.is-offline #wifi-btn::after {
+  content: '';
+  position: absolute;
+  width: 14px;
+  height: 1.5px;
+  background: currentColor;
+  transform: rotate(-45deg);
+  border-radius: 1px;
+}
+
+/* Lock screen uses live wallpaper when set */
+#lock-screen .lock-bg {
+  background-color: #1a1a2e;
+  background-size: cover;
+  background-position: center;
+}

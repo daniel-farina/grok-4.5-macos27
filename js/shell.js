@@ -173,6 +173,30 @@
     if (calDay) calDay.textContent = String(now.getDate());
   }
 
+  function wireNetworkStatus() {
+    var wifiBtn = $('#wifi-btn');
+    function paint() {
+      var online = navigator.onLine !== false;
+      if (wifiBtn) {
+        wifiBtn.classList.toggle('is-offline', !online);
+        wifiBtn.title = online ? 'Wi-Fi · Home Network' : 'Wi-Fi · Offline';
+        wifiBtn.setAttribute('aria-label', online ? 'Wi-Fi connected' : 'Wi-Fi offline');
+      }
+      document.documentElement.classList.toggle('is-offline', !online);
+    }
+    paint();
+    window.addEventListener('online', function () {
+      paint();
+      notify('Network', 'Connected', 'Internet connection restored', 'now');
+      if (global.MacSounds && MacSounds.play) MacSounds.play('hero');
+    });
+    window.addEventListener('offline', function () {
+      paint();
+      notify('Network', 'Offline', 'No internet connection', 'now');
+      if (global.MacSounds && MacSounds.play) MacSounds.play('sosumi');
+    });
+  }
+
   function wireBattery() {
     var btn = $('#menubar-battery');
     var level = $('#battery-level');
@@ -1465,9 +1489,9 @@
         }
         break;
       case 'wallpaper':
-      case 'change-wallpaper':
         openApp('wallpaper');
         break;
+      /* change-wallpaper handled below → cycleWallpaper */
       case 'copy':
       case 'cut':
       case 'paste':
@@ -1578,6 +1602,8 @@
         break;
       case 'change-wallpaper':
         cycleWallpaper();
+        if (global.MacSounds && MacSounds.play) MacSounds.play('pop');
+        notify('Desktop', 'Wallpaper', 'Wallpaper changed', 'now');
         break;
       case 'get-info':
         if (global.WindowManager) {
@@ -1680,8 +1706,15 @@
     ov.id = 'lock-screen';
     ov.setAttribute('role', 'dialog');
     ov.setAttribute('aria-label', mode || 'Lock Screen');
+    var wall = $('#wallpaper');
+    var wallBg = '';
+    if (wall) {
+      wallBg = wall.style.backgroundImage || getComputedStyle(wall).backgroundImage || '';
+    }
     ov.innerHTML =
-      '<div class="lock-bg"></div>' +
+      '<div class="lock-bg" style="' +
+      (wallBg && wallBg !== 'none' ? 'background-image:' + wallBg.replace(/"/g, "'") + ';' : '') +
+      '"></div>' +
       '<div class="lock-content">' +
       '<div class="lock-time" id="lock-time"></div>' +
       '<div class="lock-date" id="lock-date"></div>' +
@@ -2176,6 +2209,7 @@
 
     // Battery: click shows status; slow drain simulation
     wireBattery();
+    wireNetworkStatus();
 
     // Notification dismiss on sample cards
     wireNotificationList();

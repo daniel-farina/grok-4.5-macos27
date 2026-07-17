@@ -2217,6 +2217,52 @@
     }
   }
 
+  /* ── Tips: open related demos ───────────────────────── */
+  function wireTips(el) {
+    if (!el || el.dataset.wired) return;
+    el.dataset.wired = '1';
+    var map = {
+      Spotlight: function () {
+        if (global.MacShell && MacShell.toggleSpotlight) MacShell.toggleSpotlight();
+        else if (global.MacShell && MacShell.showSpotlight) MacShell.showSpotlight();
+      },
+      Launchpad: function () {
+        if (global.MacShell && MacShell.openLaunchpad) MacShell.openLaunchpad();
+      },
+      'Control Center': function () {
+        if (global.MacShell && MacShell.toggleControlCenter) MacShell.toggleControlCenter();
+      },
+      'Lock Screen': function () {
+        if (global.MacShell && MacShell.showLockScreen) MacShell.showLockScreen('Lock Screen');
+      },
+      'Force Quit': function () {
+        if (global.MacShell && MacShell.showForceQuit) MacShell.showForceQuit();
+      },
+      'Stage Manager': function () {
+        if (global.MacShell && MacShell.toggleStageManager) MacShell.toggleStageManager();
+      },
+      Sounds: function () {
+        if (global.MacShell && MacShell.openApp) MacShell.openApp('system-settings');
+      },
+      Widgets: function () {
+        sound('pop');
+      },
+    };
+    el.querySelectorAll('.settings-card, .glass').forEach(function (card) {
+      var strong = card.querySelector('strong');
+      if (!strong) return;
+      card.style.cursor = 'pointer';
+      card.addEventListener('click', function () {
+        var t = strong.textContent.trim();
+        sound('tink');
+        if (map[t]) map[t]();
+        else if (global.MacShell && MacShell.notify) {
+          MacShell.notify('Tips', t, 'Try this feature from the menu bar or Dock', 'now');
+        }
+      });
+    });
+  }
+
   /* ── Directory Utility ──────────────────────────────── */
   function wireDirectoryUtility(el) {
     if (!el || el.dataset.wired) return;
@@ -3899,6 +3945,7 @@
         if (id === 'airport-utility') wireAirport(body);
         if (id === 'colorsync') wireColorSync(body);
         if (id === 'directory-utility') wireDirectoryUtility(body);
+        if (id === 'tips') wireTips(body);
         if (id === 'system-settings') {
           wireSoundButtons(body);
           enhanceSoundPane(body);

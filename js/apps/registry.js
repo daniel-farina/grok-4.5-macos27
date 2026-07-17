@@ -5350,6 +5350,12 @@ return theGreeting</textarea>
         { t: 'Desktop Widgets', d: 'Clock, Weather, Calendar, and Music live on the desktop. Double-click to open the full app.' },
         { t: 'Control Center', d: 'Click the Control Center icon in the menu bar for Wi‑Fi, Focus, and brightness.' },
         { t: 'Liquid Glass', d: 'Windows and panels use translucent materials that tint with your wallpaper.' },
+        { t: 'Lock Screen', d: ' menu → Lock Screen. Type any password and press Return to unlock.' },
+        { t: 'Force Quit', d: 'Press ⌥⌘Esc or use  menu → Force Quit to close a stuck app.' },
+        { t: 'App Switcher', d: '⌘Tab cycles open windows. ⌘1–4 change Finder views.' },
+        { t: 'Stage Manager', d: 'Toggle in Control Center to park windows in a left strip.' },
+        { t: 'Widgets', d: 'Click Weather to cycle cities; use Music transport; double-click to open apps.' },
+        { t: 'Sounds', d: 'System Settings → Sound lists synthesized macOS-style alert sounds.' },
       ];
       return `<div class="app-layout col">
         ${toolbar(`<strong>Tips</strong><span class="muted">Discover macOS 27</span>`)}
