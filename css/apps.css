@@ -2721,3 +2721,47 @@ html[data-theme='light'] .mail-compose-fields textarea {
 tr.is-selected {
   background: rgba(10, 132, 255, 0.2);
 }
+
+.tv-card.is-selected .tv-poster {
+  outline: 2px solid #0a84ff;
+  outline-offset: 2px;
+}
+.tv-hero-actions .btn-glass.is-added {
+  background: rgba(48, 209, 88, 0.25);
+}
+.app-list-row.is-selected {
+  background: rgba(10, 132, 255, 0.18);
+}
+.chess-wrap {
+  padding: 20px;
+  text-align: center;
+}
+.chess-board {
+  display: grid;
+  grid-template-columns: repeat(8, 40px);
+  grid-template-rows: repeat(8, 40px);
+  width: 320px;
+  margin: 12px auto;
+  border: 2px solid rgba(0,0,0,0.2);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+}
+.chess-sq {
+  border: none;
+  font-size: 26px;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  cursor: default;
+}
+.chess-sq.light { background: #f0d9b5; }
+.chess-sq.dark { background: #b58863; color: #1a1a1a; }
+.chess-sq.is-selected {
+  outline: 2px solid #0a84ff;
+  outline-offset: -2px;
+  z-index: 1;
+}
+.num27-sheet td.active {
+  outline: 2px solid #0a84ff;
+  outline-offset: -2px;
+}

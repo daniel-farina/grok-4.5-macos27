@@ -1823,6 +1823,252 @@
     });
   }
 
+  /* ── iWork: Pages / Numbers / Keynote ───────────────── */
+  function wireIWork(el) {
+    if (!el || el.dataset.wired) return;
+    el.dataset.wired = '1';
+    el.querySelectorAll('.iwork27-icon-btn[title="Bold"]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        document.execCommand('bold');
+        b.classList.toggle('active');
+        sound('tink');
+      });
+    });
+    el.querySelectorAll('.iwork27-icon-btn[title="Italic"]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        document.execCommand('italic');
+        b.classList.toggle('active');
+        sound('tink');
+      });
+    });
+    el.querySelectorAll('.iwork27-icon-btn[title="Underline"]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        document.execCommand('underline');
+        b.classList.toggle('active');
+        sound('tink');
+      });
+    });
+    el.querySelectorAll('.iwork27-icon-btn[title="Undo"]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        document.execCommand('undo');
+        sound('pop');
+      });
+    });
+    el.querySelectorAll('.iwork27-icon-btn[title="Redo"]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        document.execCommand('redo');
+        sound('pop');
+      });
+    });
+    el.querySelectorAll('.iwork27-style').forEach(function (s) {
+      s.addEventListener('click', function () {
+        el.querySelectorAll('.iwork27-style').forEach(function (x) {
+          x.classList.remove('active');
+        });
+        s.classList.add('active');
+        sound('tink');
+      });
+    });
+    el.querySelectorAll('.iwork27-insp-tabs span').forEach(function (tab) {
+      tab.addEventListener('click', function () {
+        el.querySelectorAll('.iwork27-insp-tabs span').forEach(function (t) {
+          t.classList.remove('active');
+        });
+        tab.classList.add('active');
+        sound('pop');
+      });
+    });
+    /* Numbers cells */
+    el.querySelectorAll('.num27-sheet td').forEach(function (td) {
+      td.addEventListener('focus', function () {
+        el.querySelectorAll('.num27-sheet td').forEach(function (c) {
+          c.classList.remove('active');
+        });
+        td.classList.add('active');
+      });
+      td.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          td.blur();
+          sound('tink');
+        }
+      });
+    });
+    /* Keynote slides */
+    el.querySelectorAll('.kn27-slide, .keynote-slide, [data-slide]').forEach(function (slide, i) {
+      slide.addEventListener('click', function () {
+        el.querySelectorAll('.kn27-slide, .keynote-slide, [data-slide]').forEach(function (s) {
+          s.classList.remove('active', 'is-active');
+        });
+        slide.classList.add('active');
+        sound('pop');
+      });
+    });
+    el.querySelectorAll('.iwork27-tb-btn.primary, .iwork27-tb-btn').forEach(function (btn) {
+      if (btn.dataset.iwork) return;
+      btn.dataset.iwork = '1';
+      var label = (btn.textContent || '').trim();
+      if (label === 'Share' || label === 'Play') {
+        btn.addEventListener('click', function () {
+          sound(label === 'Play' ? 'hero' : 'messageSent');
+          if (global.MacShell && MacShell.notify) {
+            MacShell.notify(
+              label === 'Play' ? 'Keynote' : 'iWork',
+              label === 'Play' ? 'Slideshow' : 'Share',
+              label === 'Play' ? 'Playing slideshow (demo)' : 'Link copied (demo)',
+              'now'
+            );
+          }
+        });
+      }
+    });
+  }
+
+  /* ── TV: tabs, play, my list, cards ─────────────────── */
+  function wireTV(el) {
+    if (!el || el.dataset.wired) return;
+    el.dataset.wired = '1';
+    el.querySelectorAll('.tv-tab').forEach(function (tab) {
+      tab.addEventListener('click', function () {
+        el.querySelectorAll('.tv-tab').forEach(function (t) {
+          t.classList.remove('active');
+        });
+        tab.classList.add('active');
+        sound('pop');
+      });
+    });
+    el.querySelectorAll('.tv-hero-actions .btn-primary, .tv-hero .btn-primary').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        sound('funk');
+        btn.textContent = btn.textContent === 'Play' ? '❚❚ Pause' : 'Play';
+        if (global.MacShell && MacShell.notify) {
+          MacShell.notify('TV', 'Now Playing', 'Featured title', 'now');
+        }
+      });
+    });
+    el.querySelectorAll('.tv-hero-actions .btn-glass').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var on = btn.classList.toggle('is-added');
+        btn.textContent = on ? '✓ In My List' : '+ My List';
+        sound(on ? 'hero' : 'pop');
+      });
+    });
+    el.querySelectorAll('.tv-card').forEach(function (card) {
+      card.style.cursor = 'pointer';
+      card.addEventListener('click', function () {
+        el.querySelectorAll('.tv-card').forEach(function (c) {
+          c.classList.remove('is-selected');
+        });
+        card.classList.add('is-selected');
+        var t = card.querySelector('strong');
+        var hero = el.querySelector('.tv-hero h1');
+        if (hero && t) hero.textContent = t.textContent;
+        sound('tink');
+      });
+      card.addEventListener('dblclick', function () {
+        sound('funk');
+        if (global.MacShell && MacShell.notify) {
+          var t = card.querySelector('strong');
+          MacShell.notify('TV', 'Playing', t ? t.textContent : 'Show', 'now');
+        }
+      });
+    });
+  }
+
+  /* ── Podcasts / News / Books ────────────────────────── */
+  function wireMediaList(el, appName) {
+    if (!el || el.dataset.wiredMedia) return;
+    el.dataset.wiredMedia = '1';
+    el.querySelectorAll('.app-list-row').forEach(function (row) {
+      row.style.cursor = 'pointer';
+      row.addEventListener('click', function () {
+        el.querySelectorAll('.app-list-row').forEach(function (r) {
+          r.classList.remove('is-selected', 'active');
+        });
+        row.classList.add('is-selected');
+        sound('pop');
+      });
+      row.addEventListener('dblclick', function () {
+        sound(appName === 'News' ? 'tink' : 'funk');
+        var t = row.querySelector('strong, .row-title');
+        if (global.MacShell && MacShell.notify) {
+          MacShell.notify(
+            appName,
+            appName === 'News' ? 'Opening' : 'Now Playing',
+            t ? t.textContent : 'Item',
+            'now'
+          );
+        }
+      });
+    });
+  }
+
+  /* ── Disk Utility select ────────────────────────────── */
+  function wireDiskUtility(el) {
+    if (!el || el.dataset.wired) return;
+    el.dataset.wired = '1';
+    el.querySelectorAll('.du27-item, .du-volume, [data-volume]').forEach(function (item) {
+      item.addEventListener('click', function () {
+        el.querySelectorAll('.du27-item, .du-volume, [data-volume]').forEach(function (i) {
+          i.classList.remove('active', 'is-selected');
+        });
+        item.classList.add('active');
+        sound('pop');
+      });
+    });
+    el.querySelectorAll('button, .du27-tb-btn').forEach(function (btn) {
+      if (btn.dataset.du) return;
+      btn.dataset.du = '1';
+      btn.addEventListener('click', function () {
+        sound('tink');
+        var title = btn.getAttribute('title') || btn.textContent || 'Action';
+        if (global.MacShell && MacShell.notify) {
+          MacShell.notify('Disk Utility', title, 'Operation simulated', 'now');
+        }
+      });
+    });
+  }
+
+  /* ── Chess / Games simple interact ──────────────────── */
+  function wireChess(el) {
+    if (!el || el.dataset.wired) return;
+    el.dataset.wired = '1';
+    if (!el.querySelector('.chess-board')) {
+      var board = document.createElement('div');
+      board.className = 'chess-board';
+      var pieces = '♜♞♝♛♚♝♞♜♟♟♟♟♟♟♟♟                ♙♙♙♙♙♙♙♙♖♘♗♕♔♗♘♖';
+      for (var i = 0; i < 64; i++) {
+        var sq = document.createElement('button');
+        sq.type = 'button';
+        sq.className = 'chess-sq ' + ((Math.floor(i / 8) + i) % 2 ? 'dark' : 'light');
+        sq.textContent = pieces[i] === ' ' ? '' : pieces[i];
+        board.appendChild(sq);
+      }
+      el.innerHTML =
+        '<div class="chess-wrap"><h3>Chess</h3><p class="muted">Click a piece, then a square</p></div>';
+      el.querySelector('.chess-wrap').appendChild(board);
+    }
+    var selected = null;
+    el.querySelectorAll('.chess-sq').forEach(function (sq) {
+      sq.addEventListener('click', function () {
+        if (selected && selected !== sq) {
+          if (selected.textContent) {
+            sq.textContent = selected.textContent;
+            selected.textContent = '';
+            sound('tink');
+          }
+          selected.classList.remove('is-selected');
+          selected = null;
+        } else if (sq.textContent) {
+          if (selected) selected.classList.remove('is-selected');
+          selected = sq;
+          sq.classList.add('is-selected');
+          sound('pop');
+        }
+      });
+    });
+  }
+
   /* ── Patch AppRegistry apps ─────────────────────────── */
   function patchApps() {
     if (!global.AppRegistry || !global.AppRegistry.get) return;
@@ -2073,6 +2319,13 @@
         if (id === 'activity-monitor') wireActivityMonitor(body);
         if (id === 'stickies') wireStickies(body);
         if (id === 'clock') wireClock(body);
+        if (id === 'pages' || id === 'numbers' || id === 'keynote') wireIWork(body);
+        if (id === 'tv') wireTV(body);
+        if (id === 'podcasts') wireMediaList(body, 'Podcasts');
+        if (id === 'news') wireMediaList(body, 'News');
+        if (id === 'books') wireMediaList(body, 'Books');
+        if (id === 'disk-utility') wireDiskUtility(body);
+        if (id === 'chess' || id === 'games') wireChess(body);
         if (id === 'system-settings') {
           wireSoundButtons(body);
           enhanceSoundPane(body);
