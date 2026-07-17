@@ -5,16 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="macOS 27 Liquid Glass - Virtual Desktop" />
   <title>macOS 27</title>
-  <link rel="stylesheet" href="css/liquid-glass.css?v=1784323747" />
-  <link rel="stylesheet" href="css/apps.css?v=1784323747" />
-  <link rel="stylesheet" href="css/tahoe-match.css?v=1784323747" />
-  <link rel="stylesheet" href="css/theme.css?v=1784323747" />
-  <link rel="stylesheet" href="css/finder-27.css?v=1784323747" />
-  <link rel="stylesheet" href="css/control-center.css?v=1784323747" />
-  <link rel="stylesheet" href="css/apps-drawer.css?v=1784323747" />
-  <link rel="stylesheet" href="css/safari-27.css?v=1784323747" />
-  <link rel="stylesheet" href="css/apps-system.css?v=1784323747" />
-  <link rel="stylesheet" href="css/apps-utilities.css?v=1784323747" />
+  <link rel="stylesheet" href="css/liquid-glass.css?v=1784323832" />
+  <link rel="stylesheet" href="css/apps.css?v=1784323832" />
+  <link rel="stylesheet" href="css/tahoe-match.css?v=1784323832" />
+  <link rel="stylesheet" href="css/theme.css?v=1784323832" />
+  <link rel="stylesheet" href="css/finder-27.css?v=1784323832" />
+  <link rel="stylesheet" href="css/control-center.css?v=1784323832" />
+  <link rel="stylesheet" href="css/apps-drawer.css?v=1784323832" />
+  <link rel="stylesheet" href="css/safari-27.css?v=1784323832" />
+  <link rel="stylesheet" href="css/apps-system.css?v=1784323832" />
+  <link rel="stylesheet" href="css/apps-utilities.css?v=1784323832" />
   <script>
     /* Apply theme ASAP to avoid FOUC — mirrors MacShell appearance logic */
     (function () {
@@ -566,18 +566,18 @@
 
     <!-- Context Menu -->
     <div id="context-menu" role="menu" aria-hidden="true" aria-label="Context menu">
-      <!-- Items injected by JS based on target -->
-      <div class="context-item" data-action="refresh" role="menuitem">Refresh</div>
+      <div class="context-item" data-action="new-folder" role="menuitem">New Folder</div>
+      <div class="context-item" data-action="get-info" role="menuitem">Get Info</div>
       <div class="context-separator" role="separator"></div>
       <div class="context-item" data-action="change-wallpaper" role="menuitem">Change Wallpaper…</div>
-      <div class="context-item" data-action="sort-by" role="menuitem">
-        <span>Sort By</span>
-        <span class="shortcut">›</span>
-      </div>
+      <div class="context-item" data-action="wallpaper" role="menuitem">Wallpaper Settings…</div>
+      <div class="context-item" data-action="sort-by" role="menuitem">Sort By Name</div>
       <div class="context-separator" role="separator"></div>
-      <div class="context-item" data-action="new-folder" role="menuitem">New Folder</div>
+      <div class="context-item" data-action="as-icons" role="menuitem">Clean Up / Icons View</div>
+      <div class="context-item" data-action="show-path-bar" role="menuitem">Show Path Bar</div>
       <div class="context-separator" role="separator"></div>
-      <div class="context-item" data-action="get-info" role="menuitem">Get Info</div>
+      <div class="context-item" data-action="system-settings" role="menuitem">System Settings…</div>
+      <div class="context-item" data-action="refresh" role="menuitem">Refresh Desktop</div>
     </div>
   </div>
 
@@ -612,12 +612,12 @@
   -->
 
   <!-- Scripts: classic order, no bundler -->
-  <script src="js/icons.js?v=1784323747"></script>
-  <script src="js/window-manager.js?v=1784323747"></script>
-  <script src="js/sounds.js?v=1784323747"></script>
-  <script src="js/shell.js?v=1784323747"></script>
-  <script src="js/apps/registry.js?v=1784323747"></script>
-  <script src="js/macos-runtime.js?v=1784323747"></script>
-  <script src="js/main.js?v=1784323747"></script>
+  <script src="js/icons.js?v=1784323832"></script>
+  <script src="js/window-manager.js?v=1784323832"></script>
+  <script src="js/sounds.js?v=1784323832"></script>
+  <script src="js/shell.js?v=1784323832"></script>
+  <script src="js/apps/registry.js?v=1784323832"></script>
+  <script src="js/macos-runtime.js?v=1784323832"></script>
+  <script src="js/main.js?v=1784323832"></script>
 </body>
 </html>

@@ -1266,8 +1266,10 @@
         showAboutThisMac();
         break;
       case 'empty-trash':
-        if (global.MacSounds && MacSounds.play) MacSounds.play('emptyTrash');
-        notify('Finder', 'Trash', 'Trash is empty', 'now');
+        if (confirm('Are you sure you want to permanently erase the items in the Trash?')) {
+          if (global.MacSounds && MacSounds.play) MacSounds.play('emptyTrash');
+          notify('Finder', 'Trash', 'Trash is empty', 'now');
+        }
         break;
       case 'force-quit':
         if (global.WindowManager && WindowManager.getFocused) {
@@ -1412,6 +1414,9 @@
         }
         break;
       case 'refresh':
+        renderDesktopIcons();
+        if (global.MacSounds && MacSounds.play) MacSounds.play('pop');
+        notify('Desktop', 'Refreshed', 'Desktop icons updated', 'now');
         break;
       default:
         if (action && global.MacSounds && MacSounds.play) {
@@ -1960,6 +1965,31 @@
         if (views[key]) {
           e.preventDefault();
           finderSetView(views[key]);
+        }
+      } else if (key === 'Tab') {
+        /* ⌘Tab — simple app switcher among open windows */
+        if (typing) return;
+        e.preventDefault();
+        if (global.WindowManager && WindowManager.getOpenWindows) {
+          var wins = WindowManager.getOpenWindows().filter(function (w) {
+            return !w.minimized;
+          });
+          if (!wins.length) return;
+          var focused = WindowManager.getFocused && WindowManager.getFocused();
+          var idx = 0;
+          if (focused) {
+            for (var wi = 0; wi < wins.length; wi++) {
+              if (wins[wi].id === focused.id) {
+                idx = wi;
+                break;
+              }
+            }
+          }
+          var next = wins[(idx + (e.shiftKey ? wins.length - 1 : 1)) % wins.length];
+          if (next && WindowManager.focus) {
+            WindowManager.focus(next.id);
+            if (global.MacSounds && MacSounds.play) MacSounds.play('tink');
+          }
         }
       }
     });

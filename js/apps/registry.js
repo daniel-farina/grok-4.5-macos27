@@ -5338,22 +5338,7 @@ return theGreeting</textarea>
     };
   }
 
-  if (APPS['iphone-mirroring']) {
-    APPS['iphone-mirroring'].open = function () {
-      return `<div class="iphone-mirror">
-      <div class="iphone-frame">
-        <div class="iphone-notch"></div>
-        <div class="iphone-screen">
-          <div class="iphone-time">9:41</div>
-          <div class="iphone-apps">
-            ${['📞', '💬', '📷', '🎵', '🗺', 'Safari', '✉', '⚙️'].map((a) => `<div class="iphone-app">${a}</div>`).join('')}
-          </div>
-        </div>
-      </div>
-      <p class="muted center">iPhone · Locked · Continuity</p>
-    </div>`;
-    };
-  }
+  /* iPhone Mirroring full UI is provided by js/macos-runtime.js (do not override here) */
 
   // Richer Tips app
   if (APPS.tips) {

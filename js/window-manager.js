@@ -521,6 +521,7 @@
       }
     },
 
+    getWindows: function () { return this.getOpenWindows(); },
     getOpenWindows: function () {
       return Object.keys(windows).map(function (id) {
         var s = windows[id];
