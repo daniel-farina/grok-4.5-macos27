@@ -3,10 +3,11 @@
 Job started: 2026-07-17T20:55:45Z · Cancel after ~3h · `scheduler_delete 019f71def611`
 
 ## This loop
-- [x] Podcasts: search, play/pause, seek bar, −15s/+30s, live progress
-- [x] TV: play progress + seek; Stocks: symbol filter + range chart jiggle
-- [x] Passwords: Show/Hide, row select, search user/site
-- [x] Shortcuts: open related apps on Run; Journal delete entry
+- [x] Chess: New Game, Undo, white-only select, computer replies
+- [x] Calculator: history click-to-recall + clear
+- [x] GarageBand: real piano pitches + A–K keyboard
+- [x] TextEdit: Save/Open via localStorage; Photo Booth save notify
+- [x] MacSounds.note API for pitched tones
 - [x] Audit ALL PASS
 
 ## Process

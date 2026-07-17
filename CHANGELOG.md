@@ -13,6 +13,7 @@ Public commits track multi-minute interactive work on this virtual macOS 27 desk
 See `docs/LOOP_PRACTICE.md` for why we commit every loop.
 
 ### 2026-07-17 / 18 (loop demo)
+- Chess AI reply/New/Undo; Calculator history recall; GarageBand piano notes; TextEdit save/open
 - Podcasts transport/seek; TV progress; Stocks filter; Passwords reveal; Shortcuts app launch; Journal delete
 - Messages search/compose; Contacts search + groups + detail; Calendar dblclick events; News topics
 - Mail search + Flag/Archive/Trash folders; Notes folder filter + search

@@ -3213,15 +3213,34 @@ html[data-theme='light'] .mail-compose-fields textarea {
 
 /* Calculator history */
 .calc-history {
-  max-height: 56px;
+  max-height: 72px;
   overflow: auto;
   padding: 4px 12px;
   font-size: 11px;
-  opacity: 0.55;
+  opacity: 0.75;
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
-.calc-hist-line { padding: 1px 0; }
+.calc-hist-line {
+  padding: 1px 0;
+  cursor: pointer;
+}
+.calc-hist-line:hover {
+  opacity: 1;
+  color: #0a84ff;
+}
+.calc-hist-clear {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  opacity: 0.6;
+  font-size: 10px;
+  cursor: pointer;
+  text-align: right;
+}
 
 .ff27-canvas { position: relative; overflow: hidden; }
 .ff27-ink { touch-action: none; }
@@ -3257,6 +3276,12 @@ tr.is-selected {
   padding: 20px;
   text-align: center;
 }
+.chess-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
 .chess-board {
   display: grid;
   grid-template-columns: repeat(8, 40px);
@@ -3273,7 +3298,7 @@ tr.is-selected {
   display: grid;
   place-items: center;
   padding: 0;
-  cursor: default;
+  cursor: pointer;
 }
 .chess-sq.light { background: #f0d9b5; }
 .chess-sq.dark { background: #b58863; color: #1a1a1a; }

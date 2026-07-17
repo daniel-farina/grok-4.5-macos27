@@ -2611,6 +2611,22 @@
         }
         if (strip) {
           strip.insertBefore(img, strip.firstChild);
+          img.title = 'Click to view · double-click to save';
+          img.addEventListener('click', function () {
+            sound('pop');
+          });
+          img.addEventListener('dblclick', function () {
+            sound('hero');
+            if (global.MacShell && MacShell.notify) {
+              MacShell.notify('Photo Booth', 'Saved to Photos', 'Recents', 'now');
+            }
+            if (global.MacShell && MacShell.openApp) {
+              /* keep booth open; just notify */
+            }
+          });
+        }
+        if (global.MacShell && MacShell.notify) {
+          MacShell.notify('Photo Booth', 'Captured', 'Photo added to strip', 'now');
         }
       });
     }
@@ -2812,6 +2828,15 @@
       save.addEventListener('click', function () {
         dirty = false;
         updateStatus();
+        try {
+          localStorage.setItem(
+            'macos-textedit-doc',
+            JSON.stringify({
+              name: (docname && docname.textContent) || 'Untitled',
+              html: page ? page.innerHTML : '',
+            })
+          );
+        } catch (e) {}
         sound('hero');
         if (global.MacShell && MacShell.notify) {
           MacShell.notify(
@@ -2830,6 +2855,34 @@
         if (page) page.focus();
         sound('pop');
       });
+      if (!right.querySelector('.te27-open')) {
+        var open = document.createElement('button');
+        open.type = 'button';
+        open.className = 'te27-btn te27-open';
+        open.title = 'Open';
+        open.textContent = 'Open';
+        right.insertBefore(open, save.nextSibling);
+        open.addEventListener('click', function () {
+          try {
+            var raw = localStorage.getItem('macos-textedit-doc');
+            if (!raw) {
+              sound('sosumi');
+              if (global.MacShell && MacShell.notify) {
+                MacShell.notify('TextEdit', 'Open', 'No saved document', 'now');
+              }
+              return;
+            }
+            var data = JSON.parse(raw);
+            if (page) page.innerHTML = data.html || '';
+            if (docname) docname.textContent = data.name || 'Untitled';
+            dirty = false;
+            updateStatus();
+            sound('pop');
+          } catch (e) {
+            sound('sosumi');
+          }
+        });
+      }
     }
     updateStatus();
   }
@@ -2846,19 +2899,43 @@
     }
     var histEl = el.querySelector('.calc-history');
     var display = el.querySelector('#calc-display, .calc-display');
+    function pushHistory(val) {
+      if (!histEl || !val) return;
+      var line = document.createElement('div');
+      line.className = 'calc-hist-line';
+      line.textContent = val;
+      line.title = 'Click to recall';
+      line.addEventListener('click', function () {
+        if (display) {
+          display.textContent = line.textContent;
+          sound('pop');
+        }
+      });
+      histEl.insertBefore(line, histEl.firstChild);
+      while (histEl.children.length > 12) histEl.removeChild(histEl.lastChild);
+    }
     el.querySelectorAll('.calc-key[data-key="="]').forEach(function (eq) {
       eq.addEventListener('click', function () {
         setTimeout(function () {
-          if (!display || !histEl) return;
-          var line = document.createElement('div');
-          line.className = 'calc-hist-line';
-          line.textContent = display.textContent;
-          histEl.insertBefore(line, histEl.firstChild);
-          while (histEl.children.length > 8) histEl.removeChild(histEl.lastChild);
+          if (!display) return;
+          pushHistory(display.textContent);
           sound('tink');
         }, 0);
       });
     });
+    if (histEl && !histEl.querySelector('.calc-hist-clear')) {
+      var clear = document.createElement('button');
+      clear.type = 'button';
+      clear.className = 'calc-hist-clear';
+      clear.textContent = 'Clear History';
+      histEl.appendChild(clear);
+      clear.addEventListener('click', function () {
+        histEl.querySelectorAll('.calc-hist-line').forEach(function (l) {
+          l.remove();
+        });
+        sound('emptyTrash');
+      });
+    }
     /* Keyboard support when window focused */
     function pressKey(k) {
       var btn = el.querySelector('.calc-key[data-key="' + k + '"]');
@@ -6476,14 +6553,30 @@
         sound('pop');
       });
     });
+    /* C4 scale: C D E F G A B C */
+    var noteFreqs = [261.63, 293.66, 329.63, 349.23, 392.0, 440.0, 493.88, 523.25];
     el.querySelectorAll('.gb-key').forEach(function (key) {
       key.addEventListener('click', function () {
-        sound('volume');
+        var idx = parseInt(key.getAttribute('data-note'), 10);
+        if (isNaN(idx)) idx = 0;
+        var f = noteFreqs[idx % noteFreqs.length];
+        if (global.MacSounds && MacSounds.note) MacSounds.note(f, 0.32, 'triangle');
+        else sound('volume');
         key.classList.add('is-down');
         setTimeout(function () {
           key.classList.remove('is-down');
-        }, 120);
+        }, 140);
       });
+    });
+    /* keyboard A S D F G H J K → white keys when GB focused */
+    el.tabIndex = 0;
+    el.addEventListener('keydown', function (e) {
+      var map = { a: 0, s: 1, d: 2, f: 3, g: 4, h: 5, j: 6, k: 7 };
+      var i = map[e.key.toLowerCase()];
+      if (i == null) return;
+      e.preventDefault();
+      var keys = el.querySelectorAll('.gb-key');
+      if (keys[i]) keys[i].click();
     });
   }
 
@@ -6948,44 +7041,145 @@
   function wireChess(el) {
     if (!el || el.dataset.wired) return;
     el.dataset.wired = '1';
-    if (!el.querySelector('.chess-board')) {
-      var board = document.createElement('div');
-      board.className = 'chess-board';
-      var pieces = '♜♞♝♛♚♝♞♜♟♟♟♟♟♟♟♟                ♙♙♙♙♙♙♙♙♖♘♗♕♔♗♘♖';
+    var startPos = '♜♞♝♛♚♝♞♜♟♟♟♟♟♟♟♟                ♙♙♙♙♙♙♙♙♖♘♗♕♔♗♘♖';
+    function buildBoard(pieces) {
+      var board = el.querySelector('.chess-board');
+      if (!board) {
+        board = document.createElement('div');
+        board.className = 'chess-board';
+        var wrap = el.querySelector('.chess-wrap');
+        if (!wrap) {
+          el.innerHTML =
+            '<div class="chess-wrap"><div class="chess-toolbar"></div><p class="muted">Click a piece, then a square · Computer replies</p></div>';
+          wrap = el.querySelector('.chess-wrap');
+        }
+        wrap.appendChild(board);
+      }
+      board.innerHTML = '';
       for (var i = 0; i < 64; i++) {
         var sq = document.createElement('button');
         sq.type = 'button';
         sq.className = 'chess-sq ' + ((Math.floor(i / 8) + i) % 2 ? 'dark' : 'light');
+        sq.dataset.i = String(i);
         sq.textContent = pieces[i] === ' ' ? '' : pieces[i];
         board.appendChild(sq);
       }
-      el.innerHTML =
-        '<div class="chess-wrap"><h3>Chess</h3><p class="muted">Click a piece, then a square</p></div>';
-      el.querySelector('.chess-wrap').appendChild(board);
+      return board;
+    }
+    if (!el.querySelector('.chess-board')) {
+      buildBoard(startPos);
+    }
+    var wrap = el.querySelector('.chess-wrap') || el;
+    var bar = wrap.querySelector('.chess-toolbar');
+    if (!bar) {
+      bar = document.createElement('div');
+      bar.className = 'chess-toolbar';
+      bar.innerHTML =
+        '<h3 style="margin:0;flex:1">Chess</h3>' +
+        '<button type="button" class="btn-glass" id="chess-undo">Undo</button>' +
+        '<button type="button" class="btn-primary" id="chess-new">New Game</button>';
+      wrap.insertBefore(bar, wrap.firstChild);
     }
     var selected = null;
-    el.querySelectorAll('.chess-sq').forEach(function (sq) {
-      sq.addEventListener('click', function () {
-        if (selected && selected !== sq) {
-          if (selected.textContent) {
-            var captured = sq.textContent;
-            sq.textContent = selected.textContent;
-            selected.textContent = '';
-            sound(captured ? 'hero' : 'tink');
-            if (captured && global.MacShell && MacShell.notify) {
-              MacShell.notify('Chess', 'Capture', captured + ' taken', 'now');
-            }
-          }
-          selected.classList.remove('is-selected');
-          selected = null;
-        } else if (sq.textContent) {
-          if (selected) selected.classList.remove('is-selected');
-          selected = sq;
-          sq.classList.add('is-selected');
-          sound('pop');
-        }
+    var history = [];
+    function snapshot() {
+      var s = '';
+      el.querySelectorAll('.chess-sq').forEach(function (sq) {
+        s += sq.textContent || ' ';
       });
-    });
+      return s;
+    }
+    function isWhite(ch) {
+      return '♙♖♘♗♕♔'.indexOf(ch) >= 0;
+    }
+    function isBlack(ch) {
+      return '♟♜♞♝♛♚'.indexOf(ch) >= 0;
+    }
+    function computerMove() {
+      var squares = Array.prototype.slice.call(el.querySelectorAll('.chess-sq'));
+      var blackPieces = squares.filter(function (sq) {
+        return isBlack(sq.textContent);
+      });
+      if (!blackPieces.length) return;
+      /* try a few random legal-ish moves (any empty or white target) */
+      for (var attempt = 0; attempt < 40; attempt++) {
+        var from = blackPieces[Math.floor(Math.random() * blackPieces.length)];
+        var to = squares[Math.floor(Math.random() * 64)];
+        if (to === from) continue;
+        if (to.textContent && isBlack(to.textContent)) continue;
+        history.push(snapshot());
+        var cap = to.textContent;
+        to.textContent = from.textContent;
+        from.textContent = '';
+        sound(cap ? 'hero' : 'tink');
+        if (cap && global.MacShell && MacShell.notify) {
+          MacShell.notify('Chess', 'Computer', 'Captured ' + cap, 'now');
+        }
+        return;
+      }
+    }
+    function bindSquares() {
+      selected = null;
+      el.querySelectorAll('.chess-sq').forEach(function (sq) {
+        sq.addEventListener('click', function () {
+          if (selected && selected !== sq) {
+            if (selected.textContent) {
+              if (sq.textContent && isWhite(sq.textContent) && isWhite(selected.textContent)) {
+                selected.classList.remove('is-selected');
+                selected = sq;
+                sq.classList.add('is-selected');
+                sound('pop');
+                return;
+              }
+              history.push(snapshot());
+              var captured = sq.textContent;
+              sq.textContent = selected.textContent;
+              selected.textContent = '';
+              sound(captured ? 'hero' : 'tink');
+              if (captured && global.MacShell && MacShell.notify) {
+                MacShell.notify('Chess', 'Capture', captured + ' taken', 'now');
+              }
+              selected.classList.remove('is-selected');
+              selected = null;
+              setTimeout(computerMove, 380);
+            } else {
+              selected.classList.remove('is-selected');
+              selected = null;
+            }
+          } else if (sq.textContent && isWhite(sq.textContent)) {
+            if (selected) selected.classList.remove('is-selected');
+            selected = sq;
+            sq.classList.add('is-selected');
+            sound('pop');
+          } else if (sq.textContent) {
+            sound('sosumi');
+          }
+        });
+      });
+    }
+    bindSquares();
+    var neu = el.querySelector('#chess-new');
+    if (neu) {
+      neu.addEventListener('click', function () {
+        history = [];
+        buildBoard(startPos);
+        bindSquares();
+        sound('hero');
+      });
+    }
+    var undo = el.querySelector('#chess-undo');
+    if (undo) {
+      undo.addEventListener('click', function () {
+        if (!history.length) {
+          sound('sosumi');
+          return;
+        }
+        var prev = history.pop();
+        buildBoard(prev);
+        bindSquares();
+        sound('pop');
+      });
+    }
   }
 
   /* ── Patch AppRegistry apps ─────────────────────────── */

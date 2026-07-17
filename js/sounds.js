@@ -240,8 +240,22 @@
     }
   }
 
+  /** Simple piano-ish note for GarageBand keys (Hz or midi-ish index). */
+  function note(freq, dur, type) {
+    unlock();
+    var c = getCtx();
+    if (!c) return;
+    var f = typeof freq === 'number' ? freq : 440;
+    if (f < 20) f = 440 * Math.pow(2, f / 12);
+    var t = c.currentTime;
+    var d = dur || 0.28;
+    tone(f, t, d, type || 'triangle', 0.1);
+    tone(f * 2, t, d * 0.6, 'sine', 0.03);
+  }
+
   global.MacSounds = {
     play: play,
+    note: note,
     names: Object.keys(SOUNDS),
     aliases: Object.keys(ALIASES),
     unlock: unlock,
