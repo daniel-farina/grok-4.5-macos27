@@ -4183,16 +4183,37 @@
     name: 'Podcasts',
     category: 'Entertainment',
     width: 820,
-    height: 540,
+    height: 560,
     open() {
-      return `<div class="app-layout col">
-        ${toolbar(`<strong>Podcasts</strong>`)}
-        ${listRows([
-          { title: 'Waveform', sub: 'Relay FM', meta: 'New' },
-          { title: 'Accidental Tech Podcast', sub: 'ATP', meta: 'Yesterday' },
-          { title: 'Connected', sub: 'Relay FM', meta: 'Jul 14' },
-          { title: 'The Talk Show', sub: 'Daring Fireball', meta: 'Jul 10' },
-        ])}
+      const eps = [
+        { title: 'Waveform', sub: 'Relay FM', meta: 'New · 58 min' },
+        { title: 'Accidental Tech Podcast', sub: 'ATP', meta: 'Yesterday · 2h' },
+        { title: 'Connected', sub: 'Relay FM', meta: 'Jul 14 · 1h 12m' },
+        { title: 'The Talk Show', sub: 'Daring Fireball', meta: 'Jul 10 · 2h 40m' },
+        { title: 'Upgrade', sub: 'Relay FM', meta: 'Jul 8 · 1h 30m' },
+        { title: 'Cortex', sub: 'Relay FM', meta: 'Jul 5 · 2h' },
+      ];
+      return `<div class="app-layout col podcasts-app">
+        ${toolbar(`<strong>Podcasts</strong><span class="muted">Listen Now</span>`)}
+        <div class="pod-body">
+          <div class="pod-list">
+            ${eps
+              .map(
+                (e, i) =>
+                  `<div class="app-list-row pod-episode ${i === 0 ? 'is-selected' : ''}">
+                    <div class="pod-art" style="--h:${i * 40}">🎙</div>
+                    <div class="pod-info"><strong>${e.title}</strong><span class="muted">${e.sub}</span></div>
+                    <span class="muted pod-meta">${e.meta}</span>
+                  </div>`
+              )
+              .join('')}
+          </div>
+          <div class="pod-now">
+            <div class="pod-now-art">🎙</div>
+            <div class="pod-now-meta"><strong>Waveform</strong><span class="muted">Relay FM · Ready</span></div>
+            <button type="button" class="btn-primary pod-play-btn">Play</button>
+          </div>
+        </div>
       </div>`;
     },
   });

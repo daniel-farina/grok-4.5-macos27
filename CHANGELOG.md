@@ -13,10 +13,10 @@ Public commits track multi-minute interactive work on this virtual macOS 27 desk
 See `docs/LOOP_PRACTICE.md` for why we commit every loop.
 
 ### 2026-07-17 / 18 (loop demo)
-- iPhone Mirroring: full app suite (dialer, Messages, Safari, Photos×20, CC, FaceTime…)
-- Calendar inline New Event; Chess captures; Terminal say/afplay
-- System Settings: Sound alerts + volume, Focus/DND, Dock mag, Wallpaper picker
-- Notes preview sync; Stocks tick; Reminders add; Freeform tools
+- Sidecar: full sketch tools, colors, undo, connect/mirror/extend modes
+- Podcasts player bar; Music album click-play; Maps search places
+- iPhone full suite; Calendar event sheet; Chess; Terminal afplay
+- System Settings sound/focus/dock/wallpaper; Notes; Stocks; Reminders; Freeform
 - Commit-as-you-go for multi-minute Grok 4.5 loops
 
 ### 2026-07-17

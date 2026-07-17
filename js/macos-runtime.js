@@ -888,20 +888,38 @@
       '<div class="device-stage sidecar-stage">' +
       '<div class="ipad-bezel">' +
       '<div class="ipad-screen">' +
-      '<div class="ipad-menubar"><span>Sidecar</span><span>9:41</span></div>' +
-      '<div class="ipad-canvas" id="ipad-canvas">' +
-      '<p class="ipad-hint">Use as second display · Draw with pointer</p>' +
-      '</div>' +
+      '<div class="ipad-menubar"><span class="ipad-status-dot is-on"></span><span>Sidecar · Connected</span><span class="ipad-clock">9:41</span></div>' +
+      '<div class="ipad-main">' +
       '<div class="ipad-sidebar">' +
-      '<button type="button" data-tool="pen" class="is-active">✏️</button>' +
-      '<button type="button" data-tool="marker">🖊️</button>' +
-      '<button type="button" data-tool="eraser">🧽</button>' +
-      '<button type="button" data-tool="clear">🗑</button>' +
-      '</div></div></div>' +
+      '<button type="button" data-tool="pen" class="is-active" title="Pen">✏️</button>' +
+      '<button type="button" data-tool="marker" title="Marker">🖊️</button>' +
+      '<button type="button" data-tool="highlighter" title="Highlighter">🖍</button>' +
+      '<button type="button" data-tool="eraser" title="Eraser">🧽</button>' +
+      '<button type="button" data-tool="undo" title="Undo">↩</button>' +
+      '<button type="button" data-tool="clear" title="Clear">🗑</button>' +
+      '<div class="ipad-swatches">' +
+      '<button type="button" class="ipad-swatch is-active" data-color="#1d1d1f" style="background:#1d1d1f" title="Black"></button>' +
+      '<button type="button" class="ipad-swatch" data-color="#0a84ff" style="background:#0a84ff" title="Blue"></button>' +
+      '<button type="button" class="ipad-swatch" data-color="#ff3b30" style="background:#ff3b30" title="Red"></button>' +
+      '<button type="button" class="ipad-swatch" data-color="#30d158" style="background:#30d158" title="Green"></button>' +
+      '<button type="button" class="ipad-swatch" data-color="#bf5af2" style="background:#bf5af2" title="Purple"></button>' +
+      '</div></div>' +
+      '<div class="ipad-canvas-wrap">' +
+      '<div class="ipad-extended">' +
+      '<div class="ipad-win">' +
+      '<div class="ipad-win-tb"><span class="ipad-dots"></span><span>Extended Desktop</span></div>' +
+      '<p class="muted">Drag windows here · Continuity Sketch</p>' +
+      '</div></div>' +
+      '<canvas id="sidecar-draw" width="720" height="420" aria-label="Sidecar sketch"></canvas>' +
+      '<p class="ipad-hint">Apple Pencil simulation · draw on the canvas</p>' +
+      '</div></div></div></div>' +
       '<div class="device-caption">' +
-      '<strong>Sidecar</strong><span class="muted">iPad as second display · Sketch below</span>' +
-      '<canvas id="sidecar-draw" width="720" height="420"></canvas>' +
-      '</div></div>'
+      '<strong>Sidecar</strong><span class="muted ipad-conn-label">iPad as second display · Connected</span>' +
+      '<div class="device-actions">' +
+      '<button type="button" class="btn-glass" id="sidecar-disconnect">Disconnect</button>' +
+      '<button type="button" class="btn-glass" id="sidecar-mirror">Mirror</button>' +
+      '<button type="button" class="btn-primary" id="sidecar-extend">Extend</button>' +
+      '</div></div></div>'
     );
   }
 
@@ -911,13 +929,29 @@
     var canvas = el.querySelector('#sidecar-draw');
     if (!canvas) return;
     var ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#f5f5f7';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    function blank() {
+      ctx.fillStyle = '#f5f5f7';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+    blank();
     ctx.strokeStyle = '#1d1d1f';
     ctx.lineWidth = 2.5;
     ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
     var drawing = false;
     var tool = 'pen';
+    var color = '#1d1d1f';
+    var connected = true;
+    var history = [];
+    var maxHist = 20;
+
+    function snapshot() {
+      try {
+        history.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+        if (history.length > maxHist) history.shift();
+      } catch (e) {}
+    }
+    snapshot();
 
     function pos(e) {
       var r = canvas.getBoundingClientRect();
@@ -926,24 +960,42 @@
       return { x: (e.clientX - r.left) * sx, y: (e.clientY - r.top) * sy };
     }
 
+    function setToolStyles() {
+      if (tool === 'marker') {
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 8;
+        ctx.globalAlpha = 0.85;
+      } else if (tool === 'highlighter') {
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 16;
+        ctx.globalAlpha = 0.28;
+      } else {
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2.5;
+        ctx.globalAlpha = 1;
+      }
+    }
+
     canvas.addEventListener('pointerdown', function (e) {
+      if (!connected) return;
       drawing = true;
       canvas.setPointerCapture(e.pointerId);
+      snapshot();
       var p = pos(e);
       ctx.beginPath();
       ctx.moveTo(p.x, p.y);
+      setToolStyles();
       sound('pop');
     });
     canvas.addEventListener('pointermove', function (e) {
-      if (!drawing) return;
+      if (!drawing || !connected) return;
       var p = pos(e);
       if (tool === 'eraser') {
-        ctx.clearRect(p.x - 12, p.y - 12, 24, 24);
+        ctx.globalAlpha = 1;
         ctx.fillStyle = '#f5f5f7';
-        ctx.fillRect(p.x - 12, p.y - 12, 24, 24);
+        ctx.fillRect(p.x - 14, p.y - 14, 28, 28);
       } else {
-        ctx.strokeStyle = tool === 'marker' ? 'rgba(10,132,255,0.45)' : '#1d1d1f';
-        ctx.lineWidth = tool === 'marker' ? 8 : 2.5;
+        setToolStyles();
         ctx.lineTo(p.x, p.y);
         ctx.stroke();
         ctx.beginPath();
@@ -952,23 +1004,105 @@
     });
     canvas.addEventListener('pointerup', function () {
       drawing = false;
+      ctx.globalAlpha = 1;
     });
 
     el.querySelectorAll('[data-tool]').forEach(function (btn) {
       btn.addEventListener('click', function () {
+        var t = btn.getAttribute('data-tool');
+        if (t === 'clear') {
+          snapshot();
+          blank();
+          sound('emptyTrash');
+          return;
+        }
+        if (t === 'undo') {
+          if (history.length > 1) {
+            history.pop();
+            ctx.putImageData(history[history.length - 1], 0, 0);
+            sound('tink');
+          } else sound('sosumi');
+          return;
+        }
         el.querySelectorAll('[data-tool]').forEach(function (b) {
-          b.classList.remove('is-active');
+          if (b.getAttribute('data-tool') !== 'clear' && b.getAttribute('data-tool') !== 'undo') {
+            b.classList.remove('is-active');
+          }
         });
         btn.classList.add('is-active');
-        tool = btn.getAttribute('data-tool');
-        if (tool === 'clear') {
-          ctx.fillStyle = '#f5f5f7';
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-          tool = 'pen';
-          sound('emptyTrash');
-        } else sound('tink');
+        tool = t;
+        sound('tink');
       });
     });
+
+    el.querySelectorAll('.ipad-swatch').forEach(function (s) {
+      s.addEventListener('click', function () {
+        el.querySelectorAll('.ipad-swatch').forEach(function (x) {
+          x.classList.remove('is-active');
+        });
+        s.classList.add('is-active');
+        color = s.getAttribute('data-color') || '#1d1d1f';
+        sound('pop');
+      });
+    });
+
+    function setConnected(on) {
+      connected = on;
+      var dot = el.querySelector('.ipad-status-dot');
+      var label = el.querySelector('.ipad-conn-label');
+      var bar = el.querySelector('.ipad-menubar span:nth-child(2)');
+      if (dot) dot.classList.toggle('is-on', on);
+      if (label) label.textContent = on ? 'iPad as second display · Connected' : 'Disconnected';
+      if (bar) bar.textContent = on ? 'Sidecar · Connected' : 'Sidecar · Off';
+      canvas.style.opacity = on ? '1' : '0.45';
+      canvas.style.pointerEvents = on ? '' : 'none';
+    }
+
+    var disc = el.querySelector('#sidecar-disconnect');
+    if (disc) {
+      disc.addEventListener('click', function () {
+        setConnected(!connected);
+        disc.textContent = connected ? 'Disconnect' : 'Connect';
+        sound(connected ? 'hero' : 'purr');
+        if (global.MacShell && MacShell.notify) {
+          MacShell.notify('Sidecar', connected ? 'Connected' : 'Disconnected', 'iPad display', 'now');
+        }
+      });
+    }
+    var mirror = el.querySelector('#sidecar-mirror');
+    if (mirror) {
+      mirror.addEventListener('click', function () {
+        el.classList.add('is-mirror');
+        el.classList.remove('is-extend');
+        sound('pop');
+        if (global.MacShell && MacShell.notify) {
+          MacShell.notify('Sidecar', 'Mirror', 'Mirroring main display', 'now');
+        }
+      });
+    }
+    var extend = el.querySelector('#sidecar-extend');
+    if (extend) {
+      extend.addEventListener('click', function () {
+        el.classList.add('is-extend');
+        el.classList.remove('is-mirror');
+        sound('hero');
+        if (global.MacShell && MacShell.notify) {
+          MacShell.notify('Sidecar', 'Extend', 'Using as extended desktop', 'now');
+        }
+      });
+    }
+
+    var clock = el.querySelector('.ipad-clock');
+    if (clock) {
+      var tick = function () {
+        var n = new Date();
+        var h = n.getHours() % 12 || 12;
+        var m = n.getMinutes();
+        clock.textContent = h + ':' + (m < 10 ? '0' : '') + m;
+      };
+      tick();
+      setInterval(tick, 30000);
+    }
   }
 
   /* ── Sound panel buttons in Settings ────────────────── */
@@ -1467,19 +1601,45 @@
     el.dataset.wired = '1';
     var search = el.querySelector('.maps27-search');
     var cardTitle = el.querySelector('.maps27-card-info strong');
+    var cardSub = el.querySelector('.maps27-card-info .muted, .maps27-card-info p');
     var pin = el.querySelector('.maps27-pin');
+    var places = {
+      'apple park': { sub: 'Cupertino · Infinite Loop area', x: 48, y: 42 },
+      coffee: { sub: 'Nearby cafés', x: 36, y: 55 },
+      park: { sub: 'City park · Open space', x: 62, y: 38 },
+      airport: { sub: 'International Airport', x: 22, y: 60 },
+    };
     function go(q) {
       if (!q) return;
+      var key = q.toLowerCase();
+      var hit = null;
+      Object.keys(places).forEach(function (k) {
+        if (key.indexOf(k) >= 0) hit = places[k];
+      });
       if (cardTitle) cardTitle.textContent = q;
+      if (cardSub) cardSub.textContent = hit ? hit.sub : 'Search result · demo location';
       if (pin) {
-        pin.style.left = 30 + Math.random() * 40 + '%';
-        pin.style.top = 30 + Math.random() * 40 + '%';
+        pin.style.left = (hit ? hit.x : 30 + Math.random() * 40) + '%';
+        pin.style.top = (hit ? hit.y : 30 + Math.random() * 40) + '%';
+        pin.classList.add('is-bounce');
+        setTimeout(function () {
+          pin.classList.remove('is-bounce');
+        }, 400);
       }
       sound('pop');
+      if (global.MacShell && MacShell.notify) {
+        MacShell.notify('Maps', 'Location', q, 'now');
+      }
     }
     if (search) {
       search.addEventListener('keydown', function (e) {
         if (e.key === 'Enter') go(search.value.trim());
+      });
+    }
+    var searchBtn = el.querySelector('.maps27-search-btn, [aria-label="Search"]');
+    if (searchBtn && search) {
+      searchBtn.addEventListener('click', function () {
+        go(search.value.trim() || 'Apple Park');
       });
     }
     var clear = el.querySelector('.maps27-search-clear');
@@ -1567,17 +1727,32 @@
       });
     });
     el.querySelectorAll('.album-card').forEach(function (card) {
-      card.addEventListener('dblclick', function () {
+      card.style.cursor = 'pointer';
+      function playAlbum() {
         var t = card.querySelector('strong');
         var a = card.querySelector('.muted');
         var meta = el.querySelector('.np-meta strong, .mini-player strong');
         var sub = el.querySelector('.np-meta .muted, .mini-player .muted');
         if (meta && t) meta.textContent = t.textContent;
         if (sub && a) sub.textContent = a.textContent;
+        el.querySelectorAll('.album-card').forEach(function (c) {
+          c.classList.remove('is-playing');
+        });
+        card.classList.add('is-playing');
         playing = false;
         toggle();
+      }
+      card.addEventListener('click', playAlbum);
+      card.addEventListener('dblclick', playAlbum);
+    });
+    el.querySelectorAll('.music-side-item, .music27-nav, [data-music-nav]').forEach(function (nav) {
+      nav.addEventListener('click', function () {
+        el.querySelectorAll('.music-side-item, .music27-nav, [data-music-nav]').forEach(function (n) {
+          n.classList.remove('active', 'is-active');
+        });
+        nav.classList.add('active');
+        sound('tink');
       });
-      card.style.cursor = 'default';
     });
   }
 
@@ -2929,10 +3104,14 @@
     var ov = document.createElement('div');
     ov.id = 'quick-look';
     ov.className = 'quick-look-overlay';
-    var isImg = /\.(png|jpe?g|gif|webp)$/i.test(name);
+    var isImg =
+      /\.(png|jpe?g|gif|webp)$/i.test(name) ||
+      /photo|image|picture|screenshot|funny/i.test(name);
+    var n = 1 + Math.floor(Math.random() * 20);
+    var nn = n < 10 ? '0' + n : String(n);
     var body = isImg
-      ? '<img class="ql-img" src="assets/photos/funny/funny-01.jpg" alt="" />'
-      : '<div class="ql-doc"><div class="ql-doc-icon">📄</div><p class="muted">Preview</p></div>';
+      ? '<img class="ql-img" src="assets/photos/funny/funny-' + nn + '.jpg" alt="" />'
+      : '<div class="ql-doc"><div class="ql-doc-icon">📄</div><p class="muted">Preview</p><p></p></div>';
     ov.innerHTML =
       '<div class="quick-look-panel glass">' +
       '<div class="ql-titlebar"><strong></strong><button type="button" class="ql-close" aria-label="Close">✕</button></div>' +
@@ -3281,18 +3460,61 @@
   function wireMediaList(el, appName) {
     if (!el || el.dataset.wiredMedia) return;
     el.dataset.wiredMedia = '1';
-    el.querySelectorAll('.app-list-row').forEach(function (row) {
+    var playing = false;
+    var nowEl = el.querySelector('.pod-now, .media-now-playing');
+
+    function wirePlayBtn(btn) {
+      if (!btn || btn.dataset.podWired) return;
+      btn.dataset.podWired = '1';
+      btn.addEventListener('click', function () {
+        playing = !playing;
+        btn.textContent = playing ? 'Pause' : 'Play';
+        sound(playing ? 'funk' : 'tink');
+      });
+    }
+
+    function setNow(title, sub) {
+      if (!nowEl) {
+        nowEl = document.createElement('div');
+        nowEl.className = 'pod-now';
+        nowEl.innerHTML =
+          '<div class="pod-now-art">🎙</div><div class="pod-now-meta"><strong></strong><span class="muted"></span></div>' +
+          '<button type="button" class="btn-primary pod-play-btn">Play</button>';
+        el.appendChild(nowEl);
+      }
+      wirePlayBtn(nowEl.querySelector('.pod-play-btn'));
+      var s = nowEl.querySelector('strong');
+      var m = nowEl.querySelector('.pod-now-meta .muted, .muted');
+      if (s) s.textContent = title || 'Episode';
+      if (m) m.textContent = sub || appName;
+    }
+
+    wirePlayBtn(el.querySelector('.pod-play-btn'));
+
+    el.querySelectorAll('.app-list-row, .pod-episode').forEach(function (row) {
       row.style.cursor = 'pointer';
       row.addEventListener('click', function () {
-        el.querySelectorAll('.app-list-row').forEach(function (r) {
+        el.querySelectorAll('.app-list-row, .pod-episode').forEach(function (r) {
           r.classList.remove('is-selected', 'active');
         });
         row.classList.add('is-selected');
         sound('pop');
+        var t = row.querySelector('strong, .row-title');
+        var sub = row.querySelector('.pod-info .muted, .muted, .row-sub');
+        if (appName === 'Podcasts' || appName === 'Music') {
+          setNow(t ? t.textContent : 'Item', sub ? sub.textContent : '');
+        }
       });
       row.addEventListener('dblclick', function () {
         sound(appName === 'News' ? 'tink' : 'funk');
         var t = row.querySelector('strong, .row-title');
+        var sub = row.querySelector('.pod-info .muted, .muted, .row-sub');
+        if (appName !== 'News') {
+          setNow(t ? t.textContent : 'Item', sub ? sub.textContent : '');
+          playing = true;
+          var pb = el.querySelector('.pod-play-btn');
+          if (pb) pb.textContent = 'Pause';
+        }
         if (global.MacShell && MacShell.notify) {
           MacShell.notify(
             appName,

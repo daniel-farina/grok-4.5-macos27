@@ -2557,7 +2557,7 @@ html[data-theme='light'] .cal-new-event {
 
 /* Sidecar / iPad */
 .ipad-bezel {
-  width: min(100%, 720px);
+  width: min(100%, 760px);
   border-radius: 24px;
   background: #1c1c1e;
   padding: 14px;
@@ -2566,17 +2566,35 @@ html[data-theme='light'] .cal-new-event {
 .ipad-screen {
   background: #e8e8ed;
   border-radius: 12px;
-  min-height: 200px;
+  min-height: 280px;
   position: relative;
   overflow: hidden;
+  color: #1d1d1f;
 }
 .ipad-menubar {
   display: flex;
   justify-content: space-between;
+  align-items: center;
+  gap: 8px;
   padding: 6px 12px;
   font-size: 12px;
   font-weight: 600;
   background: rgba(255, 255, 255, 0.7);
+}
+.ipad-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #8e8e93;
+  flex-shrink: 0;
+}
+.ipad-status-dot.is-on {
+  background: #30d158;
+  box-shadow: 0 0 6px rgba(48, 209, 88, 0.7);
+}
+.ipad-main {
+  display: flex;
+  min-height: 260px;
 }
 .ipad-canvas {
   height: 80px;
@@ -2584,12 +2602,12 @@ html[data-theme='light'] .cal-new-event {
   place-items: center;
 }
 .ipad-sidebar {
-  position: absolute;
-  left: 8px;
-  top: 40px;
   display: flex;
   flex-direction: column;
   gap: 6px;
+  padding: 10px 8px;
+  background: rgba(255, 255, 255, 0.55);
+  border-right: 0.5px solid rgba(0, 0, 0, 0.08);
 }
 .ipad-sidebar button {
   width: 36px;
@@ -2598,20 +2616,181 @@ html[data-theme='light'] .cal-new-event {
   border: none;
   background: rgba(255, 255, 255, 0.9);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
 }
 .ipad-sidebar button.is-active {
   outline: 2px solid #0a84ff;
 }
+.ipad-swatches {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 0.5px solid rgba(0, 0, 0, 0.08);
+}
+.ipad-swatch {
+  width: 22px !important;
+  height: 22px !important;
+  border-radius: 50% !important;
+  margin: 0 auto;
+  border: 1.5px solid rgba(255, 255, 255, 0.8) !important;
+  padding: 0 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2) !important;
+}
+.ipad-swatch.is-active {
+  outline: 2px solid #0a84ff;
+  outline-offset: 2px;
+}
+.ipad-canvas-wrap {
+  flex: 1;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.ipad-extended {
+  background: linear-gradient(145deg, #5b6cff33, #c44dff22);
+  border-radius: 10px;
+  padding: 8px;
+}
+.ipad-win {
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 8px;
+  padding: 8px 10px 10px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  font-size: 12px;
+}
+.ipad-win-tb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.ipad-dots {
+  width: 36px;
+  height: 10px;
+  border-radius: 4px;
+  background: linear-gradient(
+    90deg,
+    #ff5f57 0 8px,
+    transparent 8px 12px,
+    #febc2e 12px 20px,
+    transparent 20px 24px,
+    #28c840 24px 32px
+  );
+}
+.ipad-hint {
+  margin: 0;
+  font-size: 11px;
+  color: rgba(0, 0, 0, 0.45);
+  text-align: center;
+}
+.sidecar-stage.is-mirror .ipad-extended {
+  background: linear-gradient(145deg, #0a84ff33, #30d15822);
+}
+.sidecar-stage.is-extend .ipad-extended {
+  background: linear-gradient(145deg, #bf5af233, #ff9f0a22);
+}
 #sidecar-draw {
   width: 100%;
-  max-width: 720px;
+  max-width: 100%;
   height: auto;
   border-radius: 12px;
-  border: 0.5px solid rgba(255, 255, 255, 0.2);
+  border: 0.5px solid rgba(0, 0, 0, 0.1);
   touch-action: none;
   cursor: crosshair;
-  margin-top: 8px;
   background: #f5f5f7;
+  display: block;
+}
+/* Podcasts */
+.podcasts-app .pod-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+.pod-list {
+  flex: 1;
+  overflow: auto;
+  padding: 8px 12px;
+}
+.pod-episode {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  margin-bottom: 4px;
+}
+.pod-episode.is-selected {
+  background: rgba(10, 132, 255, 0.12);
+}
+.pod-art {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: linear-gradient(145deg, hsl(var(--h, 220), 70%, 55%), hsl(calc(var(--h, 220) + 40), 70%, 45%));
+  display: grid;
+  place-items: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+.pod-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.pod-meta {
+  font-size: 12px;
+  white-space: nowrap;
+}
+.pod-now {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-top: 0.5px solid rgba(0, 0, 0, 0.08);
+  background: rgba(255, 255, 255, 0.5);
+  flex-shrink: 0;
+}
+html[data-theme='dark'] .pod-now {
+  background: rgba(0, 0, 0, 0.25);
+  border-top-color: rgba(255, 255, 255, 0.08);
+}
+.pod-now-art {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  background: linear-gradient(145deg, #5b6cff, #c44dff);
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+}
+.pod-now-meta {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.album-card.is-playing {
+  outline: 2px solid #0a84ff;
+  outline-offset: 2px;
+  border-radius: 12px;
+}
+.maps27-pin.is-bounce {
+  animation: pinBounce 0.4s ease;
+}
+@keyframes pinBounce {
+  0% { transform: translate(-50%, -100%) scale(1); }
+  40% { transform: translate(-50%, -120%) scale(1.15); }
+  100% { transform: translate(-50%, -100%) scale(1); }
+}
 }
 
 .sound-demo-grid {
