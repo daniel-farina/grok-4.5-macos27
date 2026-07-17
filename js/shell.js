@@ -1166,6 +1166,87 @@
           document.execCommand(action === 'select-all' ? 'selectAll' : action);
         } catch (e) {}
         break;
+      case 'undo':
+        try {
+          document.execCommand('undo');
+        } catch (e) {}
+        if (global.MacSounds && MacSounds.play) MacSounds.play('pop');
+        break;
+      case 'redo':
+        try {
+          document.execCommand('redo');
+        } catch (e) {}
+        if (global.MacSounds && MacSounds.play) MacSounds.play('pop');
+        break;
+      case 'hide-others':
+        if (global.WindowManager && WindowManager.getOpenWindows && WindowManager.getFocused) {
+          var focusedHide = WindowManager.getFocused();
+          var fid = focusedHide && focusedHide.id;
+          WindowManager.getOpenWindows().forEach(function (w) {
+            if (w.id !== fid && WindowManager.minimize) WindowManager.minimize(w.id);
+          });
+        }
+        break;
+      case 'as-icons':
+      case 'as-list':
+      case 'as-columns':
+      case 'as-gallery':
+        finderSetView(
+          action === 'as-icons'
+            ? 'icons'
+            : action === 'as-list'
+              ? 'list'
+              : action === 'as-columns'
+                ? 'columns'
+                : 'gallery'
+        );
+        break;
+      case 'show-path-bar':
+        finderToggleChrome('.finder-pathbar', 'Path Bar');
+        break;
+      case 'show-status-bar':
+        finderToggleChrome('.finder-statusbar', 'Status Bar');
+        break;
+      case 'go-back':
+      case 'go-forward':
+        openApp('finder');
+        notify('Finder', action === 'go-back' ? 'Back' : 'Forward', 'History (demo)', 'now');
+        break;
+      case 'go-home':
+        finderGo('home');
+        break;
+      case 'go-desktop':
+        finderGo('desktop');
+        break;
+      case 'go-downloads':
+        finderGo('down');
+        break;
+      case 'go-documents':
+        finderGo('docs');
+        break;
+      case 'go-applications':
+        finderGo('apps');
+        break;
+      case 'bring-all-front':
+        if (global.WindowManager && WindowManager.getOpenWindows) {
+          WindowManager.getOpenWindows().forEach(function (w) {
+            if (WindowManager.focus) WindowManager.focus(w.id);
+          });
+        }
+        if (global.MacSounds && MacSounds.play) MacSounds.play('pop');
+        break;
+      case 'help-search':
+      case 'help':
+        openApp('tips');
+        notify('Help', 'macOS Help', 'Open Tips for keyboard shortcuts and features', 'now');
+        break;
+      case 'wifi':
+      case 'battery':
+        toggleControlCenter();
+        break;
+      case 'sort-by':
+        notify('Finder', 'Sort By', 'Name (demo)', 'now');
+        break;
       case 'spotlight':
         toggleSpotlight();
         break;
@@ -1198,8 +1279,68 @@
       case 'refresh':
         break;
       default:
+        if (action && global.MacSounds && MacSounds.play) {
+          try {
+            MacSounds.play('tink');
+          } catch (err) {}
+        }
         break;
     }
+  }
+
+  function finderGo(navId) {
+    openApp('finder');
+    setTimeout(function () {
+      var win =
+        global.WindowManager &&
+        WindowManager.getWindowByAppId &&
+        WindowManager.getWindowByAppId('finder');
+      var body = win && win.el && (win.el.querySelector('.window-content') || win.el);
+      if (!body) return;
+      var item = body.querySelector('.finder-sb-item[data-nav="' + navId + '"]');
+      if (item) item.click();
+      if (global.MacSounds && MacSounds.play) MacSounds.play('pop');
+    }, 80);
+  }
+
+  function finderSetView(view) {
+    openApp('finder');
+    setTimeout(function () {
+      var win =
+        global.WindowManager &&
+        WindowManager.getWindowByAppId &&
+        WindowManager.getWindowByAppId('finder');
+      var body = win && win.el && (win.el.querySelector('.window-content') || win.el);
+      if (!body) return;
+      var btn = body.querySelector('.tb-view-btn[data-view="' + view + '"]');
+      if (btn) btn.click();
+      else {
+        /* dispatch via keyboard simulation on finder root */
+        var app = body.querySelector('.finder-app') || body;
+        app.setAttribute('data-view', view);
+      }
+      if (global.MacSounds && MacSounds.play) MacSounds.play('tink');
+      notify('Finder', 'View', 'as ' + view.charAt(0).toUpperCase() + view.slice(1), 'now');
+    }, 80);
+  }
+
+  function finderToggleChrome(sel, label) {
+    openApp('finder');
+    setTimeout(function () {
+      var win =
+        global.WindowManager &&
+        WindowManager.getWindowByAppId &&
+        WindowManager.getWindowByAppId('finder');
+      var body = win && win.el && (win.el.querySelector('.window-content') || win.el);
+      if (!body) return;
+      var el = body.querySelector(sel);
+      if (el) {
+        var hide = el.style.display === 'none';
+        el.style.display = hide ? '' : 'none';
+        notify('Finder', label, hide ? 'Shown' : 'Hidden', 'now');
+      }
+      if (global.MacSounds && MacSounds.play) MacSounds.play('pop');
+    }, 80);
   }
 
   function flashSleep() {
