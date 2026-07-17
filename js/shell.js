@@ -1391,18 +1391,207 @@
 
   function showAboutThisMac() {
     if (!global.WindowManager) return;
+    var mem = navigator.deviceMemory || 16;
+    var cores = navigator.hardwareConcurrency || 8;
+    var res = screen.width + ' × ' + screen.height;
+    var lang = navigator.language || 'en-US';
     WindowManager.open(
       'about-this-mac',
       'About This Mac',
-      '<div class="about-mac" style="padding:32px;text-align:center">' +
-        '<div style="font-size:48px;margin-bottom:12px"></div>' +
-        '<h2 style="margin:0 0 4px">macOS 27</h2>' +
-        '<p class="muted" style="margin:0 0 16px">Liquid Glass · Virtual Desktop</p>' +
-        '<p style="margin:4px 0">Chip: Apple Silicon (simulated)</p>' +
-        '<p style="margin:4px 0">Memory: ' + (navigator.deviceMemory || 16) + ' GB</p>' +
-        '</div>',
-      { width: 420, height: 340, resizable: false }
+      '<div class="about-mac">' +
+        '<div class="about-apple"></div>' +
+        '<h2>macOS 27</h2>' +
+        '<p class="muted about-sub">Liquid Glass · Virtual Desktop</p>' +
+        '<div class="about-rows">' +
+        '<div class="about-row"><span>Chip</span><strong>Apple Silicon (sim)</strong></div>' +
+        '<div class="about-row"><span>Memory</span><strong>' +
+        mem +
+        ' GB</strong></div>' +
+        '<div class="about-row"><span>Cores</span><strong>' +
+        cores +
+        '</strong></div>' +
+        '<div class="about-row"><span>Display</span><strong>' +
+        res +
+        '</strong></div>' +
+        '<div class="about-row"><span>Language</span><strong>' +
+        escapeHtml(lang) +
+        '</strong></div>' +
+        '<div class="about-row"><span>Serial</span><strong>VM' +
+        String(Date.now()).slice(-8) +
+        '</strong></div>' +
+        '</div>' +
+        '<div class="about-actions">' +
+        '<button type="button" class="btn-glass" id="about-support">Support</button>' +
+        '<button type="button" class="btn-primary" id="about-specs">More Info…</button>' +
+        '</div></div>',
+      { width: 440, height: 420, resizable: false }
     );
+    setTimeout(function () {
+      var support = document.getElementById('about-support');
+      var specs = document.getElementById('about-specs');
+      if (support) {
+        support.addEventListener('click', function () {
+          openApp('tips');
+        });
+      }
+      if (specs) {
+        specs.addEventListener('click', function () {
+          openApp('system-information');
+        });
+      }
+    }, 50);
+  }
+
+  function captureScreenshot(mode) {
+    mode = mode || 'full';
+    var flash = document.createElement('div');
+    flash.className = 'screenshot-flash';
+    document.body.appendChild(flash);
+    requestAnimationFrame(function () {
+      flash.classList.add('is-on');
+    });
+    setTimeout(function () {
+      flash.classList.remove('is-on');
+      setTimeout(function () {
+        if (flash.parentNode) flash.parentNode.removeChild(flash);
+      }, 200);
+    }, 120);
+
+    var w = window.innerWidth;
+    var h = window.innerHeight;
+    var canvas = document.createElement('canvas');
+    canvas.width = Math.min(w, 1920);
+    canvas.height = Math.min(h, 1080);
+    var ctx = canvas.getContext('2d');
+    var scaleX = canvas.width / w;
+    var scaleY = canvas.height / h;
+
+    function finish() {
+      // Soft vignette / chrome labels
+      ctx.fillStyle = 'rgba(0,0,0,0.35)';
+      ctx.fillRect(0, canvas.height - 36, canvas.width, 36);
+      ctx.fillStyle = '#fff';
+      ctx.font = '12px -apple-system, system-ui, sans-serif';
+      var stamp =
+        'Screenshot ' +
+        new Date().toLocaleString() +
+        (mode !== 'full' ? ' · ' + mode : '');
+      ctx.fillText(stamp, 16, canvas.height - 14);
+
+      var data = canvas.toDataURL('image/png');
+      var a = document.createElement('a');
+      var fname =
+        'Screenshot ' +
+        new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19) +
+        '.png';
+      a.href = data;
+      a.download = fname;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+
+      // Thumbnail toast on desktop area
+      var thumb = document.createElement('div');
+      thumb.className = 'screenshot-thumb-toast';
+      thumb.innerHTML = '<img alt="" /><span>Saved</span>';
+      var img = thumb.querySelector('img');
+      if (img) img.src = data;
+      document.body.appendChild(thumb);
+      setTimeout(function () {
+        thumb.classList.add('is-show');
+      }, 10);
+      setTimeout(function () {
+        thumb.classList.remove('is-show');
+        setTimeout(function () {
+          if (thumb.parentNode) thumb.parentNode.removeChild(thumb);
+        }, 300);
+      }, 2800);
+
+      if (global.MacSounds && MacSounds.play) MacSounds.play('tink');
+      notify('Screenshot', 'Screenshot saved', fname, 'now');
+      return data;
+    }
+
+    // Background
+    ctx.fillStyle = '#1a1a2e';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    var wall = $('#wallpaper');
+    var bgUrl = '';
+    if (wall) {
+      var bg = wall.style.backgroundImage || getComputedStyle(wall).backgroundImage || '';
+      var m = bg.match(/url\(["']?([^"')]+)["']?\)/);
+      if (m) bgUrl = m[1];
+    }
+    if (!bgUrl) bgUrl = 'assets/wallpaper.jpg';
+
+    var img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = function () {
+      try {
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      } catch (e) {
+        /* tainted */
+      }
+      // Draw simplified window frames
+      if (global.WindowManager && WindowManager.getOpenWindows && mode !== 'selection') {
+        WindowManager.getOpenWindows()
+          .filter(function (win) {
+            return !win.minimized && win.el;
+          })
+          .forEach(function (win) {
+            var r = win.el.getBoundingClientRect();
+            var x = r.left * scaleX;
+            var y = r.top * scaleY;
+            var ww = r.width * scaleX;
+            var hh = r.height * scaleY;
+            if (mode === 'window') {
+              var focused = WindowManager.getFocused && WindowManager.getFocused();
+              if (!focused || focused.id !== win.id) return;
+            }
+            ctx.fillStyle = 'rgba(40,40,45,0.88)';
+            roundRect(ctx, x, y, ww, hh, 10 * scaleX);
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+            ctx.stroke();
+            ctx.fillStyle = 'rgba(255,255,255,0.08)';
+            ctx.fillRect(x, y, ww, 22 * scaleY);
+            ctx.fillStyle = 'rgba(255,255,255,0.85)';
+            ctx.font = 11 * scaleY + 'px -apple-system, system-ui, sans-serif';
+            ctx.fillText(win.title || win.appId || 'Window', x + 12 * scaleX, y + 15 * scaleY);
+          });
+      }
+      if (mode === 'selection') {
+        // Center selection mock
+        var sw = canvas.width * 0.45;
+        var sh = canvas.height * 0.35;
+        var sx = (canvas.width - sw) / 2;
+        var sy = (canvas.height - sh) / 2;
+        ctx.fillStyle = 'rgba(0,0,0,0.45)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.clearRect(sx, sy, sw, sh);
+        ctx.drawImage(img, sx / scaleX, sy / scaleY, sw / scaleX, sh / scaleY, sx, sy, sw, sh);
+        ctx.strokeStyle = '#0a84ff';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(sx, sy, sw, sh);
+      }
+      finish();
+    };
+    img.onerror = function () {
+      ctx.fillStyle = '#2c2c2e';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      finish();
+    };
+    img.src = bgUrl;
+  }
+
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
   }
 
   function handleMenuAction(action) {
@@ -2067,7 +2256,7 @@
           return;
         }
         if (cc === 'screenshot') {
-          notify('Screenshot', 'Capture', 'Saved to Desktop', 'now');
+          captureScreenshot('full');
           return;
         }
         if (cc === 'edit') {
@@ -2241,6 +2430,18 @@
       if (meta && (key === ' ' || e.code === 'Space')) {
         e.preventDefault();
         toggleSpotlight();
+        return;
+      }
+
+      /* ⌘⇧3 full screen, ⌘⇧4 selection */
+      if (meta && e.shiftKey && (key === '3' || key === '#')) {
+        e.preventDefault();
+        captureScreenshot('full');
+        return;
+      }
+      if (meta && e.shiftKey && (key === '4' || key === '$')) {
+        e.preventDefault();
+        captureScreenshot(e.altKey || e.code === 'Space' ? 'window' : 'selection');
         return;
       }
 
@@ -2432,6 +2633,7 @@
     openApp: openApp,
     showLockScreen: showLockScreen,
     showForceQuit: showForceQuit,
+    captureScreenshot: captureScreenshot,
     openLaunchpad: openLaunchpad,
     closeLaunchpad: hideLaunchpad,
     toggleLaunchpad: toggleLaunchpad,

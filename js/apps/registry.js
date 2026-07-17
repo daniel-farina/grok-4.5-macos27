@@ -5380,10 +5380,11 @@ return theGreeting</textarea>
       return `<div class="app-layout col" id="screenshot-app">
         ${toolbar(`<strong>Screenshot</strong>`)}
         <div style="padding:24px;display:flex;flex-direction:column;gap:12px;align-items:stretch">
-          <p class="muted" style="margin:0 0 8px">Capture the virtual desktop (simulated).</p>
+          <p class="muted" style="margin:0 0 8px">Capture the virtual desktop. Files download as PNG.</p>
           <button type="button" class="btn-primary" data-shot="full">Capture Entire Screen  ⌘⇧3</button>
           <button type="button" class="btn-glass" data-shot="selection">Capture Selected Portion  ⌘⇧4</button>
           <button type="button" class="btn-glass" data-shot="window">Capture Window  ⌘⇧4 Space</button>
+          <div id="shot-preview" class="shot-preview" hidden></div>
           <div id="shot-status" class="muted" style="margin-top:8px"></div>
         </div>
       </div>`;
@@ -5391,10 +5392,21 @@ return theGreeting</textarea>
     APPS.screenshot.onMount = function (el) {
       el.querySelectorAll('[data-shot]').forEach((btn) => {
         btn.addEventListener('click', () => {
+          const mode = btn.getAttribute('data-shot') || 'full';
           const status = el.querySelector('#shot-status');
-          if (status) status.textContent = 'Saved to Desktop · Screenshot ' + new Date().toLocaleTimeString() + '.png';
-          if (global.MacShell && MacShell.notify) {
-            MacShell.notify('Screenshot', 'Screenshot saved', 'Saved to Desktop', 'now');
+          const preview = el.querySelector('#shot-preview');
+          if (global.MacShell && typeof MacShell.captureScreenshot === 'function') {
+            MacShell.captureScreenshot(mode);
+            if (status) {
+              status.textContent =
+                'Downloading Screenshot · ' + new Date().toLocaleTimeString() + ' · ' + mode;
+            }
+          } else if (status) {
+            status.textContent = 'Screenshot service unavailable';
+          }
+          if (preview) {
+            preview.hidden = false;
+            preview.textContent = 'Capture triggered (' + mode + ')';
           }
         });
       });
