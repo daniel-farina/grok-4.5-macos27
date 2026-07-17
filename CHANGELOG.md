@@ -13,10 +13,10 @@ Public commits track multi-minute interactive work on this virtual macOS 27 desk
 See `docs/LOOP_PRACTICE.md` for why we commit every loop.
 
 ### 2026-07-17 / 18 (loop demo)
-- TextEdit Save/word count; Activity Monitor Force Quit; Find My Lost Mode
-- Contacts inline add; Font Book sample edit/search
-- Dictionary, Voice Memos, Home scenes, Stickies, Preview, Photo Booth
-- Sidecar, Podcasts, Music, Maps, iPhone, System Settings, and more
+- Safari multi-tab + Forward; Clock timer chime; Disk Utility First Aid
+- Color Meter copy hex; Magnifier photo samples
+- TextEdit, Activity Monitor, Find My, Contacts, Font Book
+- Dictionary, Home, Stickies, Sidecar, iPhone, and more
 - Commit-as-you-go for multi-minute Grok 4.5 loops
 
 ### 2026-07-17

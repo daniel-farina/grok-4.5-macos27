@@ -96,16 +96,129 @@
     el.dataset.wired = '1';
     var input = el.querySelector('.safari-url-input');
     var page = el.querySelector('.safari-startpage');
-    var tabTitle = el.querySelector('.safari-tab-title');
+    var tabTitle =
+      el.querySelector('.safari-url-title') ||
+      el.querySelector('.safari-chrome .safari-tab.is-active .safari-tab-title') ||
+      el.querySelector('.safari-tab-title');
     var backBtn = el.querySelector('.safari-nav-seg[aria-label="Back"]');
+    var fwdBtn = el.querySelector('.safari-nav-seg[aria-label="Forward"]');
     var history = [];
     var histIdx = -1;
+    var tabs = [{ title: 'Start Page', url: '', history: [], histIdx: -1 }];
+    var tabIdx = 0;
+    var tabStrip = el.querySelector('.safari-tabstrip');
 
-    function showStart() {
+    function syncChrome() {
+      if (tabTitle) tabTitle.textContent = tabs[tabIdx].title;
+      if (input) input.value = (tabs[tabIdx].url || '').replace(/^https?:\/\//, '');
+      history = tabs[tabIdx].history || [];
+      histIdx = tabs[tabIdx].histIdx;
+      if (backBtn) {
+        backBtn.disabled = histIdx <= 0 && !tabs[tabIdx].url;
+        backBtn.classList.toggle('is-disabled', backBtn.disabled);
+      }
+      if (fwdBtn) {
+        fwdBtn.disabled = histIdx < 0 || histIdx >= history.length - 1;
+        fwdBtn.classList.toggle('is-disabled', fwdBtn.disabled);
+      }
+      renderTabs();
+    }
+
+    function renderTabs() {
+      if (!tabStrip) {
+        var chrome = el.querySelector('.safari-chrome');
+        if (!chrome) return;
+        tabStrip = document.createElement('div');
+        tabStrip.className = 'safari-tabstrip';
+        tabStrip.setAttribute('aria-label', 'Tabs');
+        chrome.appendChild(tabStrip);
+      }
+      tabStrip.innerHTML = '';
+      tabs.forEach(function (t, i) {
+        var btn = document.createElement('div');
+        btn.className = 'safari-tab' + (i === tabIdx ? ' is-active' : '');
+        btn.setAttribute('role', 'tab');
+        btn.innerHTML =
+          '<span class="safari-tab-favicon" aria-hidden="true">🧭</span>' +
+          '<span class="safari-tab-title"></span>' +
+          '<button type="button" class="safari-tab-close" aria-label="Close tab">×</button>';
+        btn.querySelector('.safari-tab-title').textContent =
+          t.title.length > 18 ? t.title.slice(0, 18) + '…' : t.title;
+        btn.addEventListener('click', function (e) {
+          if (e.target.closest('.safari-tab-close')) {
+            e.stopPropagation();
+            closeTab(i);
+            return;
+          }
+          switchTab(i);
+        });
+        tabStrip.appendChild(btn);
+      });
+      var add = document.createElement('button');
+      add.type = 'button';
+      add.className = 'safari-tab-add';
+      add.title = 'New Tab';
+      add.setAttribute('aria-label', 'New Tab');
+      add.textContent = '+';
+      add.addEventListener('click', function () {
+        newTab();
+      });
+      tabStrip.appendChild(add);
+    }
+
+    function saveTabState() {
+      tabs[tabIdx].history = history.slice();
+      tabs[tabIdx].histIdx = histIdx;
+      tabs[tabIdx].url = input ? input.value : tabs[tabIdx].url;
+      if (tabTitle) tabs[tabIdx].title = tabTitle.textContent || 'Tab';
+    }
+
+    function switchTab(i) {
+      if (i < 0 || i >= tabs.length || i === tabIdx) return;
+      saveTabState();
+      tabIdx = i;
+      history = tabs[tabIdx].history || [];
+      histIdx = tabs[tabIdx].histIdx;
+      if (tabs[tabIdx].url) {
+        navigate(tabs[tabIdx].url, true);
+      } else {
+        showStart(true);
+      }
+      syncChrome();
+      sound('pop');
+    }
+
+    function closeTab(i) {
+      if (tabs.length <= 1) {
+        showStart();
+        return;
+      }
+      tabs.splice(i, 1);
+      if (tabIdx >= tabs.length) tabIdx = tabs.length - 1;
+      else if (i < tabIdx) tabIdx--;
+      history = tabs[tabIdx].history || [];
+      histIdx = tabs[tabIdx].histIdx;
+      if (tabs[tabIdx].url) navigate(tabs[tabIdx].url, true);
+      else showStart(true);
+      syncChrome();
+      sound('tink');
+    }
+
+    function newTab() {
+      saveTabState();
+      tabs.push({ title: 'Start Page', url: '', history: [], histIdx: -1 });
+      tabIdx = tabs.length - 1;
+      history = [];
+      histIdx = -1;
+      showStart(true);
+      syncChrome();
+      sound('hero');
+    }
+
+    function showStart(skipSound) {
       if (!page) return;
       page.innerHTML = page._startHTML || '';
       if (!page.innerHTML) {
-        /* remount via registry if we lost start page */
         if (global.AppRegistry) {
           var app = AppRegistry.get('safari');
           if (app) {
@@ -116,19 +229,26 @@
           }
         }
       }
+      tabs[tabIdx].title = 'Start Page';
+      tabs[tabIdx].url = '';
       if (tabTitle) tabTitle.textContent = 'Start Page';
       if (input) input.value = '';
       if (backBtn) {
         backBtn.disabled = true;
         backBtn.classList.add('is-disabled');
       }
-      sound('pop');
+      if (fwdBtn) {
+        fwdBtn.disabled = true;
+        fwdBtn.classList.add('is-disabled');
+      }
+      if (!skipSound) sound('pop');
       wireSafariStartClicks(el, navigate);
+      renderTabs();
     }
 
     if (page && !page._startHTML) page._startHTML = page.innerHTML;
 
-    function navigate(raw) {
+    function navigate(raw, fromTab) {
       var q = (raw || '').trim();
       if (!q) return;
       var url = q;
@@ -136,7 +256,6 @@
         if (/^[\w.-]+\.[a-z]{2,}(\/.*)?$/i.test(url)) url = 'https://' + url;
         else url = 'https://duckduckgo.com/?q=' + encodeURIComponent(q);
       }
-      /* Prefer embeddable demo pages; many sites block iframes */
       var embed = url;
       if (/wikipedia\.org/i.test(url) || /example\.com/i.test(url) || /duckduckgo\.com/i.test(url)) {
         /* ok */
@@ -144,15 +263,27 @@
         embed = 'https://www.apple.com/';
       }
 
-      history = history.slice(0, histIdx + 1);
-      history.push({ url: url, title: q });
-      histIdx = history.length - 1;
+      if (!fromTab) {
+        history = history.slice(0, histIdx + 1);
+        history.push({ url: url, title: q });
+        histIdx = history.length - 1;
+      }
 
+      var shortTitle = q.length > 28 ? q.slice(0, 28) + '…' : q;
       if (input) input.value = url.replace(/^https?:\/\//, '');
-      if (tabTitle) tabTitle.textContent = (q.length > 28 ? q.slice(0, 28) + '…' : q);
+      if (tabTitle) tabTitle.textContent = shortTitle;
+      tabs[tabIdx].title = shortTitle;
+      tabs[tabIdx].url = url;
+      tabs[tabIdx].history = history.slice();
+      tabs[tabIdx].histIdx = histIdx;
+
       if (backBtn) {
         backBtn.disabled = histIdx <= 0;
         backBtn.classList.toggle('is-disabled', histIdx <= 0);
+      }
+      if (fwdBtn) {
+        fwdBtn.disabled = histIdx >= history.length - 1;
+        fwdBtn.classList.toggle('is-disabled', fwdBtn.disabled);
       }
 
       page.innerHTML =
@@ -174,8 +305,11 @@
         });
       }
       var start = page.querySelector('#safari-to-start');
-      if (start) start.addEventListener('click', showStart);
-      sound('pop');
+      if (start) start.addEventListener('click', function () {
+        showStart();
+      });
+      if (!fromTab) sound('pop');
+      renderTabs();
     }
 
     if (input) {
@@ -191,8 +325,22 @@
         if (histIdx > 0) {
           histIdx--;
           var h = history[histIdx];
-          if (h) navigate(h.url);
+          if (h) navigate(h.url, true);
+          tabs[tabIdx].histIdx = histIdx;
+          syncChrome();
         } else showStart();
+      });
+    }
+    if (fwdBtn) {
+      fwdBtn.addEventListener('click', function () {
+        if (histIdx < history.length - 1) {
+          histIdx++;
+          var h = history[histIdx];
+          if (h) navigate(h.url, true);
+          tabs[tabIdx].histIdx = histIdx;
+          syncChrome();
+          sound('pop');
+        }
       });
     }
     var refresh = el.querySelector('.safari-url-refresh');
@@ -206,9 +354,10 @@
       });
     }
     el.querySelectorAll('.safari-tab-add, .safari-tb-btn[title="New Tab"]').forEach(function (btn) {
-      btn.addEventListener('click', showStart);
+      btn.addEventListener('click', newTab);
     });
     wireSafariStartClicks(el, navigate);
+    renderTabs();
   }
 
   function wireSafariStartClicks(el, navigate) {
@@ -3551,6 +3700,47 @@
         sound('tink');
       });
     });
+    /* Timer completion chime: watch display hit 00:00 while was running */
+    var timerDisplay = el.querySelector('#timer-display');
+    var timerToggle = el.querySelector('#timer-toggle');
+    if (timerDisplay && timerToggle) {
+      var last = timerDisplay.textContent;
+      var watch = setInterval(function () {
+        if (!el.isConnected) {
+          clearInterval(watch);
+          return;
+        }
+        var cur = timerDisplay.textContent;
+        if (last && last !== '00:00' && cur === '00:00') {
+          sound('sosumi');
+          if (global.MacShell && MacShell.notify) {
+            MacShell.notify('Clock', 'Timer', 'Time is up', 'now', { force: true });
+          }
+        }
+        last = cur;
+      }, 400);
+    }
+    /* Alarm toggle rows */
+    el.querySelectorAll('.alarm-row, .alarm-toggle, .clock-alarm').forEach(function (row) {
+      row.addEventListener('click', function (e) {
+        if (e.target.closest('input, button, .toggle')) return;
+        var tog = row.querySelector('.toggle, input[type="checkbox"]');
+        if (tog) {
+          if (tog.type === 'checkbox') tog.checked = !tog.checked;
+          else tog.classList.toggle('on');
+          sound('pop');
+        }
+      });
+    });
+    el.querySelectorAll('.alarm-row .toggle, .alarm-toggle').forEach(function (tog) {
+      if (tog.dataset.clk) return;
+      tog.dataset.clk = '1';
+      tog.addEventListener('click', function (e) {
+        e.stopPropagation();
+        tog.classList.toggle('on');
+        sound(tog.classList.contains('on') ? 'hero' : 'tink');
+      });
+    });
   }
 
   /* ── iWork: Pages / Numbers / Keynote ───────────────── */
@@ -3780,12 +3970,18 @@
   function wireDiskUtility(el) {
     if (!el || el.dataset.wired) return;
     el.dataset.wired = '1';
+    var selected = 'Macintosh HD';
     el.querySelectorAll('.du27-item, .du-volume, [data-volume]').forEach(function (item) {
       item.addEventListener('click', function () {
         el.querySelectorAll('.du27-item, .du-volume, [data-volume]').forEach(function (i) {
           i.classList.remove('active', 'is-selected');
         });
         item.classList.add('active');
+        selected =
+          item.getAttribute('data-volume') ||
+          (item.querySelector('strong') && item.querySelector('strong').textContent) ||
+          item.textContent.trim().split('\n')[0] ||
+          selected;
         sound('pop');
       });
     });
@@ -3793,8 +3989,35 @@
       if (btn.dataset.du) return;
       btn.dataset.du = '1';
       btn.addEventListener('click', function () {
+        var title = (btn.getAttribute('title') || btn.textContent || 'Action').trim();
+        var status = el.querySelector('#du-status, .du-status, .du27-status');
+        if (/first aid|verify|repair/i.test(title)) {
+          if (status) status.textContent = 'Running First Aid on ' + selected + '…';
+          sound('purr');
+          var n = 0;
+          var iv = setInterval(function () {
+            n += 25;
+            if (status) status.textContent = 'First Aid… ' + n + '%';
+            if (n >= 100) {
+              clearInterval(iv);
+              if (status) status.textContent = selected + ' appears to be OK';
+              sound('hero');
+              if (global.MacShell && MacShell.notify) {
+                MacShell.notify('Disk Utility', 'First Aid', selected + ' · OK', 'now');
+              }
+            }
+          }, 280);
+          return;
+        }
+        if (/erase|format/i.test(title)) {
+          sound('sosumi');
+          if (global.MacShell && MacShell.notify) {
+            MacShell.notify('Disk Utility', 'Erase', 'Demo only — no disk was erased', 'now');
+          }
+          return;
+        }
         sound('tink');
-        var title = btn.getAttribute('title') || btn.textContent || 'Action';
+        if (status) status.textContent = title + ' · simulated';
         if (global.MacShell && MacShell.notify) {
           MacShell.notify('Disk Utility', title, 'Operation simulated', 'now');
         }
@@ -4326,6 +4549,7 @@
   function wireColorMeter(el) {
     if (!el || el.dataset.wired) return;
     el.dataset.wired = '1';
+    var lastHex = '#7CA8FF';
     function sample(e) {
       var r = Math.min(255, Math.max(0, Math.floor((e.clientX / window.innerWidth) * 255)));
       var g = Math.min(255, Math.max(0, Math.floor((e.clientY / window.innerHeight) * 255)));
@@ -4339,6 +4563,7 @@
           })
           .join('')
           .toUpperCase();
+      lastHex = hex;
       var sw = el.querySelector('#dcm-swatch');
       if (sw) sw.style.background = hex;
       var er = el.querySelector('#dcm-r');
@@ -4354,6 +4579,39 @@
       if (!el.isConnected) return;
       sample(e);
     });
+    var hexEl = el.querySelector('#dcm-hex');
+    if (hexEl) {
+      hexEl.style.cursor = 'pointer';
+      hexEl.title = 'Click to copy';
+      hexEl.addEventListener('click', function () {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(lastHex).catch(function () {});
+        }
+        sound('tink');
+        if (global.MacShell && MacShell.notify) {
+          MacShell.notify('Digital Color Meter', 'Copied', lastHex, 'now');
+        }
+      });
+    }
+    if (!el.querySelector('#dcm-copy')) {
+      var bar = el.querySelector('.app-layout, #dcm-app') || el;
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn-primary';
+      btn.id = 'dcm-copy';
+      btn.textContent = 'Copy Hex';
+      btn.style.cssText = 'margin:12px auto 16px;display:block';
+      bar.appendChild(btn);
+      btn.addEventListener('click', function () {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(lastHex).catch(function () {});
+        }
+        sound('hero');
+        if (global.MacShell && MacShell.notify) {
+          MacShell.notify('Digital Color Meter', 'Copied', lastHex, 'now');
+        }
+      });
+    }
   }
 
   /* ── QuickTime ──────────────────────────────────────── */
@@ -4761,6 +5019,16 @@
     var zoom = el.querySelector('#mag-zoom');
     var bright = el.querySelector('#mag-bright');
     var filter = el.querySelector('#mag-filter');
+    /* Use a funny photo as sample content to magnify */
+    if (content && !content.querySelector('img')) {
+      var n = 1 + Math.floor(Math.random() * 20);
+      var nn = n < 10 ? '0' + n : String(n);
+      content.innerHTML =
+        '<img src="assets/photos/funny/funny-' +
+        nn +
+        '.jpg" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:8px" />' +
+        '<p class="muted" style="text-align:center;margin-top:8px">Sample · drag sliders to zoom</p>';
+    }
     function apply() {
       if (!content) return;
       var z = zoom ? zoom.value : 2;
@@ -4771,11 +5039,44 @@
       if (f === 'gray') filt += ' grayscale(1)';
       if (f === 'contrast') filt += ' contrast(1.6)';
       content.style.transform = 'scale(' + z + ')';
+      content.style.transformOrigin = 'center center';
       content.style.filter = filt;
+      var label = el.querySelector('#mag-zoom-label, .mag-zoom-val');
+      if (label) label.textContent = z + '×';
     }
-    if (zoom) zoom.addEventListener('input', function () { apply(); sound('volume'); });
+    if (zoom) {
+      zoom.addEventListener('input', function () {
+        apply();
+        sound('volume');
+      });
+    }
     if (bright) bright.addEventListener('input', apply);
-    if (filter) filter.addEventListener('change', function () { apply(); sound('tink'); });
+    if (filter) {
+      filter.addEventListener('change', function () {
+        apply();
+        sound('tink');
+      });
+    }
+    var cycle = el.querySelector('#mag-cycle');
+    if (!cycle) {
+      var controls = el.querySelector('.mag-controls, .app-layout') || el;
+      cycle = document.createElement('button');
+      cycle.type = 'button';
+      cycle.className = 'btn-glass';
+      cycle.id = 'mag-cycle';
+      cycle.textContent = 'Next sample';
+      cycle.style.cssText = 'margin:8px auto;display:block';
+      controls.appendChild(cycle);
+    }
+    cycle.addEventListener('click', function () {
+      var img = content && content.querySelector('img');
+      if (img) {
+        var n = 1 + Math.floor(Math.random() * 20);
+        var nn = n < 10 ? '0' + n : String(n);
+        img.src = 'assets/photos/funny/funny-' + nn + '.jpg';
+        sound('pop');
+      }
+    });
     apply();
   }
 

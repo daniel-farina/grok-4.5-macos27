@@ -3856,6 +3856,10 @@ Save stores a demo document name from the first line.</div>
               timerLeft = 0;
               timerDisplay.textContent = '00:00';
               stopTimer();
+              if (window.MacSounds && MacSounds.play) MacSounds.play('sosumi');
+              if (window.MacShell && MacShell.notify) {
+                MacShell.notify('Clock', 'Timer', 'Time is up', 'now', { force: true });
+              }
               return;
             }
             timerDisplay.textContent = fmtTimer(timerLeft);

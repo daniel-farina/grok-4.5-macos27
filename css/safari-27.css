@@ -341,7 +341,7 @@ html[data-theme='light'] .safari-tabstrip {
   align-items: center;
   gap: 6px;
   max-width: 200px;
-  min-width: 120px;
+  min-width: 100px;
   height: 26px;
   padding: 0 8px 0 10px;
   border-radius: 8px 8px 0 0;
@@ -351,6 +351,8 @@ html[data-theme='light'] .safari-tabstrip {
   color: inherit;
   font-size: 11.5px;
   letter-spacing: -0.01em;
+  cursor: pointer;
+  flex: 0 1 auto;
 }
 
 .safari-tab.is-active {
