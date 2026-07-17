@@ -5211,15 +5211,17 @@ return theGreeting</textarea>
     APPS['system-information'].width = 720;
     APPS['system-information'].height = 520;
     APPS['system-information'].open = function () {
+      const nav = typeof navigator !== 'undefined' ? navigator : {};
+      const scr = typeof screen !== 'undefined' ? screen : { width: 1920, height: 1080 };
       const panes = {
         overview: [
           ['Model Name', 'Virtual Mac'],
           ['Chip', 'Apple Silicon (sim)'],
-          ['Memory', (navigator.deviceMemory || 16) + ' GB'],
+          ['Memory', (nav.deviceMemory || 16) + ' GB'],
           ['macOS', '27.0 (Liquid Glass)'],
         ],
         display: [
-          ['Resolution', screen.width + ' × ' + screen.height],
+          ['Resolution', (scr.width || 1920) + ' × ' + (scr.height || 1080)],
           ['Color Profile', 'sRGB'],
           ['Refresh', '60 Hz (sim)'],
         ],

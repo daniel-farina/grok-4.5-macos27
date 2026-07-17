@@ -1034,38 +1034,53 @@
     if (!el || el.dataset.wired) return;
     el.dataset.wired = '1';
     var playing = false;
-    var progress = el.querySelector('.mini-player .progress-bar, .mini-player-progress, .mp-progress, [class*="progress"]');
     var playBtn =
-      el.querySelector('.mini-player button[title="Play"], .mp-play, .mini-player .play, .mini-player button:nth-child(2)');
-    /* find play-like control */
-    el.querySelectorAll('.mini-player button, .music-player button').forEach(function (b) {
-      var label = (b.getAttribute('title') || b.textContent || '').toLowerCase();
-      if (label.indexOf('play') >= 0 || label.indexOf('pause') >= 0 || b.textContent === '▶' || b.textContent === '❚❚') {
+      el.querySelector('.np-play, .mini-player button[aria-label="Play"], .mp-play');
+    el.querySelectorAll('.mini-player button, .np-controls button').forEach(function (b) {
+      var label = (b.getAttribute('aria-label') || b.getAttribute('title') || b.textContent || '').toLowerCase();
+      if (label.indexOf('play') >= 0 || b.textContent === '▶' || b.textContent === '❚❚') {
         playBtn = playBtn || b;
       }
     });
     var timer = null;
+    var pos = 38;
     function toggle() {
       playing = !playing;
-      if (playBtn) playBtn.textContent = playing ? '❚❚' : '▶';
+      if (playBtn) {
+        playBtn.textContent = playing ? '❚❚' : '▶';
+        playBtn.setAttribute('aria-label', playing ? 'Pause' : 'Play');
+      }
       sound(playing ? 'funk' : 'pop');
       if (timer) clearInterval(timer);
       if (playing) {
-        var bar = el.querySelector('.mini-player .fill, .mp-fill, .progress-fill');
-        var w = 0;
+        var bar = el.querySelector('.np-bar-fill, .mini-player .fill, .mp-fill, .progress-fill');
         timer = setInterval(function () {
-          w = (w + 1) % 100;
-          if (bar) bar.style.width = w + '%';
-        }, 200);
+          pos = (pos + 1) % 100;
+          if (bar) bar.style.width = pos + '%';
+          var tEl = el.querySelector('.np-time');
+          if (tEl) {
+            var s = Math.floor((pos / 100) * 222);
+            tEl.textContent = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+          }
+        }, 250);
       }
     }
     if (playBtn) playBtn.addEventListener('click', toggle);
+    el.querySelectorAll('.np-btn[aria-label="Previous"], .np-btn[aria-label="Next"]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        sound('tink');
+        var tracks = ['Liquid Glass', 'Neon Rain', 'Soft Static', 'Harbor Lights', 'Golden Hour'];
+        var meta = el.querySelector('.np-meta strong, .mini-player strong');
+        if (meta) meta.textContent = tracks[Math.floor(Math.random() * tracks.length)];
+        pos = 0;
+      });
+    });
     el.querySelectorAll('.album-card').forEach(function (card) {
       card.addEventListener('dblclick', function () {
         var t = card.querySelector('strong');
         var a = card.querySelector('.muted');
-        var meta = el.querySelector('.mini-player strong, .mp-title, .mini-player .title');
-        var sub = el.querySelector('.mini-player .muted, .mp-artist');
+        var meta = el.querySelector('.np-meta strong, .mini-player strong');
+        var sub = el.querySelector('.np-meta .muted, .mini-player .muted');
         if (meta && t) meta.textContent = t.textContent;
         if (sub && a) sub.textContent = a.textContent;
         playing = false;
@@ -3538,18 +3553,20 @@
   function wireSystemInfo(el) {
     if (!el || el.dataset.wired) return;
     el.dataset.wired = '1';
+    var nav = typeof navigator !== 'undefined' ? navigator : {};
+    var scr = typeof screen !== 'undefined' ? screen : { width: 1920, height: 1080 };
     var panes = {
       overview: [
         ['Model Name', 'Virtual Mac'],
         ['Chip', 'Apple Silicon (sim)'],
-        ['Memory', (navigator.deviceMemory || 16) + ' GB'],
+        ['Memory', (nav.deviceMemory || 16) + ' GB'],
         ['macOS', '27.0 (Liquid Glass)'],
-        ['Browser', navigator.userAgent.split(' ').slice(-1)[0] || 'Web'],
+        ['Browser', (nav.userAgent && nav.userAgent.split(' ').slice(-1)[0]) || 'Web'],
       ],
       display: [
-        ['Resolution', screen.width + ' × ' + screen.height],
+        ['Resolution', (scr.width || 1920) + ' × ' + (scr.height || 1080)],
         ['Color Profile', 'sRGB'],
-        ['Pixel Ratio', String(window.devicePixelRatio || 1)],
+        ['Pixel Ratio', String((typeof window !== 'undefined' && window.devicePixelRatio) || 1)],
       ],
       storage: [
         ['Macintosh HD', '1 TB APFS'],
@@ -3558,8 +3575,8 @@
       ],
       network: [
         ['Wi‑Fi', 'Home Network'],
-        ['Online', navigator.onLine ? 'Yes' : 'No'],
-        ['Language', navigator.language || 'en-US'],
+        ['Online', nav.onLine === false ? 'No' : 'Yes'],
+        ['Language', nav.language || 'en-US'],
       ],
     };
     el.querySelectorAll('.si-nav').forEach(function (nav) {

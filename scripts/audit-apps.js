@@ -27,8 +27,10 @@ function fail(msg) {
 const JS_FILES = [
   'js/icons.js',
   'js/window-manager.js',
+  'js/sounds.js',
   'js/shell.js',
   'js/apps/registry.js',
+  'js/macos-runtime.js',
   'js/main.js',
 ];
 
@@ -270,7 +272,8 @@ for (const rel of CSS_FILES) {
 // ─── 6. index.html load order ─────────────────────────────────────
 console.log('\n=== 6. index.html ===');
 const indexHtml = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
-const cssHrefs = [...indexHtml.matchAll(/href="(css\/[^"]+)"/g)].map((m) => m[1]);
+const stripQ = (s) => s.replace(/\?v=\d+$/, '');
+const cssHrefs = [...indexHtml.matchAll(/href="(css\/[^"]+)"/g)].map((m) => stripQ(m[1]));
 const missingRequired = CSS_REQUIRED.filter((c) => !cssHrefs.includes(c));
 if (!missingRequired.length) {
   pass('required CSS linked: ' + CSS_REQUIRED.join(', '));
@@ -288,12 +291,14 @@ if (cssHrefs.includes('css/finder-27.css')) {
   pass('finder-27.css also linked');
 }
 
-const scriptSrcs = [...indexHtml.matchAll(/src="(js\/[^"]+)"/g)].map((m) => m[1]);
+const scriptSrcs = [...indexHtml.matchAll(/src="(js\/[^"]+)"/g)].map((m) => stripQ(m[1]));
 const expectedScripts = [
   'js/icons.js',
   'js/window-manager.js',
+  'js/sounds.js',
   'js/shell.js',
   'js/apps/registry.js',
+  'js/macos-runtime.js',
   'js/main.js',
 ];
 if (JSON.stringify(scriptSrcs) === JSON.stringify(expectedScripts)) {
