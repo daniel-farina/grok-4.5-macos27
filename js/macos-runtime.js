@@ -2301,11 +2301,78 @@
   function wireStickies(el) {
     if (!el || el.dataset.wired) return;
     el.dataset.wired = '1';
-    el.querySelectorAll('.sticky').forEach(function (s) {
+    var board = el.querySelector('.stickies-board') || el;
+    board.style.position = board.style.position || 'relative';
+    board.style.minHeight = board.style.minHeight || '360px';
+    el.querySelectorAll('.sticky').forEach(function (s, i) {
+      s.contentEditable = 'true';
+      s.style.position = 'absolute';
+      if (!s.style.left) s.style.left = 24 + (i % 3) * 160 + 'px';
+      if (!s.style.top) s.style.top = 24 + Math.floor(i / 3) * 140 + 'px';
+      s.style.cursor = 'grab';
+      s.style.minWidth = '140px';
+      s.style.minHeight = '120px';
+      s.style.zIndex = String(1 + i);
       s.addEventListener('focus', function () {
         sound('pop');
       });
+      var drag = false;
+      var ox = 0;
+      var oy = 0;
+      s.addEventListener('pointerdown', function (e) {
+        if (e.target !== s && e.target.isContentEditable && e.detail > 0) {
+          /* allow text selection when clicking inside after focus */
+        }
+        if (e.metaKey || e.altKey) return;
+        // drag from edge: hold shift or drag when not selecting text
+        if (document.activeElement === s && !e.shiftKey) return;
+        drag = true;
+        s.setPointerCapture(e.pointerId);
+        var r = s.getBoundingClientRect();
+        var br = board.getBoundingClientRect();
+        ox = e.clientX - r.left;
+        oy = e.clientY - r.top;
+        s.style.cursor = 'grabbing';
+        s.style.zIndex = '20';
+      });
+      s.addEventListener('pointermove', function (e) {
+        if (!drag) return;
+        var br = board.getBoundingClientRect();
+        var x = e.clientX - br.left - ox;
+        var y = e.clientY - br.top - oy;
+        s.style.left = Math.max(0, x) + 'px';
+        s.style.top = Math.max(0, y) + 'px';
+      });
+      s.addEventListener('pointerup', function () {
+        drag = false;
+        s.style.cursor = 'grab';
+      });
     });
+    // Add sticky button if missing
+    if (!el.querySelector('.sticky-add')) {
+      var add = document.createElement('button');
+      add.type = 'button';
+      add.className = 'btn-primary sticky-add';
+      add.textContent = '+ Note';
+      add.style.cssText = 'position:absolute;right:12px;bottom:12px;z-index:30';
+      board.appendChild(add);
+      add.addEventListener('click', function () {
+        var n = document.createElement('div');
+        n.className = 'sticky y';
+        n.contentEditable = 'true';
+        n.textContent = 'New sticky';
+        n.style.position = 'absolute';
+        n.style.left = 40 + Math.random() * 120 + 'px';
+        n.style.top = 40 + Math.random() * 80 + 'px';
+        n.style.minWidth = '140px';
+        n.style.minHeight = '120px';
+        board.appendChild(n);
+        sound('hero');
+        // re-wire simply
+        el.dataset.wired = '';
+        wireStickies(el);
+      });
+    }
   }
 
   /* ── Clock tabs already have onMount; add sound ─────── */

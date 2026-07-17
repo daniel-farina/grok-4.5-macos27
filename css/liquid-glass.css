@@ -3392,21 +3392,19 @@ body.stage-manager-on .window.is-active:not(.is-minimized):not(.is-staged),
   }
 }
 
-/* Desktop icons */
+/* Desktop icons — freeform positions, draggable */
 #desktop-icons {
   position: absolute;
-  inset: var(--menubar-height, 28px) 12px 90px auto;
-  width: 100px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 14px;
-  padding: 12px 8px;
+  inset: 0;
   z-index: 2;
   pointer-events: none;
 }
+#desktop-icons.is-freeform {
+  display: block;
+}
 .desktop-icon {
   pointer-events: auto;
+  position: absolute;
   border: none;
   background: transparent;
   color: #fff;
@@ -3419,6 +3417,13 @@ body.stage-manager-on .window.is-active:not(.is-minimized):not(.is-staged),
   padding: 6px 4px;
   border-radius: 8px;
   text-shadow: 0 1px 3px rgba(0,0,0,0.55);
+  touch-action: none;
+  user-select: none;
+}
+.desktop-icon.is-dragging {
+  opacity: 0.9;
+  z-index: 50;
+  cursor: grabbing;
 }
 .desktop-icon.is-selected {
   background: rgba(10, 132, 255, 0.35);

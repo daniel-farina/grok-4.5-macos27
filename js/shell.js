@@ -632,26 +632,51 @@
     syncRunningFromWindows();
   }
 
+  function loadDesktopIconPositions() {
+    try {
+      return JSON.parse(localStorage.getItem('macos-desktop-icons') || '{}') || {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function saveDesktopIconPositions(map) {
+    try {
+      localStorage.setItem('macos-desktop-icons', JSON.stringify(map || {}));
+    } catch (e) {}
+  }
+
   function renderDesktopIcons() {
     var host = $('#desktop-icons');
     if (!host) return;
     var items = [
-      { id: 'finder', label: 'Macintosh HD', kind: 'drive' },
-      { id: 'finder', label: 'Applications', kind: 'folder', nav: 'apps' },
-      { id: 'safari', label: 'Safari', kind: 'app' },
-      { id: 'photos', label: 'Photos', kind: 'app' },
-      { id: 'notes', label: 'Notes', kind: 'app' },
-      { id: 'trash', label: 'Trash', kind: 'trash' },
+      { key: 'hd', id: 'finder', label: 'Macintosh HD', kind: 'drive' },
+      { key: 'apps', id: 'finder', label: 'Applications', kind: 'folder', nav: 'apps' },
+      { key: 'safari', id: 'safari', label: 'Safari', kind: 'app' },
+      { key: 'photos', id: 'photos', label: 'Photos', kind: 'app' },
+      { key: 'notes', id: 'notes', label: 'Notes', kind: 'app' },
+      { key: 'trash', id: 'trash', label: 'Trash', kind: 'trash' },
     ];
+    var pos = loadDesktopIconPositions();
+    host.classList.add('is-freeform');
     host.innerHTML = items
       .map(function (it, i) {
+        var p = pos[it.key];
+        var left = p && typeof p.x === 'number' ? p.x : null;
+        var top = p && typeof p.y === 'number' ? p.y : null;
+        var style =
+          left != null && top != null
+            ? 'left:' + left + 'px;top:' + top + 'px;'
+            : 'right:12px;top:' + (48 + i * 92) + 'px;';
         return (
-          '<button type="button" class="desktop-icon" data-open="' +
+          '<button type="button" class="desktop-icon" data-key="' +
+          escapeHtml(it.key) +
+          '" data-open="' +
           escapeHtml(it.id) +
           '" data-nav="' +
           escapeHtml(it.nav || '') +
-          '" style="--i:' +
-          i +
+          '" style="' +
+          style +
           '">' +
           '<div class="desktop-icon-img kind-' +
           escapeHtml(it.kind) +
@@ -701,7 +726,69 @@
         }
         if (global.MacSounds && MacSounds.play) MacSounds.play('pop');
       });
+      enableDesktopIconDrag(btn, host);
     });
+  }
+
+  function enableDesktopIconDrag(btn, host) {
+    var dragging = false;
+    var ox = 0;
+    var oy = 0;
+    var startX = 0;
+    var startY = 0;
+    var moved = false;
+    btn.addEventListener('pointerdown', function (e) {
+      if (e.button !== 0) return;
+      dragging = true;
+      moved = false;
+      btn.setPointerCapture(e.pointerId);
+      var r = btn.getBoundingClientRect();
+      ox = e.clientX - r.left;
+      oy = e.clientY - r.top;
+      startX = e.clientX;
+      startY = e.clientY;
+      btn.classList.add('is-dragging');
+    });
+    btn.addEventListener('pointermove', function (e) {
+      if (!dragging) return;
+      if (Math.abs(e.clientX - startX) + Math.abs(e.clientY - startY) > 4) moved = true;
+      var x = e.clientX - ox;
+      var y = e.clientY - oy;
+      var maxX = window.innerWidth - btn.offsetWidth - 8;
+      var maxY = window.innerHeight - btn.offsetHeight - 80;
+      x = Math.max(8, Math.min(maxX, x));
+      y = Math.max(36, Math.min(maxY, y));
+      btn.style.left = x + 'px';
+      btn.style.top = y + 'px';
+      btn.style.right = 'auto';
+    });
+    function endDrag(e) {
+      if (!dragging) return;
+      dragging = false;
+      btn.classList.remove('is-dragging');
+      if (!moved) return;
+      var key = btn.getAttribute('data-key');
+      if (!key) return;
+      var map = loadDesktopIconPositions();
+      map[key] = {
+        x: parseInt(btn.style.left, 10) || 0,
+        y: parseInt(btn.style.top, 10) || 0,
+      };
+      saveDesktopIconPositions(map);
+    }
+    btn.addEventListener('pointerup', endDrag);
+    btn.addEventListener('pointercancel', endDrag);
+    // prevent click-as-select after drag from opening
+    btn.addEventListener(
+      'click',
+      function (e) {
+        if (moved) {
+          e.stopImmediatePropagation();
+          e.preventDefault();
+        }
+      },
+      true
+    );
   }
 
   function wireDockInteractions(dock) {
@@ -1768,7 +1855,14 @@
         toggleControlCenter();
         break;
       case 'sort-by':
-        notify('Finder', 'Sort By', 'Name (demo)', 'now');
+      case 'clean-up':
+        /* Snap desktop icons back to default column */
+        try {
+          localStorage.removeItem('macos-desktop-icons');
+        } catch (e) {}
+        renderDesktopIcons();
+        notify('Desktop', 'Clean Up', 'Icons arranged', 'now');
+        if (global.MacSounds && MacSounds.play) MacSounds.play('pop');
         break;
       case 'spotlight':
         toggleSpotlight();
