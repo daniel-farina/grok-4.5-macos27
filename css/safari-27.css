@@ -1,0 +1,1041 @@
+/* =============================================================================
+   Safari — macOS 27 / Tahoe Liquid Glass Start Page
+   Matched to real Safari chrome: compact toolbar, glass URL capsule,
+   Favorites grid, Privacy Report, Reading List, Recently Closed.
+   ============================================================================= */
+
+/* ---- Window shell ---- */
+.window[data-app='safari'] {
+  border-radius: 16px !important;
+  overflow: hidden !important;
+  background: rgba(42, 42, 46, 0.94) !important;
+  border: 0.5px solid rgba(255, 255, 255, 0.12) !important;
+  box-shadow:
+    0 32px 90px rgba(0, 0, 0, 0.5),
+    0 12px 32px rgba(0, 0, 0, 0.28),
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.14) !important;
+  backdrop-filter: blur(48px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(48px) saturate(160%) !important;
+}
+
+html[data-theme='light'] .window[data-app='safari'] {
+  background: rgba(236, 236, 240, 0.96) !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+  box-shadow:
+    0 28px 72px rgba(0, 0, 0, 0.18),
+    0 8px 24px rgba(0, 0, 0, 0.08),
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.85) !important;
+}
+
+/* Compact titlebar strip — traffic lights only over toolbar left */
+.window[data-app='safari'] .window-titlebar {
+  position: absolute !important;
+  top: 0;
+  left: 0;
+  width: 78px !important;
+  height: 52px !important;
+  min-height: 52px !important;
+  z-index: 30;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  pointer-events: auto !important;
+  padding: 0 !important;
+}
+.window[data-app='safari'] .window-title {
+  display: none !important;
+}
+.window[data-app='safari'] .window-titlebar::before {
+  display: none !important;
+}
+.window[data-app='safari'] .traffic-lights {
+  position: absolute;
+  left: 14px;
+  top: 18px;
+  gap: 8px !important;
+  z-index: 31;
+}
+.window[data-app='safari'] .traffic-light {
+  width: 12px !important;
+  height: 12px !important;
+  box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.18) !important;
+}
+.window[data-app='safari'] .window-body,
+.window[data-app='safari'] .window-content {
+  height: 100% !important;
+  background: transparent !important;
+  overflow: hidden !important;
+  border-radius: 0 !important;
+}
+
+/* ---- App root ---- */
+.safari-app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  color: rgba(255, 255, 255, 0.92);
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', system-ui, sans-serif;
+  letter-spacing: -0.01em;
+  background: #2c2c2e;
+}
+
+html[data-theme='light'] .safari-app {
+  background: #e8e8ed;
+  color: rgba(0, 0, 0, 0.88);
+}
+
+/* ---- Chrome (toolbar + tab strip) ---- */
+.safari-chrome {
+  flex-shrink: 0;
+  background: rgba(50, 50, 54, 0.72);
+  border-bottom: 0.5px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(28px) saturate(170%);
+  -webkit-backdrop-filter: blur(28px) saturate(170%);
+  box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.08);
+}
+
+html[data-theme='light'] .safari-chrome {
+  background: rgba(250, 250, 252, 0.78);
+  border-bottom-color: rgba(0, 0, 0, 0.06);
+  box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.9);
+}
+
+.safari-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 52px;
+  min-height: 52px;
+  padding: 0 12px 0 78px; /* room for traffic lights */
+  cursor: grab;
+  position: relative;
+  z-index: 5;
+}
+
+.safari-toolbar:active {
+  cursor: grabbing;
+}
+
+.safari-toolbar button {
+  cursor: default;
+}
+
+.safari-tb-left,
+.safari-tb-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.safari-tb-right {
+  margin-left: 0;
+}
+
+/* Glass pill buttons */
+.safari-tb-btn {
+  width: 30px;
+  height: 28px;
+  border-radius: 999px;
+  border: 0.5px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.88);
+  display: grid;
+  place-items: center;
+  padding: 0;
+  box-shadow:
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.14),
+    0 1px 2px rgba(0, 0, 0, 0.12);
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.safari-tb-btn:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+html[data-theme='light'] .safari-tb-btn {
+  background: rgba(255, 255, 255, 0.55);
+  border-color: rgba(0, 0, 0, 0.08);
+  color: rgba(0, 0, 0, 0.72);
+  box-shadow:
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.9),
+    0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+html[data-theme='light'] .safari-tb-btn:hover {
+  background: rgba(255, 255, 255, 0.85);
+}
+
+/* Back / Forward capsule */
+.safari-nav-capsule {
+  display: inline-flex;
+  height: 28px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.08);
+  border: 0.5px solid rgba(255, 255, 255, 0.12);
+  box-shadow:
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.12),
+    0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+html[data-theme='light'] .safari-nav-capsule {
+  background: rgba(255, 255, 255, 0.55);
+  border-color: rgba(0, 0, 0, 0.08);
+  box-shadow:
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.9),
+    0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.safari-nav-seg {
+  width: 30px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  display: grid;
+  place-items: center;
+  padding: 0;
+}
+
+.safari-nav-seg + .safari-nav-seg {
+  border-left: 0.5px solid rgba(255, 255, 255, 0.1);
+}
+
+html[data-theme='light'] .safari-nav-seg + .safari-nav-seg {
+  border-left-color: rgba(0, 0, 0, 0.08);
+}
+
+.safari-nav-seg.is-disabled,
+.safari-nav-seg:disabled {
+  opacity: 0.35;
+}
+
+/* ---- Centered glass URL capsule ---- */
+.safari-urlbar {
+  flex: 1;
+  min-width: 0;
+  max-width: 560px;
+  margin: 0 auto;
+  height: 30px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.28);
+  border: 0.5px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px 0 12px;
+  color: rgba(255, 255, 255, 0.55);
+  box-shadow:
+    inset 0 1px 2px rgba(0, 0, 0, 0.18),
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  transition: border-color 140ms ease, box-shadow 140ms ease, background 140ms ease;
+}
+
+.safari-urlbar:focus-within {
+  background: rgba(0, 0, 0, 0.38);
+  border-color: rgba(255, 255, 255, 0.18);
+  box-shadow:
+    inset 0 1px 2px rgba(0, 0, 0, 0.2),
+    0 0 0 3px rgba(10, 132, 255, 0.22);
+  color: rgba(255, 255, 255, 0.75);
+}
+
+html[data-theme='light'] .safari-urlbar {
+  background: rgba(255, 255, 255, 0.72);
+  border-color: rgba(0, 0, 0, 0.08);
+  color: rgba(0, 0, 0, 0.45);
+  box-shadow:
+    inset 0 1px 1px rgba(0, 0, 0, 0.03),
+    0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+html[data-theme='light'] .safari-urlbar:focus-within {
+  background: rgba(255, 255, 255, 0.95);
+  border-color: rgba(0, 0, 0, 0.1);
+  box-shadow:
+    inset 0 1px 1px rgba(0, 0, 0, 0.03),
+    0 0 0 3px rgba(10, 132, 255, 0.18);
+  color: rgba(0, 0, 0, 0.55);
+}
+
+.safari-url-lock {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.safari-url-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.92);
+  font: inherit;
+  font-size: 13px;
+  letter-spacing: -0.01em;
+  text-align: center;
+  padding: 0;
+}
+
+html[data-theme='light'] .safari-url-input {
+  color: rgba(0, 0, 0, 0.88);
+}
+
+.safari-url-input::placeholder {
+  color: inherit;
+  opacity: 0.75;
+}
+
+.safari-url-input:focus {
+  text-align: left;
+}
+
+.safari-url-refresh {
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.safari-url-refresh:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+html[data-theme='light'] .safari-url-refresh:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+/* ---- Tab strip (optional Tahoe-style) ---- */
+.safari-tabstrip {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  padding: 0 10px 0 12px;
+  height: 30px;
+  min-height: 30px;
+  background: rgba(0, 0, 0, 0.12);
+  border-top: 0.5px solid rgba(255, 255, 255, 0.04);
+}
+
+html[data-theme='light'] .safari-tabstrip {
+  background: rgba(0, 0, 0, 0.04);
+  border-top-color: rgba(0, 0, 0, 0.04);
+}
+
+.safari-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 200px;
+  min-width: 120px;
+  height: 26px;
+  padding: 0 8px 0 10px;
+  border-radius: 8px 8px 0 0;
+  background: rgba(255, 255, 255, 0.1);
+  border: 0.5px solid rgba(255, 255, 255, 0.08);
+  border-bottom: none;
+  color: inherit;
+  font-size: 11.5px;
+  letter-spacing: -0.01em;
+}
+
+.safari-tab.is-active {
+  background: rgba(58, 58, 60, 0.95);
+  box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.1);
+}
+
+html[data-theme='light'] .safari-tab {
+  background: rgba(255, 255, 255, 0.45);
+  border-color: rgba(0, 0, 0, 0.06);
+}
+
+html[data-theme='light'] .safari-tab.is-active {
+  background: #f2f2f7;
+  box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.9);
+}
+
+.safari-tab-favicon {
+  font-size: 11px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.safari-tab-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  opacity: 0.9;
+}
+
+.safari-tab-close {
+  width: 14px;
+  height: 14px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  opacity: 0.45;
+  flex-shrink: 0;
+}
+
+.safari-tab-close:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+html[data-theme='light'] .safari-tab-close:hover {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.safari-tab-add {
+  width: 24px;
+  height: 24px;
+  margin-bottom: 1px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  opacity: 0.55;
+}
+
+.safari-tab-add:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+html[data-theme='light'] .safari-tab-add:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+/* ---- Start page body ---- */
+.safari-startpage {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  position: relative;
+  /* Soft Tahoe-style field behind sections (wallpaper wash) */
+  background:
+    radial-gradient(ellipse 90% 70% at 50% 0%, rgba(90, 140, 220, 0.18), transparent 55%),
+    radial-gradient(ellipse 70% 50% at 80% 80%, rgba(120, 80, 180, 0.12), transparent 50%),
+    radial-gradient(ellipse 60% 40% at 15% 70%, rgba(40, 160, 140, 0.1), transparent 45%),
+    #3a3a3c;
+}
+
+html[data-theme='light'] .safari-startpage {
+  background:
+    radial-gradient(ellipse 90% 70% at 50% 0%, rgba(160, 200, 255, 0.35), transparent 55%),
+    radial-gradient(ellipse 70% 50% at 80% 80%, rgba(200, 180, 255, 0.22), transparent 50%),
+    radial-gradient(ellipse 60% 40% at 15% 70%, rgba(160, 230, 210, 0.2), transparent 45%),
+    #f2f2f7;
+}
+
+.safari-start-inner {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 28px 36px 48px;
+}
+
+/* Start Page customize banner */
+.safari-banner {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  margin: 0 0 32px;
+  padding: 20px 26px 20px 22px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 0.5px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  box-shadow:
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.16),
+    0 8px 28px rgba(0, 0, 0, 0.12);
+}
+
+html[data-theme='light'] .safari-banner {
+  background: rgba(255, 255, 255, 0.72);
+  border-color: rgba(0, 0, 0, 0.06);
+  box-shadow:
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.95),
+    0 8px 24px rgba(0, 0, 0, 0.06);
+}
+
+.safari-banner-close {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.75);
+  display: grid;
+  place-items: center;
+  padding: 0;
+}
+
+html[data-theme='light'] .safari-banner-close {
+  background: rgba(0, 0, 0, 0.07);
+  color: rgba(0, 0, 0, 0.5);
+}
+
+.safari-banner-art {
+  width: 118px;
+  height: 86px;
+  position: relative;
+  flex-shrink: 0;
+  margin-left: 10px;
+}
+
+.safari-banner-card {
+  position: absolute;
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.28);
+}
+
+.safari-banner-card.c1 {
+  width: 86px;
+  height: 62px;
+  left: 0;
+  top: 16px;
+  background: linear-gradient(145deg, #a8d8ff, #6eb6ff 40%, #c9f0c9);
+  transform: rotate(-7deg);
+}
+
+.safari-banner-card.c2 {
+  width: 86px;
+  height: 62px;
+  left: 28px;
+  top: 8px;
+  background: linear-gradient(160deg, #f0f4ff, #b8d4ff 50%, #7ec8ff);
+  transform: rotate(5deg);
+  border: 0.5px solid rgba(255, 255, 255, 0.45);
+}
+
+.safari-banner-card.c2::after {
+  content: '';
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
+  height: 16px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #5ac8fa, #34c759, #ff9f0a, #ff375f);
+  opacity: 0.9;
+}
+
+.safari-banner-copy h2 {
+  margin: 0 0 6px;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+.safari-banner-copy p {
+  margin: 0 0 14px;
+  font-size: 13px;
+  line-height: 1.4;
+  opacity: 0.68;
+  max-width: 340px;
+}
+
+.safari-banner-cta {
+  appearance: none;
+  border: none;
+  background: linear-gradient(180deg, #34d55e, #28c84a);
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 7px 16px;
+  border-radius: 999px;
+  cursor: default;
+  box-shadow:
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.35),
+    0 2px 8px rgba(48, 209, 88, 0.3);
+}
+
+.safari-banner-cta:hover {
+  filter: brightness(1.06);
+}
+
+/* Sections */
+.safari-section {
+  margin-bottom: 28px;
+}
+
+.safari-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  max-width: 100%;
+  margin-bottom: 0;
+}
+
+.safari-section-title {
+  margin: 0 0 14px;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  opacity: 0.95;
+}
+
+.safari-section-head .safari-section-title {
+  margin-bottom: 12px;
+}
+
+.safari-section-period {
+  font-size: 11px;
+  opacity: 0.45;
+  margin-bottom: 12px;
+}
+
+/* Favorites — colorful rounded app icons */
+.safari-fav-grid {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 16px 10px;
+}
+
+@media (max-width: 860px) {
+  .safari-fav-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
+
+.safari-fav {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: default;
+  padding: 4px 2px;
+  font: inherit;
+  border-radius: 12px;
+  transition: transform 120ms var(--ease-out, ease), background 120ms ease;
+}
+
+.safari-fav:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.safari-fav:hover .safari-fav-icon {
+  transform: scale(1.04);
+  box-shadow:
+    0 8px 20px rgba(0, 0, 0, 0.28),
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.35);
+}
+
+html[data-theme='light'] .safari-fav:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.safari-fav-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+  font-weight: 700;
+  box-shadow:
+    0 4px 14px rgba(0, 0, 0, 0.22),
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.35),
+    inset 0 -0.5px 0 rgba(0, 0, 0, 0.08);
+  transition: transform 140ms ease, box-shadow 140ms ease;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Specular sheen on fav icons */
+.safari-fav-icon::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.28) 0%, transparent 42%, transparent 100%);
+  pointer-events: none;
+}
+
+.safari-fav-glyph {
+  position: relative;
+  z-index: 1;
+  line-height: 1;
+}
+
+.safari-fav-name {
+  font-size: 11px;
+  opacity: 0.82;
+  text-align: center;
+  max-width: 72px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  letter-spacing: -0.01em;
+}
+
+/* Privacy Report card */
+.safari-privacy {
+  position: relative;
+  display: flex;
+  gap: 22px;
+  padding: 20px 22px 22px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.09);
+  border: 0.5px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(22px) saturate(150%);
+  -webkit-backdrop-filter: blur(22px) saturate(150%);
+  box-shadow:
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.12),
+    0 6px 22px rgba(0, 0, 0, 0.1);
+  align-items: flex-start;
+}
+
+html[data-theme='light'] .safari-privacy {
+  background: rgba(255, 255, 255, 0.7);
+  border-color: rgba(0, 0, 0, 0.06);
+  box-shadow:
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.95),
+    0 6px 20px rgba(0, 0, 0, 0.05);
+}
+
+.safari-privacy-left {
+  width: 150px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding-top: 2px;
+}
+
+.safari-shield {
+  filter: drop-shadow(0 4px 10px rgba(48, 209, 88, 0.35));
+}
+
+.safari-privacy-blurb {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.35;
+  opacity: 0.62;
+  max-width: 140px;
+}
+
+.safari-privacy-stats {
+  flex: 1;
+  min-width: 0;
+  padding-bottom: 8px;
+}
+
+.safari-stat-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.safari-stat-card {
+  background: rgba(0, 0, 0, 0.42);
+  border-radius: 13px;
+  padding: 12px 14px;
+  min-height: 86px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border: 0.5px solid rgba(255, 255, 255, 0.06);
+  box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.06);
+}
+
+html[data-theme='light'] .safari-stat-card {
+  background: rgba(28, 28, 30, 0.9);
+  color: #fff;
+  border-color: rgba(0, 0, 0, 0.2);
+}
+
+.safari-stat-card.wide {
+  min-height: auto;
+}
+
+.safari-stat-label {
+  font-size: 11px;
+  opacity: 0.62;
+  line-height: 1.3;
+  margin-bottom: 8px;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.safari-stat-value {
+  font-size: 30px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  color: #fff;
+  line-height: 1;
+}
+
+.safari-stat-detail {
+  font-size: 13px;
+  line-height: 1.35;
+  color: #fff;
+  opacity: 0.95;
+}
+
+.safari-privacy-edit {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  appearance: none;
+  border: none;
+  background: rgba(255, 255, 255, 0.14);
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 5px 13px;
+  border-radius: 999px;
+  cursor: default;
+  opacity: 0.9;
+  border: 0.5px solid rgba(255, 255, 255, 0.1);
+}
+
+html[data-theme='light'] .safari-privacy-edit {
+  background: rgba(0, 0, 0, 0.07);
+  border-color: rgba(0, 0, 0, 0.06);
+  color: rgba(0, 0, 0, 0.75);
+}
+
+/* Bottom row: Reading List + Recently Closed */
+.safari-bottom-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.safari-section-half {
+  margin-bottom: 0;
+  min-width: 0;
+}
+
+.safari-reading-list,
+.safari-closed-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 0.5px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.1);
+}
+
+html[data-theme='light'] .safari-reading-list,
+html[data-theme='light'] .safari-closed-list {
+  background: rgba(255, 255, 255, 0.62);
+  border-color: rgba(0, 0, 0, 0.05);
+  box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.9);
+}
+
+.safari-read-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 11px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  font: inherit;
+  cursor: default;
+  width: 100%;
+}
+
+.safari-read-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+html[data-theme='light'] .safari-read-item:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.safari-read-thumb {
+  width: 40px;
+  height: 40px;
+  border-radius: 9px;
+  flex-shrink: 0;
+  box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.25);
+  background-image: linear-gradient(145deg, rgba(255, 255, 255, 0.25), transparent 55%);
+}
+
+.safari-read-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.safari-read-title {
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.safari-read-site {
+  font-size: 11px;
+  opacity: 0.5;
+}
+
+.safari-closed-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 11px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  font: inherit;
+  cursor: default;
+  width: 100%;
+}
+
+.safari-closed-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+html[data-theme='light'] .safari-closed-item:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.safari-closed-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+  box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.2);
+}
+
+.safari-closed-name {
+  font-size: 13px;
+  opacity: 0.88;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Simulated navigation */
+.safari-nav-sim {
+  max-width: 420px;
+  margin: 72px auto;
+  text-align: center;
+  padding: 32px 24px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 0.5px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+html[data-theme='light'] .safari-nav-sim {
+  background: rgba(255, 255, 255, 0.7);
+  border-color: rgba(0, 0, 0, 0.06);
+}
+
+.safari-nav-sim-icon {
+  font-size: 28px;
+  margin-bottom: 10px;
+  opacity: 0.8;
+}
+
+.safari-nav-sim-title {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin-bottom: 8px;
+}
+
+.safari-nav-sim-query {
+  margin: 0;
+  font-size: 15px;
+  opacity: 0.75;
+}
+
+.safari-nav-sim-note {
+  margin: 14px 0 18px;
+  font-size: 12px;
+  opacity: 0.5;
+  line-height: 1.4;
+}
+
+/* Responsive */
+@media (max-width: 720px) {
+  .safari-start-inner {
+    padding: 20px 18px 36px;
+  }
+  .safari-banner {
+    flex-direction: column;
+    text-align: center;
+  }
+  .safari-banner-close {
+    left: auto;
+    right: 10px;
+  }
+  .safari-privacy {
+    flex-direction: column;
+  }
+  .safari-privacy-left {
+    width: auto;
+    align-items: center;
+    text-align: center;
+  }
+  .safari-privacy-blurb {
+    max-width: none;
+  }
+  .safari-bottom-row {
+    grid-template-columns: 1fr;
+  }
+  .safari-fav-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .safari-urlbar {
+    max-width: none;
+  }
+}

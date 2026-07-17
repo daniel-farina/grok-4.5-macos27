@@ -1,0 +1,13 @@
+.DS_Store
+**/.DS_Store
+.memories/
+.tmp*
+*.log
+.idea/
+.vscode/
+node_modules/
+
+# Local system captures may include personal calendar/notes data - keep out of public repo
+assets/reference/system/
+assets/reference/web/
+EOF

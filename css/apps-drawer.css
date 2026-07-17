@@ -1,0 +1,485 @@
+/* =============================================================================
+   macOS 27 Applications drawer — centered Liquid Glass panel
+   Search field, category chips, icon grid (Tahoe Launchpad-style)
+   ============================================================================= */
+
+#launchpad.apps-drawer,
+#launchpad {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: var(--z-launchpad, 1400) !important;
+  display: grid !important;
+  place-items: center !important;
+  padding: 24px !important;
+  background: rgba(8, 12, 22, 0.42) !important;
+  backdrop-filter: blur(22px) saturate(130%) !important;
+  -webkit-backdrop-filter: blur(22px) saturate(130%) !important;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.22s ease, visibility 0.22s ease;
+  overflow: hidden !important;
+}
+
+#launchpad.is-open {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Hide legacy full-width search chrome if present */
+#launchpad > .launchpad-search {
+  display: none !important;
+}
+
+/* ── Glass window shell ──────────────────────────────────────────────────── */
+.apps-window {
+  width: min(920px, 92vw);
+  height: min(640px, 82vh);
+  max-height: 82vh;
+  border-radius: 22px;
+  background:
+    linear-gradient(
+      165deg,
+      rgba(255, 255, 255, 0.12) 0%,
+      rgba(255, 255, 255, 0.04) 40%,
+      transparent 70%
+    ),
+    rgba(28, 28, 32, 0.78);
+  backdrop-filter: blur(52px) saturate(175%);
+  -webkit-backdrop-filter: blur(52px) saturate(175%);
+  border: 0.5px solid rgba(255, 255, 255, 0.16);
+  box-shadow:
+    0 32px 96px rgba(0, 0, 0, 0.52),
+    0 10px 28px rgba(0, 0, 0, 0.28),
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.16),
+    inset 0 -0.5px 0 rgba(0, 0, 0, 0.12);
+  display: flex;
+  flex-direction: column;
+  color: rgba(255, 255, 255, 0.92);
+  overflow: hidden;
+  transform: scale(0.96) translateY(10px);
+  transition: transform 0.26s cubic-bezier(0.22, 1, 0.36, 1);
+  isolation: isolate;
+}
+
+#launchpad.is-open .apps-window {
+  transform: scale(1) translateY(0);
+}
+
+html[data-theme='light'] .apps-window {
+  background:
+    linear-gradient(
+      165deg,
+      rgba(255, 255, 255, 0.55) 0%,
+      rgba(255, 255, 255, 0.18) 45%,
+      transparent 75%
+    ),
+    rgba(246, 246, 248, 0.9);
+  color: rgba(0, 0, 0, 0.88);
+  border-color: rgba(255, 255, 255, 0.65);
+  box-shadow:
+    0 28px 80px rgba(0, 0, 0, 0.22),
+    0 8px 24px rgba(0, 0, 0, 0.1),
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.85);
+}
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
+.apps-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px 10px;
+  flex-shrink: 0;
+}
+
+.apps-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.apps-logo {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(145deg, #5ac8fa, #0a84ff);
+  color: #fff;
+  box-shadow:
+    0 2px 10px rgba(10, 132, 255, 0.38),
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.35);
+}
+
+.apps-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+}
+
+.apps-more {
+  width: 34px;
+  height: 28px;
+  border-radius: 999px;
+  border: 0.5px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.08);
+  color: inherit;
+  font-size: 12px;
+  letter-spacing: 1px;
+  cursor: default;
+  opacity: 0.85;
+  transition: background 0.12s ease;
+}
+
+.apps-more:hover {
+  background: rgba(255, 255, 255, 0.14);
+  opacity: 1;
+}
+
+html[data-theme='light'] .apps-more {
+  background: rgba(0, 0, 0, 0.05);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+html[data-theme='light'] .apps-more:hover {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+/* ── Category chip row ───────────────────────────────────────────────────── */
+.apps-categories {
+  display: flex;
+  gap: 8px;
+  padding: 6px 20px 12px;
+  overflow-x: auto;
+  flex-shrink: 0;
+  border-bottom: 0.5px solid rgba(255, 255, 255, 0.08);
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.apps-categories::-webkit-scrollbar {
+  display: none;
+}
+
+html[data-theme='light'] .apps-categories {
+  border-bottom-color: rgba(0, 0, 0, 0.06);
+}
+
+.apps-chip {
+  flex-shrink: 0;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: none;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.82);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  cursor: default;
+  white-space: nowrap;
+  transition: background 0.12s ease, color 0.12s ease, transform 0.1s ease;
+}
+
+.apps-chip:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.apps-chip:active {
+  transform: scale(0.97);
+}
+
+.apps-chip.is-active {
+  background: rgba(255, 255, 255, 0.22);
+  color: #fff;
+  font-weight: 600;
+  box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.2);
+}
+
+html[data-theme='light'] .apps-chip {
+  background: rgba(0, 0, 0, 0.05);
+  color: rgba(0, 0, 0, 0.72);
+}
+
+html[data-theme='light'] .apps-chip:hover {
+  background: rgba(0, 0, 0, 0.08);
+  color: rgba(0, 0, 0, 0.88);
+}
+
+html[data-theme='light'] .apps-chip.is-active {
+  background: rgba(0, 0, 0, 0.12);
+  color: rgba(0, 0, 0, 0.92);
+  box-shadow: none;
+}
+
+/* ── Search field (real Launchpad-style) ─────────────────────────────────── */
+.apps-search-wrap {
+  padding: 14px 20px 4px;
+  flex-shrink: 0;
+  position: relative;
+}
+
+/* Magnifying-glass affordance */
+.apps-search-wrap::before {
+  content: "";
+  position: absolute;
+  left: 34px;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  margin-top: 2px;
+  transform: translateY(-50%);
+  border: 1.5px solid rgba(255, 255, 255, 0.4);
+  border-radius: 50%;
+  box-shadow: 4px 4px 0 -3px rgba(255, 255, 255, 0.4);
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.85;
+}
+
+html[data-theme='light'] .apps-search-wrap::before {
+  border-color: rgba(0, 0, 0, 0.35);
+  box-shadow: 4px 4px 0 -3px rgba(0, 0, 0, 0.35);
+}
+
+.apps-search {
+  width: 100%;
+  height: 34px;
+  padding: 0 14px 0 36px;
+  border-radius: 10px;
+  border: 0.5px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.08);
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  letter-spacing: -0.01em;
+  outline: none;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.apps-search:hover {
+  background: rgba(255, 255, 255, 0.11);
+}
+
+.apps-search:focus {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.22);
+  box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.22);
+}
+
+html[data-theme='light'] .apps-search {
+  background: rgba(0, 0, 0, 0.05);
+  border-color: rgba(0, 0, 0, 0.06);
+}
+
+html[data-theme='light'] .apps-search:hover {
+  background: rgba(0, 0, 0, 0.07);
+}
+
+html[data-theme='light'] .apps-search:focus {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(10, 132, 255, 0.35);
+  box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.18);
+}
+
+.apps-search::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+html[data-theme='light'] .apps-search::placeholder {
+  color: rgba(0, 0, 0, 0.38);
+}
+
+/* Clear button (webkit) */
+.apps-search::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.28);
+  cursor: default;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath fill='black' d='M3.5 3.5l5 5m0-5l-5 5' stroke='black' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E") center / 10px no-repeat;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath fill='black' d='M3.5 3.5l5 5m0-5l-5 5' stroke='black' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E") center / 10px no-repeat;
+}
+
+/* ── Icon grid ───────────────────────────────────────────────────────────── */
+#launchpad .apps-grid,
+#launchpad-grid.apps-grid,
+#launchpad-grid {
+  flex: 1;
+  overflow: auto !important;
+  display: grid !important;
+  grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
+  gap: 20px 12px !important;
+  padding: 18px 18px 28px !important;
+  align-content: start !important;
+  width: auto !important;
+  max-width: none !important;
+  margin: 0 !important;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+
+#launchpad-grid::-webkit-scrollbar {
+  width: 8px;
+}
+
+#launchpad-grid::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+html[data-theme='light'] #launchpad-grid {
+  scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
+}
+
+html[data-theme='light'] #launchpad-grid::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.12);
+  background-clip: padding-box;
+}
+
+#launchpad .launchpad-app,
+#launchpad .apps-grid .launchpad-app {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 7px !important;
+  background: transparent !important;
+  border: none !important;
+  color: inherit !important;
+  cursor: default !important;
+  padding: 8px 4px !important;
+  border-radius: 14px !important;
+  min-width: 0;
+  transition:
+    background 0.12s ease,
+    transform 0.12s cubic-bezier(0.34, 1.4, 0.64, 1) !important;
+}
+
+#launchpad .launchpad-app:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+#launchpad .launchpad-app:active {
+  transform: scale(0.94) !important;
+  background: rgba(255, 255, 255, 0.12) !important;
+}
+
+html[data-theme='light'] #launchpad .launchpad-app:hover {
+  background: rgba(0, 0, 0, 0.05) !important;
+}
+
+html[data-theme='light'] #launchpad .launchpad-app:active {
+  background: rgba(0, 0, 0, 0.08) !important;
+}
+
+#launchpad .launchpad-app-icon {
+  width: 62px !important;
+  height: 62px !important;
+  border-radius: 15px !important;
+  overflow: hidden !important;
+  box-shadow:
+    0 6px 18px rgba(0, 0, 0, 0.32),
+    0 1px 3px rgba(0, 0, 0, 0.14),
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.25) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.14),
+    rgba(255, 255, 255, 0.04)
+  ) !important;
+  flex-shrink: 0;
+}
+
+#launchpad .launchpad-app-icon svg {
+  width: 100% !important;
+  height: 100% !important;
+  display: block !important;
+  border-radius: 15px;
+}
+
+#launchpad .launchpad-app-icon img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  border-radius: 15px;
+}
+
+#launchpad .launchpad-app-name {
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  text-align: center !important;
+  line-height: 1.25 !important;
+  max-width: 92px !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  opacity: 0.92 !important;
+  letter-spacing: -0.01em !important;
+}
+
+html[data-theme='light'] #launchpad .launchpad-app-name {
+  color: rgba(0, 0, 0, 0.82) !important;
+  text-shadow: none !important;
+  opacity: 1 !important;
+}
+
+html[data-theme='dark'] #launchpad .launchpad-app-name {
+  color: rgba(255, 255, 255, 0.92) !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35) !important;
+}
+
+.apps-empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 56px 16px;
+  opacity: 0.5;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* Responsive columns */
+@media (max-width: 900px) {
+  #launchpad .apps-grid,
+  #launchpad-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 720px) {
+  .apps-window {
+    width: min(100%, 96vw);
+    height: min(720px, 88vh);
+    border-radius: 18px;
+  }
+
+  #launchpad .apps-grid,
+  #launchpad-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 16px 8px !important;
+  }
+
+  #launchpad .launchpad-app-icon {
+    width: 56px !important;
+    height: 56px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  #launchpad .apps-grid,
+  #launchpad-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}

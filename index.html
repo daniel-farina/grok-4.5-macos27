@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="macOS 27 Liquid Glass - Virtual Desktop" />
+  <title>macOS 27</title>
+  <link rel="stylesheet" href="css/liquid-glass.css?v=1784305034" />
+  <link rel="stylesheet" href="css/apps.css?v=1784304227" />
+  <link rel="stylesheet" href="css/tahoe-match.css?v=1784305034" />
+  <link rel="stylesheet" href="css/theme.css?v=1784304227" />
+  <link rel="stylesheet" href="css/finder-27.css?v=1784304227" />
+  <link rel="stylesheet" href="css/control-center.css?v=1784304227" />
+  <link rel="stylesheet" href="css/apps-drawer.css?v=1784304227" />
+  <link rel="stylesheet" href="css/safari-27.css?v=1784304227" />
+  <link rel="stylesheet" href="css/apps-system.css?v=1784304227" />
+  <link rel="stylesheet" href="css/apps-utilities.css?v=1784304227" />
+  <script>
+    /* Apply theme ASAP to avoid FOUC — mirrors MacShell appearance logic */
+    (function () {
+      try {
+        var pref = localStorage.getItem('macos-appearance') || 'auto';
+        var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        var theme = pref === 'dark' || (pref === 'auto' && dark) ? 'dark' : 'light';
+        if (pref === 'light') theme = 'light';
+        document.documentElement.setAttribute('data-appearance', pref);
+        document.documentElement.setAttribute('data-theme', theme);
+      } catch (e) {
+        document.documentElement.setAttribute('data-appearance', 'auto');
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+    })();
+  </script>
+</head>
+<body>
+  <div id="macos">
+    <!-- Wallpaper -->
+    <div id="wallpaper" role="presentation" aria-hidden="true"></div>
+
+    <!-- Menu Bar -->
+    <header id="menubar" role="menubar" aria-label="Menu bar">
+      <div class="menubar-left">
+        <!-- Apple menu -->
+        <div class="menubar-item" id="apple-menu-btn" data-menu="apple" role="menuitem" aria-haspopup="true" aria-expanded="false" title="Apple">
+          <span aria-hidden="true"></span>
+          <div class="menu-dropdown" id="apple-menu" role="menu" data-menu-panel="apple">
+            <div class="menu-dropdown-item" data-action="about" role="menuitem">About This Mac</div>
+            <div class="menu-separator" role="separator"></div>
+            <div class="menu-dropdown-item" data-action="system-settings" role="menuitem">System Settings…</div>
+            <div class="menu-dropdown-item" data-action="app-store" role="menuitem">App Store…</div>
+            <div class="menu-separator" role="separator"></div>
+            <div class="menu-dropdown-item" data-action="sleep" role="menuitem">Sleep</div>
+            <div class="menu-dropdown-item" data-action="restart" role="menuitem">Restart…</div>
+            <div class="menu-dropdown-item" data-action="shutdown" role="menuitem">Shut Down…</div>
+            <div class="menu-separator" role="separator"></div>
+            <div class="menu-dropdown-item" data-action="lock" role="menuitem">
+              <span>Lock Screen</span>
+              <span class="shortcut">⌃⌘Q</span>
+            </div>
+            <div class="menu-dropdown-item" data-action="logout" role="menuitem">
+              <span>Log Out…</span>
+              <span class="shortcut">⇧⌘Q</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dynamic app menus - filled/updated by JS -->
+        <div id="app-menus" class="menubar-left">
+          <div class="menubar-item is-active-app" id="active-app-name" data-menu="app" data-app-name="Finder" role="menuitem" aria-haspopup="true">
+            <!-- Single source of truth for app name — never append, only replace textContent -->
+            <span id="menubar-app-title" class="app-name-label">Finder</span>
+            <div class="menu-dropdown" id="app-menu" role="menu" data-menu-panel="app">
+              <div class="menu-dropdown-item" data-action="about-app" role="menuitem"><span id="menubar-about-app">About Finder</span></div>
+              <div class="menu-separator" role="separator"></div>
+              <div class="menu-dropdown-item" data-action="settings" role="menuitem">
+                <span>Settings…</span>
+                <span class="shortcut">⌘,</span>
+              </div>
+              <div class="menu-separator" role="separator"></div>
+              <div class="menu-dropdown-item" data-action="hide" role="menuitem">
+                <span id="menubar-hide-app">Hide Finder</span>
+                <span class="shortcut">⌘H</span>
+              </div>
+              <div class="menu-dropdown-item" data-action="hide-others" role="menuitem">
+                <span>Hide Others</span>
+                <span class="shortcut">⌥⌘H</span>
+              </div>
+              <div class="menu-dropdown-item" data-action="show-all" role="menuitem">Show All</div>
+              <div class="menu-separator" role="separator"></div>
+              <div class="menu-dropdown-item" data-action="quit" role="menuitem">
+                <span id="menubar-quit-app">Quit Finder</span>
+                <span class="shortcut">⌘Q</span>
+              </div>
+            </div>
+          </div>
+          <div class="menubar-item" data-menu="file" role="menuitem" aria-haspopup="true">
+            File
+            <div class="menu-dropdown" id="file-menu" role="menu" data-menu-panel="file">
+              <div class="menu-dropdown-item" data-action="new-window" role="menuitem">
+                <span id="menubar-new-window">New Window</span>
+                <span class="shortcut">⌘N</span>
+              </div>
+              <div class="menu-dropdown-item" data-action="new-folder" role="menuitem">
+                <span>New Folder</span>
+                <span class="shortcut">⇧⌘N</span>
+              </div>
+              <div class="menu-separator" role="separator"></div>
+              <div class="menu-dropdown-item" data-action="close" role="menuitem">
+                <span>Close Window</span>
+                <span class="shortcut">⌘W</span>
+              </div>
+            </div>
+          </div>
+          <div class="menubar-item" data-menu="edit" role="menuitem" aria-haspopup="true">
+            Edit
+            <div class="menu-dropdown" id="edit-menu" role="menu" data-menu-panel="edit">
+              <div class="menu-dropdown-item" data-action="undo" role="menuitem">
+                <span>Undo</span>
+                <span class="shortcut">⌘Z</span>
+              </div>
+              <div class="menu-dropdown-item" data-action="redo" role="menuitem">
+                <span>Redo</span>
+                <span class="shortcut">⇧⌘Z</span>
+              </div>
+              <div class="menu-separator" role="separator"></div>
+              <div class="menu-dropdown-item" data-action="cut" role="menuitem">
+                <span>Cut</span>
+                <span class="shortcut">⌘X</span>
+              </div>
+              <div class="menu-dropdown-item" data-action="copy" role="menuitem">
+                <span>Copy</span>
+                <span class="shortcut">⌘C</span>
+              </div>
+              <div class="menu-dropdown-item" data-action="paste" role="menuitem">
+                <span>Paste</span>
+                <span class="shortcut">⌘V</span>
+              </div>
+              <div class="menu-dropdown-item" data-action="select-all" role="menuitem">
+                <span>Select All</span>
+                <span class="shortcut">⌘A</span>
+              </div>
+            </div>
+          </div>
+          <div class="menubar-item" data-menu="view" role="menuitem" aria-haspopup="true">
+            View
+            <div class="menu-dropdown" id="view-menu" role="menu" data-menu-panel="view">
+              <div class="menu-dropdown-item" data-action="as-icons" role="menuitem">as Icons</div>
+              <div class="menu-dropdown-item" data-action="as-list" role="menuitem">as List</div>
+              <div class="menu-dropdown-item" data-action="as-columns" role="menuitem">as Columns</div>
+              <div class="menu-separator" role="separator"></div>
+              <div class="menu-dropdown-item" data-action="show-path-bar" role="menuitem">Show Path Bar</div>
+              <div class="menu-dropdown-item" data-action="show-status-bar" role="menuitem">Show Status Bar</div>
+            </div>
+          </div>
+          <div class="menubar-item" data-menu="go" role="menuitem" aria-haspopup="true">
+            Go
+            <div class="menu-dropdown" id="go-menu" role="menu" data-menu-panel="go">
+              <div class="menu-dropdown-item" data-action="go-back" role="menuitem">
+                <span>Back</span>
+                <span class="shortcut">⌘[</span>
+              </div>
+              <div class="menu-dropdown-item" data-action="go-forward" role="menuitem">
+                <span>Forward</span>
+                <span class="shortcut">⌘]</span>
+              </div>
+              <div class="menu-separator" role="separator"></div>
+              <div class="menu-dropdown-item" data-action="go-home" role="menuitem">
+                <span>Home</span>
+                <span class="shortcut">⇧⌘H</span>
+              </div>
+              <div class="menu-dropdown-item" data-action="go-desktop" role="menuitem">
+                <span>Desktop</span>
+                <span class="shortcut">⇧⌘D</span>
+              </div>
+              <div class="menu-dropdown-item" data-action="go-downloads" role="menuitem">
+                <span>Downloads</span>
+                <span class="shortcut">⌥⌘L</span>
+              </div>
+            </div>
+          </div>
+          <div class="menubar-item" data-menu="window" role="menuitem" aria-haspopup="true">
+            Window
+            <div class="menu-dropdown" id="window-menu" role="menu" data-menu-panel="window">
+              <div class="menu-dropdown-item" data-action="minimize" role="menuitem">
+                <span>Minimize</span>
+                <span class="shortcut">⌘M</span>
+              </div>
+              <div class="menu-dropdown-item" data-action="zoom" role="menuitem">Zoom</div>
+              <div class="menu-separator" role="separator"></div>
+              <div class="menu-dropdown-item" data-action="mission-control" role="menuitem">
+                <span>Mission Control</span>
+                <span class="shortcut">⌃↑</span>
+              </div>
+              <div class="menu-dropdown-item" data-action="bring-all-front" role="menuitem">Bring All to Front</div>
+            </div>
+          </div>
+          <div class="menubar-item" data-menu="help" role="menuitem" aria-haspopup="true">
+            Help
+            <div class="menu-dropdown" id="help-menu" role="menu" data-menu-panel="help">
+              <div class="menu-dropdown-item" data-action="help-search" role="menuitem">macOS Help</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="menubar-right" id="status-area">
+        <!-- Spotlight -->
+        <button type="button" class="menubar-icon-btn" id="spotlight-btn" data-action="spotlight" aria-label="Spotlight" title="Spotlight">
+          <svg viewBox="0 0 16 16" aria-hidden="true">
+            <circle cx="6.5" cy="6.5" r="5" fill="none" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </button>
+
+        <!-- Control Center -->
+        <button type="button" class="menubar-icon-btn" id="control-center-btn" data-action="control-center" aria-label="Control Center" title="Control Center" aria-expanded="false">
+          <svg viewBox="0 0 16 16" aria-hidden="true">
+            <rect x="1" y="1" width="6" height="6" rx="1.5" fill="currentColor"/>
+            <rect x="9" y="1" width="6" height="6" rx="1.5" fill="currentColor"/>
+            <rect x="1" y="9" width="6" height="6" rx="1.5" fill="currentColor"/>
+            <rect x="9" y="9" width="6" height="6" rx="1.5" fill="currentColor"/>
+          </svg>
+        </button>
+
+        <!-- Wi‑Fi -->
+        <button type="button" class="menubar-icon-btn" id="wifi-btn" data-action="wifi" aria-label="Wi-Fi" title="Wi-Fi">
+          <svg viewBox="0 0 16 16" aria-hidden="true">
+            <path d="M8 13.5a1.25 1.25 0 100-2.5 1.25 1.25 0 000 2.5z" fill="currentColor"/>
+            <path d="M4.2 9.3a5.4 5.4 0 017.6 0" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+            <path d="M1.8 6.5a9 9 0 0112.4 0" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+          </svg>
+        </button>
+
+        <!-- Battery -->
+        <button type="button" class="menubar-icon-btn" id="menubar-battery" data-action="battery" aria-label="Battery" title="Battery">
+          <span class="battery-icon" aria-hidden="true"><span class="battery-level" id="battery-level"></span></span>
+          <span id="battery-percent">100%</span>
+        </button>
+
+        <!-- Clock / Notification Center trigger -->
+        <button type="button" class="menubar-icon-btn" id="menubar-clock" data-action="notification-center" aria-label="Clock and Notification Center" title="Notification Center" aria-expanded="false">
+          <span id="clock-text">Fri 9:41 AM</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Desktop icons layer -->
+    <div id="desktop-icons" aria-label="Desktop"></div>
+
+    <!-- Desktop widgets (Tahoe-style) - above wallpaper, below windows -->
+    <div id="desktop-widgets" aria-label="Desktop widgets">
+      <div class="widget glass widget-clock" data-widget="clock">
+        <div class="widget-time" id="widget-time">9:41</div>
+        <div class="widget-date" id="widget-date">Friday, July 17</div>
+      </div>
+      <div class="widget glass widget-weather" data-widget="weather">
+        <div class="widget-wx-top">
+          <div>
+            <div class="widget-wx-city">Cupertino</div>
+            <div class="widget-wx-cond">Partly Cloudy</div>
+          </div>
+          <div class="widget-wx-temp">72°</div>
+        </div>
+        <div class="widget-wx-hl">H:78° &nbsp; L:58°</div>
+        <div class="widget-wx-hourly">
+          <span>Now 72°</span>
+          <span>11 71°</span>
+          <span>12 73°</span>
+          <span>1 74°</span>
+        </div>
+      </div>
+      <div class="widget glass widget-calendar" data-widget="calendar">
+        <div class="widget-cal-header">
+          <span class="widget-cal-dow" id="widget-cal-dow">Friday</span>
+          <span class="widget-cal-day" id="widget-cal-day">17</span>
+        </div>
+        <div class="widget-cal-events">
+          <div class="widget-event">
+            <span class="widget-event-dot"></span>
+            <div>
+              <div class="widget-event-title">Team standup</div>
+              <div class="widget-event-time">9:00 AM</div>
+            </div>
+          </div>
+          <div class="widget-event">
+            <span class="widget-event-dot blue"></span>
+            <div>
+              <div class="widget-event-title">Design review</div>
+              <div class="widget-event-time">2:00 PM</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="widget glass widget-music" data-widget="music">
+        <div class="widget-music-art" aria-hidden="true"></div>
+        <div class="widget-music-info">
+          <div class="widget-music-title">Liquid Glass</div>
+          <div class="widget-music-artist">macOS Ensemble</div>
+        </div>
+        <div class="widget-music-controls" aria-hidden="true">
+          <span>⏮</span><span class="play">▶</span><span>⏭</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Windows layer -->
+    <main id="desktop" aria-label="Desktop windows"></main>
+
+    <!-- Dock -->
+    <div id="dock-container">
+      <nav id="dock" role="toolbar" aria-label="Dock">
+        <!-- App icons injected by JS (js/icons.js + shell). Placeholders for structure. -->
+        <div class="dock-item is-running" data-app="finder" data-tooltip="Finder" tabindex="0" role="button" aria-label="Finder">
+          <span class="dock-tooltip">Finder</span>
+          <div class="dock-icon" data-icon="finder">📁</div>
+        </div>
+        <div class="dock-item" data-app="launchpad" data-tooltip="Launchpad" tabindex="0" role="button" aria-label="Launchpad">
+          <span class="dock-tooltip">Launchpad</span>
+          <div class="dock-icon" data-icon="launchpad">🚀</div>
+        </div>
+        <div class="dock-item" data-app="safari" data-tooltip="Safari" tabindex="0" role="button" aria-label="Safari">
+          <span class="dock-tooltip">Safari</span>
+          <div class="dock-icon" data-icon="safari">🧭</div>
+        </div>
+        <div class="dock-item" data-app="messages" data-tooltip="Messages" tabindex="0" role="button" aria-label="Messages">
+          <span class="dock-tooltip">Messages</span>
+          <div class="dock-icon" data-icon="messages">💬</div>
+        </div>
+        <div class="dock-item" data-app="mail" data-tooltip="Mail" tabindex="0" role="button" aria-label="Mail">
+          <span class="dock-tooltip">Mail</span>
+          <div class="dock-icon" data-icon="mail">✉️</div>
+        </div>
+        <div class="dock-item" data-app="maps" data-tooltip="Maps" tabindex="0" role="button" aria-label="Maps">
+          <span class="dock-tooltip">Maps</span>
+          <div class="dock-icon" data-icon="maps">🗺️</div>
+        </div>
+        <div class="dock-item" data-app="photos" data-tooltip="Photos" tabindex="0" role="button" aria-label="Photos">
+          <span class="dock-tooltip">Photos</span>
+          <div class="dock-icon" data-icon="photos">🖼️</div>
+        </div>
+        <div class="dock-item" data-app="notes" data-tooltip="Notes" tabindex="0" role="button" aria-label="Notes">
+          <span class="dock-tooltip">Notes</span>
+          <div class="dock-icon" data-icon="notes">📝</div>
+        </div>
+        <div class="dock-item" data-app="calendar" data-tooltip="Calendar" tabindex="0" role="button" aria-label="Calendar">
+          <span class="dock-tooltip">Calendar</span>
+          <div class="dock-icon" data-icon="calendar">📅</div>
+        </div>
+        <div class="dock-item" data-app="music" data-tooltip="Music" tabindex="0" role="button" aria-label="Music">
+          <span class="dock-tooltip">Music</span>
+          <div class="dock-icon" data-icon="music">🎵</div>
+        </div>
+        <div class="dock-item" data-app="settings" data-tooltip="System Settings" tabindex="0" role="button" aria-label="System Settings">
+          <span class="dock-tooltip">System Settings</span>
+          <div class="dock-icon" data-icon="settings">⚙️</div>
+        </div>
+
+        <div class="dock-separator" role="separator" aria-hidden="true"></div>
+
+        <div class="dock-item" data-app="trash" data-tooltip="Trash" tabindex="0" role="button" aria-label="Trash">
+          <span class="dock-tooltip">Trash</span>
+          <div class="dock-icon" data-icon="trash">🗑️</div>
+        </div>
+      </nav>
+    </div>
+
+    <!-- Spotlight -->
+    <div id="spotlight" role="dialog" aria-label="Spotlight" aria-hidden="true">
+      <div class="spotlight-panel">
+        <div class="spotlight-input-row">
+          <svg class="search-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle cx="10.5" cy="10.5" r="6.5" stroke="currentColor" stroke-width="2"/>
+            <path d="M15.5 15.5L20 20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <input
+            type="search"
+            id="spotlight-input"
+            placeholder="Spotlight Search"
+            autocomplete="off"
+            spellcheck="false"
+            aria-label="Spotlight Search"
+          />
+        </div>
+        <div class="spotlight-results" id="spotlight-results" role="listbox" aria-label="Search results">
+          <!-- Results filled by JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Applications drawer (macOS 27 centered glass panel — design only, generic apps) -->
+    <div id="launchpad" class="apps-drawer" role="dialog" aria-label="Applications" aria-hidden="true">
+      <div class="apps-window" role="document">
+        <header class="apps-header">
+          <div class="apps-title-wrap">
+            <span class="apps-logo" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M12 2L4 6v6c0 5 3.4 9.4 8 10.5 4.6-1.1 8-5.5 8-10.5V6l-8-4z"/></svg>
+            </span>
+            <h1 class="apps-title">Applications</h1>
+          </div>
+          <button type="button" class="apps-more" id="apps-more" aria-label="More" title="More">•••</button>
+        </header>
+        <div class="apps-categories" id="apps-categories" role="tablist" aria-label="Categories">
+          <!-- filled by JS -->
+        </div>
+        <div class="apps-search-wrap">
+          <input type="search" id="launchpad-search" class="apps-search" placeholder="Search" autocomplete="off" spellcheck="false" aria-label="Search apps" />
+        </div>
+        <div class="launchpad-grid apps-grid" id="launchpad-grid" role="list" aria-label="Applications">
+          <!-- Apps filled by JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Mission Control -->
+    <div id="mission-control" role="dialog" aria-label="Mission Control" aria-hidden="true">
+      <div class="mc-spaces" role="tablist" aria-label="Spaces">
+        <button type="button" class="mc-space is-active" data-space="1" role="tab" aria-selected="true">
+          <span class="mc-space-preview" aria-hidden="true"></span>
+          <span class="mc-space-label">Desktop 1</span>
+        </button>
+      </div>
+      <div class="mc-windows" id="mc-windows" role="list" aria-label="Open windows">
+        <!-- Window thumbnails filled by JS -->
+      </div>
+      <div class="mc-empty" id="mc-empty" hidden>No Open Windows</div>
+    </div>
+
+    <!-- Stage Manager strip (shown when Stage Manager is on) -->
+    <div id="stage-manager-strip" role="toolbar" aria-label="Stage Manager" aria-hidden="true"></div>
+
+    <!-- Control Center — macOS 27 Liquid Glass modular layout -->
+    <div id="control-center" role="dialog" aria-label="Control Center" aria-hidden="true">
+      <div class="cc-grid">
+        <!-- Connectivity column -->
+        <div class="cc-col">
+          <button type="button" class="cc-pill is-active" data-cc="wifi" data-toggle>
+            <span class="cc-badge wifi" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M12 18.5a1.5 1.5 0 100 3 1.5 1.5 0 000-3zm-4.24-3.76a6 6 0 018.48 0l-1.42 1.42a4 4 0 00-5.64 0l-1.42-1.42zm-2.83-2.83a10 10 0 0114.14 0l-1.41 1.41a8 8 0 00-11.32 0L4.93 11.91zM1.39 7.66a14 14 0 0119.8 0l-1.4 1.4a12 12 0 00-17 0l-1.4-1.4z"/></svg>
+            </span>
+            <span class="cc-text">
+              <span class="cc-label">Wi-Fi</span>
+              <span class="cc-sublabel" id="cc-wifi-name">Home Network</span>
+            </span>
+          </button>
+          <button type="button" class="cc-pill is-active" data-cc="bluetooth" data-toggle>
+            <span class="cc-badge bt" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M17.71 7.71L12 2h-1v7.59L6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 11 14.41V22h1l5.71-5.71-4.3-4.29 4.3-4.29zM13 5.83l1.88 1.88L13 9.59V5.83zm1.88 10.46L13 18.17v-3.76l1.88 1.88z"/></svg>
+            </span>
+            <span class="cc-text">
+              <span class="cc-label">Bluetooth</span>
+              <span class="cc-sublabel">On</span>
+            </span>
+          </button>
+          <button type="button" class="cc-pill is-active" data-cc="airdrop" data-toggle>
+            <span class="cc-badge airdrop" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M12 10.1a1.9 1.9 0 100 3.8 1.9 1.9 0 000-3.8zm0-4.6c-2.9 0-5.5 1.2-7.4 3.1l1.4 1.4A8.3 8.3 0 0112 7.5c2.3 0 4.4.9 5.9 2.5l1.4-1.4A10.4 10.4 0 0012 5.5zm0-4.5C7.3 1 3.1 2.9.6 5.9l1.4 1.4C4.3 4.6 7.9 3 12 3s7.7 1.6 10 4.3l1.4-1.4C20.9 2.9 16.7 1 12 1z"/></svg>
+            </span>
+            <span class="cc-text">
+              <span class="cc-label">AirDrop</span>
+              <span class="cc-sublabel">Contacts Only</span>
+            </span>
+          </button>
+        </div>
+
+        <!-- Media + quick actions -->
+        <div class="cc-col">
+          <div class="cc-media" data-cc="media">
+            <div class="cc-media-art" aria-hidden="true"></div>
+            <div class="cc-media-title">Not Playing</div>
+            <div class="cc-media-controls">
+              <button type="button" class="cc-media-btn" aria-label="Previous">⏮</button>
+              <button type="button" class="cc-media-btn play" aria-label="Play">▶</button>
+              <button type="button" class="cc-media-btn" aria-label="Next">⏭</button>
+            </div>
+          </div>
+          <div class="cc-round-row">
+            <button type="button" class="cc-round" data-cc="screen-mirroring" data-toggle title="Screen Mirroring" aria-label="Screen Mirroring">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="4" width="14" height="11" rx="2"/><rect x="8" y="9" width="14" height="11" rx="2"/></svg>
+            </button>
+            <button type="button" class="cc-round solid" data-cc="stage-manager" data-toggle title="Stage Manager" aria-label="Stage Manager">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><circle cx="12" cy="12" r="4"/><path d="M4 12a8 8 0 018-8v2a6 6 0 00-6 6H4zm16 0a8 8 0 01-8 8v-2a6 6 0 006-6h2z" opacity=".35"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Focus / capture row -->
+        <div class="cc-focus-row">
+          <button type="button" class="cc-round" data-cc="screenshot" title="Screenshot" aria-label="Screenshot">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 8V6a2 2 0 012-2h2M16 4h2a2 2 0 012 2v2M20 16v2a2 2 0 01-2 2h-2M8 20H6a2 2 0 01-2-2v-2"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+          <button type="button" class="cc-pill focus is-active" data-cc="focus" data-toggle>
+            <span class="cc-badge focus" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M12 2a9.5 9.5 0 00-1.5 18.9 9 9 0 119-13.4A9.4 9.4 0 0012 2z"/></svg>
+            </span>
+            <span class="cc-text">
+              <span class="cc-label">Do Not Disturb</span>
+              <span class="cc-sublabel">On</span>
+            </span>
+          </button>
+        </div>
+
+        <!-- Display slider -->
+        <div class="cc-slider-card display" data-cc="display">
+          <div class="cc-slider-label">Display</div>
+          <div class="cc-slider-row">
+            <span class="cc-slider-ico" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="14" height="14"><circle cx="12" cy="12" r="4" fill="currentColor"/><path stroke="currentColor" stroke-width="1.6" d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+            </span>
+            <input type="range" class="slider cc-range" id="cc-brightness" min="0" max="100" value="85" aria-label="Brightness" />
+            <span class="cc-slider-ico" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="14" height="14"><circle cx="12" cy="12" r="5" fill="currentColor"/><path stroke="currentColor" stroke-width="1.6" d="M12 1v2M12 21v2M1 12h2M21 12h2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/></svg>
+            </span>
+            <button type="button" class="cc-slider-end" data-cc="appearance" title="Appearance" aria-label="Appearance">
+              <span id="cc-appearance-icon">💻</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Sound slider (warm tint like real CC) -->
+        <div class="cc-slider-card sound" data-cc="sound">
+          <div class="cc-slider-label">Sound</div>
+          <div class="cc-slider-row">
+            <span class="cc-slider-ico" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M5 10v4h3l4 3V7L8 10H5zm11.5 2a2.5 2.5 0 00-1.5-2.3v4.6a2.5 2.5 0 001.5-2.3z"/></svg>
+            </span>
+            <input type="range" class="slider cc-range" id="cc-volume" min="0" max="100" value="55" aria-label="Volume" />
+            <span class="cc-slider-ico" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M5 10v4h3l4 3V7L8 10H5zm9.5 2c0-1.8-1-3.3-2.5-4v8c1.5-.7 2.5-2.2 2.5-4zm2.5 0a6 6 0 00-3.5-5.5v2.2a4 4 0 010 6.6v2.2A6 6 0 0017 12z"/></svg>
+            </span>
+            <button type="button" class="cc-slider-end" title="Output" aria-label="Audio output">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="3"/><path d="M12 4a8 8 0 018 8M12 4a8 8 0 00-8 8M12 20a8 8 0 008-8M12 20a8 8 0 01-8-8"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <button type="button" class="cc-edit" id="cc-edit-controls" data-cc="edit">Edit Controls</button>
+      <span id="cc-appearance-label" class="visually-hidden">Automatic</span>
+    </div>
+
+    <!-- Notification Center -->
+    <aside id="notification-center" role="complementary" aria-label="Notification Center" aria-hidden="true">
+      <div class="nc-header">
+        <h2>Notifications</h2>
+        <button type="button" class="btn btn-sm btn-ghost" id="nc-clear-all" data-action="clear-notifications" style="color: inherit;">
+          Clear All
+        </button>
+      </div>
+      <div class="nc-date" id="nc-date">Friday, July 17</div>
+      <div id="notification-list">
+        <!-- Sample notification structure for JS -->
+        <div class="notification-card" data-id="welcome">
+          <div class="notification-icon">💻</div>
+          <div class="notification-body">
+            <div class="notification-app">macOS 27</div>
+            <div class="notification-title">Welcome to Liquid Glass</div>
+            <div class="notification-message">Your virtual desktop is ready. Click dock icons to open apps.</div>
+            <div class="notification-time">now</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Context Menu -->
+    <div id="context-menu" role="menu" aria-hidden="true" aria-label="Context menu">
+      <!-- Items injected by JS based on target -->
+      <div class="context-item" data-action="refresh" role="menuitem">Refresh</div>
+      <div class="context-separator" role="separator"></div>
+      <div class="context-item" data-action="change-wallpaper" role="menuitem">Change Wallpaper…</div>
+      <div class="context-item" data-action="sort-by" role="menuitem">
+        <span>Sort By</span>
+        <span class="shortcut">›</span>
+      </div>
+      <div class="context-separator" role="separator"></div>
+      <div class="context-item" data-action="new-folder" role="menuitem">New Folder</div>
+      <div class="context-separator" role="separator"></div>
+      <div class="context-item" data-action="get-info" role="menuitem">Get Info</div>
+    </div>
+  </div>
+
+  <!--
+    Window template (reference for window-manager.js)
+    Clone / build structure:
+    <div class="window is-opening" data-window-id="" data-app="" style="left:;top:;width:;height:;">
+      <div class="window-titlebar" data-drag-handle>
+        <div class="traffic-lights">
+          <button class="traffic-light close" data-window-action="close" aria-label="Close"><span class="traffic-symbol">✕</span></button>
+          <button class="traffic-light minimize" data-window-action="minimize" aria-label="Minimize"><span class="traffic-symbol">−</span></button>
+          <button class="traffic-light zoom" data-window-action="zoom" aria-label="Zoom"><span class="traffic-symbol">+</span></button>
+        </div>
+        <div class="window-title"></div>
+      </div>
+      <div class="window-toolbar" optional></div>
+      <div class="window-body">
+        <aside class="sidebar" optional></aside>
+        <div class="main-pane">
+          <div class="window-content"></div>
+        </div>
+      </div>
+      <div class="window-resize n" data-resize="n"></div>
+      <div class="window-resize s" data-resize="s"></div>
+      <div class="window-resize e" data-resize="e"></div>
+      <div class="window-resize w" data-resize="w"></div>
+      <div class="window-resize ne" data-resize="ne"></div>
+      <div class="window-resize nw" data-resize="nw"></div>
+      <div class="window-resize se" data-resize="se"></div>
+      <div class="window-resize sw" data-resize="sw"></div>
+    </div>
+  -->
+
+  <!-- Scripts: classic order, no bundler -->
+  <script src="js/icons.js?v=1784304227"></script>
+  <script src="js/window-manager.js?v=1784304227"></script>
+  <script src="js/shell.js?v=1784304227"></script>
+  <script src="js/apps/registry.js?v=1784304227"></script>
+  <!-- App modules (add as implemented) -->
+  <!-- <script src="js/apps/finder.js?v=1784304227"></script> -->
+  <!-- <script src="js/apps/safari.js?v=1784304227"></script> -->
+  <!-- <script src="js/apps/settings.js?v=1784304227"></script> -->
+  <script src="js/main.js?v=1784304227"></script>
+</body>
+</html>

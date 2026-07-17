@@ -1,0 +1,394 @@
+/* =============================================================================
+   Tahoe visual parity overrides — matched to real macOS Tahoe screenshots
+   Sources: MacStories Finder/Dock shots, AppleInsider menu bar / dock comparison
+   ============================================================================= */
+
+/* Full-bleed abstract wallpaper (no heavy vignette that fights Liquid Glass) */
+#wallpaper {
+  background-image: url("../assets/wallpaper.jpg") !important;
+  background-size: cover !important;
+  background-position: center !important;
+  filter: none !important;
+  transform: none !important;
+}
+#wallpaper::after {
+  /* Subtle top dim for menubar legibility only — not a full vignette */
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.18) 0%,
+    rgba(0, 0, 0, 0.04) 28px,
+    transparent 56px
+  ) !important;
+  opacity: 1 !important;
+  backdrop-filter: none !important;
+}
+
+/* -----------------------------------------------------------------------------
+   MENU BAR — fully transparent (invisible chrome). Icons float on wallpaper.
+   Real Tahoe: no frosted bar fill; light glyphs with soft shadow on blue/gold.
+   ----------------------------------------------------------------------------- */
+#menubar {
+  height: 25px !important;
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: none !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+  color: #fff !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  letter-spacing: -0.01em;
+  text-shadow: 0 0.5px 2px rgba(0, 0, 0, 0.35), 0 0 8px rgba(0, 0, 0, 0.15);
+  padding: 0 12px !important;
+  overflow: visible !important;
+}
+#menubar::before {
+  display: none !important;
+}
+#menubar .menubar-item,
+#menubar .menubar-icon-btn,
+#menubar #clock-text,
+#menubar #active-app-name {
+  color: #fff !important;
+  text-shadow: 0 0.5px 2px rgba(0, 0, 0, 0.35);
+}
+#menubar .menubar-item:hover,
+#menubar .menubar-item.is-open,
+#menubar .menubar-icon-btn:hover,
+#menubar .menubar-icon-btn.is-open {
+  background: rgba(255, 255, 255, 0.18) !important;
+  border-radius: 6px;
+}
+#menubar .menubar-icon-btn svg {
+  fill: #fff !important;
+  opacity: 0.95;
+  filter: drop-shadow(0 0.5px 1px rgba(0, 0, 0, 0.35));
+}
+#menubar .battery-icon {
+  border-color: #fff !important;
+  opacity: 0.95;
+}
+#menubar .battery-icon::after,
+#menubar .battery-level {
+  background: #fff !important;
+}
+.menubar-item.is-active-app {
+  font-weight: 700 !important;
+}
+
+/* Dropdown menus — milky liquid glass like Tahoe */
+.menu-dropdown {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.42) 0%, rgba(255, 255, 255, 0.12) 100%),
+    rgba(246, 246, 248, 0.78) !important;
+  backdrop-filter: blur(40px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(40px) saturate(180%) !important;
+  border: 0.5px solid rgba(255, 255, 255, 0.55) !important;
+  border-radius: 10px !important;
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.22),
+    0 2px 6px rgba(0, 0, 0, 0.08),
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.65) !important;
+}
+
+/* -----------------------------------------------------------------------------
+   DOCK — floating ultra-clear glass capsule (MacStories Tahoe dock shot)
+   Base tray lives in liquid-glass.css; only tighten tokens / theme here.
+   Thin white rim, wallpaper bleed-through, black running dots, mag-ready.
+   ----------------------------------------------------------------------------- */
+:root {
+  --dock-icon-size: 50px;
+  --dock-height: 70px;
+  --dock-icon-gap: 4px;
+  --dock-padding: 7px;
+  --dock-padding-x: 11px;
+  --dock-reflect: 0;
+  --radius-2xl: 18px;
+}
+
+#dock-container {
+  bottom: 8px !important;
+  filter: drop-shadow(0 12px 28px rgba(0, 0, 0, 0.18)) !important;
+}
+
+#dock {
+  overflow: visible !important;
+  border-radius: 22px !important;
+  /* Fixed tray geometry — icons magnify via transform only */
+  height: calc(var(--dock-icon-size) + var(--dock-padding) * 2 + 8px) !important;
+  min-height: calc(var(--dock-icon-size) + var(--dock-padding) * 2 + 8px) !important;
+  max-height: calc(var(--dock-icon-size) + var(--dock-padding) * 2 + 8px) !important;
+  transition: none !important;
+  /* Layered clear glass — do not flatten to a solid tint */
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.32) 0%,
+      rgba(255, 255, 255, 0.08) 42%,
+      rgba(255, 255, 255, 0.14) 100%
+    ),
+    rgba(255, 255, 255, 0.12) !important;
+  backdrop-filter: blur(40px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(40px) saturate(180%) !important;
+  border: 0.5px solid rgba(255, 255, 255, 0.55) !important;
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.24),
+    0 4px 12px rgba(0, 0, 0, 0.12),
+    0 1px 3px rgba(0, 0, 0, 0.08),
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.7),
+    inset 0 -0.5px 0 rgba(0, 0, 0, 0.06),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.18) !important;
+}
+
+.dock-item {
+  width: var(--dock-icon-size) !important;
+  height: calc(var(--dock-icon-size) + 10px) !important;
+  margin: 0 var(--dock-icon-gap) !important;
+  transition: none !important;
+}
+
+.dock-item[data-magnify] {
+  width: var(--dock-icon-size) !important;
+  height: calc(var(--dock-icon-size) + 10px) !important;
+  margin: 0 var(--dock-icon-gap) !important;
+}
+
+.dock-icon {
+  transform: scale(var(--scale, 1));
+  transform-origin: bottom center;
+  transition: transform 160ms cubic-bezier(0.22, 1, 0.36, 1) !important;
+}
+
+.dock-icon {
+  -webkit-box-reflect: none !important; /* optional via --dock-reflect / .dock-reflect */
+}
+
+.dock-item.is-running::after,
+.dock-indicator {
+  bottom: 1px !important;
+  width: 4px !important;
+  height: 4px !important;
+  background: rgba(0, 0, 0, 0.72) !important;
+  box-shadow: none !important;
+  border-radius: 50% !important;
+}
+
+.dock-separator,
+.dock-sep {
+  width: 1px !important;
+  height: 36px !important;
+  margin: 0 8px 10px !important;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.42) 18%,
+    rgba(255, 255, 255, 0.42) 82%,
+    transparent 100%
+  ) !important;
+  align-self: center;
+  border-radius: 1px;
+}
+
+/* -----------------------------------------------------------------------------
+   WINDOWS — milky liquid glass, rounder corners, soft ambient shadow
+   Finder screenshot: light chrome, wallpaper subtly through sidebar/toolbar
+   ----------------------------------------------------------------------------- */
+.window {
+  border-radius: 16px !important;
+  background: rgba(246, 246, 248, 0.82) !important;
+  backdrop-filter: blur(50px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(50px) saturate(180%) !important;
+  border: 0.5px solid rgba(255, 255, 255, 0.65) !important;
+  box-shadow:
+    0 24px 64px rgba(0, 0, 0, 0.28),
+    0 8px 20px rgba(0, 0, 0, 0.12),
+    0 0 0 0.5px rgba(0, 0, 0, 0.06),
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.75) !important;
+}
+.window.is-active {
+  background: rgba(250, 250, 252, 0.88) !important;
+  border-color: rgba(255, 255, 255, 0.7) !important;
+}
+.window.is-inactive {
+  background: rgba(236, 236, 240, 0.72) !important;
+  opacity: 0.96;
+}
+.window-titlebar {
+  height: 44px !important;
+  min-height: 44px !important;
+  background: transparent !important;
+  border-bottom: none !important;
+  padding: 0 14px !important;
+  pointer-events: auto !important;
+  cursor: grab;
+}
+.window-titlebar:active {
+  cursor: grabbing;
+}
+.window.is-dragging .window-titlebar {
+  cursor: grabbing;
+}
+.window-titlebar::before {
+  display: none !important;
+}
+.window-title {
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: rgba(0, 0, 0, 0.75) !important;
+  letter-spacing: -0.01em;
+}
+.traffic-lights {
+  gap: 8px !important;
+  left: 14px !important;
+}
+.traffic-light {
+  width: 12px !important;
+  height: 12px !important;
+  border-radius: 50% !important;
+  border: none !important;
+  box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.12) !important;
+}
+.traffic-light.close { background: #ff5f57 !important; }
+.traffic-light.minimize { background: #febc2e !important; }
+.traffic-light.zoom { background: #28c840 !important; }
+.traffic-symbol {
+  opacity: 0 !important;
+  font-size: 8px !important;
+}
+.window-titlebar:hover .traffic-symbol,
+.traffic-lights:hover .traffic-symbol {
+  opacity: 0.55 !important;
+  color: rgba(0, 0, 0, 0.55) !important;
+}
+.window-body,
+.window-content {
+  background: transparent !important;
+}
+
+/* App chrome inside windows — translucent sidebar/toolbar like Tahoe Finder */
+.app-layout {
+  background: transparent !important;
+}
+.app-sidebar {
+  background: rgba(255, 255, 255, 0.28) !important;
+  backdrop-filter: blur(30px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(30px) saturate(160%) !important;
+  border-right: 0.5px solid rgba(0, 0, 0, 0.06) !important;
+}
+.app-sidebar-item.active {
+  background: rgba(0, 122, 255, 0.9) !important;
+  color: #fff !important;
+  border-radius: 6px !important;
+}
+.app-toolbar {
+  background: rgba(255, 255, 255, 0.35) !important;
+  backdrop-filter: blur(20px) !important;
+  border-bottom: 0.5px solid rgba(0, 0, 0, 0.05) !important;
+}
+.app-main {
+  background: rgba(255, 255, 255, 0.55) !important;
+}
+
+/* Toolbar capsule button groups (Tahoe always-visible groupings) */
+.tb-nav,
+.tb-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px 6px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.55);
+  border: 0.5px solid rgba(0, 0, 0, 0.06);
+  box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.8);
+}
+
+/* -----------------------------------------------------------------------------
+   WIDGETS — frosted blue-gray glass tiles (left side of Finder screenshot)
+   ----------------------------------------------------------------------------- */
+#desktop-widgets {
+  right: auto !important;
+  left: 16px !important;
+  top: 40px !important;
+  bottom: auto !important;
+  gap: 12px !important;
+  width: 320px !important;
+  max-height: calc(100vh - 120px);
+  overflow: visible !important;
+}
+.widget,
+#desktop-widgets .widget {
+  background: rgba(255, 255, 255, 0.22) !important;
+  backdrop-filter: blur(40px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(40px) saturate(160%) !important;
+  border: 0.5px solid rgba(255, 255, 255, 0.45) !important;
+  border-radius: 22px !important;
+  box-shadow:
+    0 8px 28px rgba(0, 0, 0, 0.12),
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.5) !important;
+  color: rgba(0, 0, 0, 0.82) !important;
+  padding: 14px 16px !important;
+}
+.widget-clock .widget-time,
+#widget-time {
+  font-size: 44px !important;
+  font-weight: 300 !important;
+  letter-spacing: -0.03em !important;
+  color: rgba(0, 0, 0, 0.85) !important;
+  text-shadow: none !important;
+}
+#widget-date,
+.widget .muted {
+  color: rgba(0, 0, 0, 0.5) !important;
+}
+
+/* Desktop icons — right side, white label with soft shadow like Tahoe */
+#desktop-icons {
+  right: 20px !important;
+  left: auto !important;
+  top: 48px !important;
+}
+.desktop-icon {
+  color: #fff !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45) !important;
+}
+.desktop-icon-label {
+  background: transparent !important;
+  font-size: 12px !important;
+}
+
+/* -----------------------------------------------------------------------------
+   CONTROL CENTER / SPOTLIGHT / LAUNCHPAD — clear glass panes
+   CC modules + Apps drawer styles live in control-center.css / apps-drawer.css
+   (do not re-skin #control-center as a single solid panel)
+   ----------------------------------------------------------------------------- */
+#spotlight .spotlight-box,
+#spotlight-panel,
+.spotlight-panel {
+  background: rgba(255, 255, 255, 0.42) !important;
+  backdrop-filter: blur(50px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(50px) saturate(180%) !important;
+  border: 0.5px solid rgba(255, 255, 255, 0.55) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28) !important;
+}
+
+/* Notification center glass cards */
+#notification-center,
+.notification-card {
+  border-radius: 16px !important;
+}
+
+/* Context menu */
+#context-menu {
+  background: rgba(246, 246, 248, 0.82) !important;
+  backdrop-filter: blur(40px) !important;
+  border-radius: 10px !important;
+  border: 0.5px solid rgba(255, 255, 255, 0.55) !important;
+}
+
+/* Text contrast on desktop when wallpaper is bright */
+body.light-chrome #menubar,
+#macos {
+  /* keep white menubar text; wallpaper is vivid Tahoe blue/gold */
+}
