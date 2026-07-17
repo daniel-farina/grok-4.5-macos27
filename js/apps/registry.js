@@ -4614,6 +4614,227 @@ return theGreeting</textarea>
     };
   }
 
+  if (APPS.quicktime) {
+    APPS.quicktime.width = 720;
+    APPS.quicktime.height = 480;
+    APPS.quicktime.open = function () {
+      return `<div class="app-layout col qt-app" id="quicktime-app">
+        ${toolbar(`<strong>QuickTime Player</strong>
+          <button type="button" class="btn-glass" id="qt-open">Open Sample</button>
+          <button type="button" class="btn-glass" id="qt-record">New Recording</button>`)}
+        <div class="qt-stage">
+          <div class="qt-screen" id="qt-screen">
+            <div class="qt-placeholder">
+              <div class="qt-big-play" id="qt-play">▶</div>
+              <p class="muted">Sample Movie · Not Playing</p>
+            </div>
+            <div class="qt-progress"><div class="qt-progress-fill" id="qt-fill"></div></div>
+          </div>
+          <div class="qt-controls">
+            <button type="button" class="btn-glass" id="qt-rw">⏪</button>
+            <button type="button" class="btn-primary" id="qt-toggle">Play</button>
+            <button type="button" class="btn-glass" id="qt-ff">⏩</button>
+            <span class="muted" id="qt-time">0:00 / 1:30</span>
+          </div>
+        </div>
+      </div>`;
+    };
+  }
+
+  if (APPS.news) {
+    APPS.news.open = function () {
+      return `<div class="app-layout col news-app" id="news-app">
+        ${toolbar(`<strong>Apple News</strong><span class="muted">Today</span>`)}
+        <div class="news-body">
+          <div class="news-list-pane">
+            <div class="news-hero glass news-item is-active" data-news="0">
+              <div class="store-badge">TOP STORIES</div>
+              <h2>macOS 27 redefines the desktop with Liquid Glass</h2>
+              <p class="muted">Apple · 2h ago</p>
+            </div>
+            ${[
+              ['How Liquid Glass changes app design', 'Design · 4h'],
+              ['Apple Intelligence expands on Mac', 'Tech · 6h'],
+              ['Best wallpapers for the new look', 'Lifestyle · 8h'],
+            ]
+              .map(
+                (a, i) =>
+                  `<button type="button" class="news-item" data-news="${i + 1}"><strong>${a[0]}</strong><span class="muted">${a[1]}</span></button>`
+              )
+              .join('')}
+          </div>
+          <article class="news-reader" id="news-reader">
+            <h1 id="news-title">macOS 27 redefines the desktop with Liquid Glass</h1>
+            <p class="muted" id="news-byline">Apple · 2h ago</p>
+            <p id="news-body">Apple’s next desktop design language uses translucent materials, specular edges, and adaptive light to make windows feel part of the wallpaper. This is a sample article for the virtual desktop demo.</p>
+            <p>Controls stay familiar while materials evolve. Developers can match system materials for a cohesive look across Finder, Safari, and built-in apps.</p>
+          </article>
+        </div>
+      </div>`;
+    };
+    APPS.news.width = 920;
+    APPS.news.height = 600;
+  }
+
+  if (APPS.books) {
+    APPS.books.open = function () {
+      return `<div class="app-layout books-app" id="books-app">
+        <aside class="app-sidebar">
+          <div class="app-sidebar-item active" data-books-nav="library">Library</div>
+          <div class="app-sidebar-item" data-books-nav="store">Book Store</div>
+          <div class="app-sidebar-item" data-books-nav="pdf">PDFs</div>
+        </aside>
+        <div class="app-main">
+          ${toolbar(`<strong>Books</strong>`)}
+          <div class="books-grid" id="books-grid">
+            ${['The Glass Desk', 'Design Systems', 'Swift Craft', 'Quiet Code', 'Focus Hours', 'Pixel & Type']
+              .map(
+                (t, i) =>
+                  `<button type="button" class="book-cover" data-book="${t}" style="--h:${i * 40}"><span>${t}</span></button>`
+              )
+              .join('')}
+          </div>
+          <div class="book-reader" id="book-reader" hidden>
+            <div class="book-reader-bar">
+              <button type="button" class="btn-glass" id="book-back">‹ Library</button>
+              <strong id="book-title">Book</strong>
+              <span class="muted" id="book-page">1 / 12</span>
+            </div>
+            <div class="book-pages">
+              <button type="button" class="book-nav" id="book-prev">‹</button>
+              <div class="book-page-card" id="book-text"></div>
+              <button type="button" class="book-nav" id="book-next">›</button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    };
+    APPS.books.width = 900;
+    APPS.books.height = 600;
+  }
+
+  if (APPS['find-my']) {
+    APPS['find-my'].width = 800;
+    APPS['find-my'].height = 560;
+    APPS['find-my'].open = function () {
+      return `<div class="app-layout col findmy-app" id="find-my-app">
+        ${toolbar(`<strong>Find My</strong>
+          <div class="fm-tabs">
+            <button type="button" class="fm-tab active" data-fm="devices">Devices</button>
+            <button type="button" class="fm-tab" data-fm="people">People</button>
+            <button type="button" class="fm-tab" data-fm="items">Items</button>
+          </div>`)}
+        <div class="fm-body">
+          <div class="fm-map" id="fm-map">
+            <div class="fm-pin is-selected" data-dev="MacBook Pro" style="left:42%;top:38%">💻</div>
+            <div class="fm-pin" data-dev="iPhone" style="left:48%;top:44%">📱</div>
+            <div class="fm-pin" data-dev="AirPods Pro" style="left:55%;top:52%">🎧</div>
+          </div>
+          <aside class="fm-list">
+            <button type="button" class="fm-row is-selected" data-dev="MacBook Pro"><strong>MacBook Pro</strong><span class="muted">Cupertino · Now</span></button>
+            <button type="button" class="fm-row" data-dev="iPhone"><strong>iPhone</strong><span class="muted">Cupertino · 2m ago</span></button>
+            <button type="button" class="fm-row" data-dev="AirPods Pro"><strong>AirPods Pro</strong><span class="muted">Last seen Home</span></button>
+            <div class="fm-actions">
+              <button type="button" class="btn-primary" id="fm-play">Play Sound</button>
+              <button type="button" class="btn-glass" id="fm-directions">Directions</button>
+            </div>
+          </aside>
+        </div>
+      </div>`;
+    };
+  }
+
+  if (APPS['time-machine']) {
+    APPS['time-machine'].width = 720;
+    APPS['time-machine'].height = 480;
+    APPS['time-machine'].open = function () {
+      return `<div class="app-layout col tm-app" id="time-machine-app">
+        ${toolbar(`<strong>Time Machine</strong>`)}
+        <div class="tm-stage">
+          <div class="tm-stack" id="tm-stack">
+            ${[0, 1, 2, 3]
+              .map((i) => `<div class="tm-window" style="--i:${i}"><div class="tm-win-bar"></div><div class="tm-win-body">Backup ${i === 0 ? 'Today 9:00 AM' : i + ' day' + (i > 1 ? 's' : '') + ' ago'}</div></div>`)
+              .join('')}
+          </div>
+          <div class="tm-timeline">
+            <button type="button" class="btn-glass" id="tm-back">‹ Older</button>
+            <span id="tm-label">Today, 9:00 AM</span>
+            <button type="button" class="btn-glass" id="tm-fwd">Newer ›</button>
+          </div>
+          <button type="button" class="btn-primary" id="tm-restore">Restore Files…</button>
+        </div>
+      </div>`;
+    };
+  }
+
+  if (APPS.passwords) {
+    APPS.passwords.open = function () {
+      const rows = [
+        { site: 'apple.com', user: 'you@icloud.com', pass: '••••••••••••' },
+        { site: 'icloud.com', user: 'you@icloud.com', pass: '••••••••••••' },
+        { site: 'github.com', user: 'you', pass: '••••••••' },
+      ];
+      return `<div class="app-layout col" id="passwords-app">
+        ${toolbar(`<strong>Passwords</strong><input class="search-field" id="pw-search" placeholder="Search" />`)}
+        <div class="pw-list">
+          ${rows
+            .map(
+              (r) =>
+                `<div class="pw-row" data-site="${r.site}">
+                  <div><strong>${r.site}</strong><div class="muted">${r.user}</div></div>
+                  <div class="pw-actions">
+                    <span class="pw-pass muted">${r.pass}</span>
+                    <button type="button" class="btn-glass pw-copy" data-site="${r.site}">Copy</button>
+                  </div>
+                </div>`
+            )
+            .join('')}
+        </div>
+        <p class="muted center" style="padding:8px 16px 16px">Sample credentials only · not real passwords</p>
+      </div>`;
+    };
+  }
+
+  if (APPS.console) {
+    APPS.console.width = 800;
+    APPS.console.height = 480;
+    APPS.console.open = function () {
+      return `<div class="app-layout col console-app" id="console-app">
+        ${toolbar(`<strong>Console</strong>
+          <button type="button" class="btn-glass" id="console-clear">Clear</button>
+          <button type="button" class="btn-glass" id="console-pause">Pause</button>`)}
+        <div class="console-log" id="console-log">
+          <div><span class="c-time">09:41:02</span> <span class="c-src">kernel</span> IOKit: USB device attached</div>
+          <div><span class="c-time">09:41:05</span> <span class="c-src">WindowServer</span> Display connected</div>
+          <div><span class="c-time">09:42:11</span> <span class="c-src">Safari</span> Privacy Report updated</div>
+        </div>
+      </div>`;
+    };
+  }
+
+  if (APPS.magnifier) {
+    APPS.magnifier.width = 480;
+    APPS.magnifier.height = 400;
+    APPS.magnifier.open = function () {
+      return `<div class="app-layout col magnifier-app" id="magnifier-app">
+        ${toolbar(`<strong>Magnifier</strong>`)}
+        <div class="mag-view" id="mag-view">
+          <div class="mag-content" id="mag-content">Aa</div>
+        </div>
+        <div class="mag-controls">
+          <label>Zoom <input type="range" id="mag-zoom" min="1" max="8" step="0.5" value="2" /></label>
+          <label>Brightness <input type="range" id="mag-bright" min="50" max="150" value="100" /></label>
+          <select id="mag-filter" class="te27-select">
+            <option value="none">No Filter</option>
+            <option value="invert">Inverted</option>
+            <option value="gray">Grayscale</option>
+            <option value="contrast">High Contrast</option>
+          </select>
+        </div>
+      </div>`;
+    };
+  }
+
   if (APPS['digital-color-meter']) {
     APPS['digital-color-meter'].open = function () {
       return `<div class="app-layout col" id="dcm-app">

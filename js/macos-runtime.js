@@ -2356,6 +2356,386 @@
     });
   }
 
+  /* ── QuickTime ──────────────────────────────────────── */
+  function wireQuickTime(el) {
+    if (!el || el.dataset.wired) return;
+    el.dataset.wired = '1';
+    var playing = false;
+    var t = 0;
+    var dur = 90;
+    var fill = el.querySelector('#qt-fill');
+    var timeEl = el.querySelector('#qt-time');
+    var toggle = el.querySelector('#qt-toggle');
+    var playBtn = el.querySelector('#qt-play');
+    var timer = null;
+    function fmt(s) {
+      var m = Math.floor(s / 60);
+      var r = s % 60;
+      return m + ':' + (r < 10 ? '0' : '') + r;
+    }
+    function tick() {
+      if (!playing) return;
+      t = Math.min(dur, t + 1);
+      if (fill) fill.style.width = (t / dur) * 100 + '%';
+      if (timeEl) timeEl.textContent = fmt(t) + ' / ' + fmt(dur);
+      if (t >= dur) {
+        playing = false;
+        if (toggle) toggle.textContent = 'Play';
+        clearInterval(timer);
+        sound('pop');
+      }
+    }
+    function setPlay(on) {
+      playing = on;
+      if (toggle) toggle.textContent = on ? 'Pause' : 'Play';
+      if (playBtn) playBtn.textContent = on ? '❚❚' : '▶';
+      sound(on ? 'funk' : 'pop');
+      clearInterval(timer);
+      if (on) timer = setInterval(tick, 400);
+    }
+    if (toggle) toggle.addEventListener('click', function () { setPlay(!playing); });
+    if (playBtn) playBtn.addEventListener('click', function () { setPlay(!playing); });
+    var rw = el.querySelector('#qt-rw');
+    var ff = el.querySelector('#qt-ff');
+    if (rw) {
+      rw.addEventListener('click', function () {
+        t = Math.max(0, t - 10);
+        if (fill) fill.style.width = (t / dur) * 100 + '%';
+        if (timeEl) timeEl.textContent = fmt(t) + ' / ' + fmt(dur);
+        sound('volume');
+      });
+    }
+    if (ff) {
+      ff.addEventListener('click', function () {
+        t = Math.min(dur, t + 10);
+        if (fill) fill.style.width = (t / dur) * 100 + '%';
+        if (timeEl) timeEl.textContent = fmt(t) + ' / ' + fmt(dur);
+        sound('volume');
+      });
+    }
+    var open = el.querySelector('#qt-open');
+    if (open) {
+      open.addEventListener('click', function () {
+        t = 0;
+        setPlay(true);
+        if (global.MacShell && MacShell.notify) {
+          MacShell.notify('QuickTime Player', 'Sample Movie', 'Playing demo clip', 'now');
+        }
+      });
+    }
+    var rec = el.querySelector('#qt-record');
+    if (rec) {
+      rec.addEventListener('click', function () {
+        sound('purr');
+        if (global.MacShell && MacShell.notify) {
+          MacShell.notify('QuickTime Player', 'Recording', 'Screen recording started (demo)', 'now');
+        }
+      });
+    }
+  }
+
+  /* ── News reader ────────────────────────────────────── */
+  function wireNews(el) {
+    if (!el || el.dataset.wired) return;
+    el.dataset.wired = '1';
+    var articles = [
+      {
+        t: 'macOS 27 redefines the desktop with Liquid Glass',
+        b: 'Apple · 2h ago',
+        body: 'Apple’s next desktop design language uses translucent materials, specular edges, and adaptive light to make windows feel part of the wallpaper.',
+      },
+      {
+        t: 'How Liquid Glass changes app design',
+        b: 'Design · 4h',
+        body: 'Designers are rethinking hierarchy with blur, vibrancy, and thinner chrome while keeping controls recognizable.',
+      },
+      {
+        t: 'Apple Intelligence expands on Mac',
+        b: 'Tech · 6h',
+        body: 'On-device models power writing tools and smarter Siri experiences across system apps in this simulation.',
+      },
+      {
+        t: 'Best wallpapers for the new look',
+        b: 'Lifestyle · 8h',
+        body: 'Soft gradients and crystal textures show off menu bar translucency and dock glass in macOS 27.',
+      },
+    ];
+    el.querySelectorAll('.news-item').forEach(function (item) {
+      item.addEventListener('click', function () {
+        el.querySelectorAll('.news-item').forEach(function (i) {
+          i.classList.remove('is-active');
+        });
+        item.classList.add('is-active');
+        var idx = parseInt(item.getAttribute('data-news'), 10) || 0;
+        var a = articles[idx] || articles[0];
+        var title = el.querySelector('#news-title');
+        var by = el.querySelector('#news-byline');
+        var body = el.querySelector('#news-body');
+        if (title) title.textContent = a.t;
+        if (by) by.textContent = a.b;
+        if (body) body.textContent = a.body;
+        sound('pop');
+      });
+    });
+  }
+
+  /* ── Books reader ───────────────────────────────────── */
+  function wireBooks(el) {
+    if (!el || el.dataset.wired) return;
+    el.dataset.wired = '1';
+    var page = 1;
+    var title = 'Book';
+    var reader = el.querySelector('#book-reader');
+    var grid = el.querySelector('#books-grid');
+    var text = el.querySelector('#book-text');
+    var pageEl = el.querySelector('#book-page');
+    var titleEl = el.querySelector('#book-title');
+    function renderPage() {
+      if (text) {
+        text.innerHTML =
+          '<p class="book-drop">' +
+          title +
+          '</p><p>Chapter ' +
+          page +
+          '. In a virtual library of sample text, Liquid Glass pages turn with a soft shadow and generous margins—comfortable reading for long sessions.</p><p class="muted">Page ' +
+          page +
+          ' of 12</p>';
+      }
+      if (pageEl) pageEl.textContent = page + ' / 12';
+      if (titleEl) titleEl.textContent = title;
+    }
+    el.querySelectorAll('.book-cover').forEach(function (cover) {
+      cover.addEventListener('click', function () {
+        title = cover.getAttribute('data-book') || 'Book';
+        page = 1;
+        if (grid) grid.hidden = true;
+        if (reader) reader.hidden = false;
+        renderPage();
+        sound('pop');
+      });
+    });
+    var back = el.querySelector('#book-back');
+    if (back) {
+      back.addEventListener('click', function () {
+        if (reader) reader.hidden = true;
+        if (grid) grid.hidden = false;
+        sound('tink');
+      });
+    }
+    var prev = el.querySelector('#book-prev');
+    var next = el.querySelector('#book-next');
+    if (prev) {
+      prev.addEventListener('click', function () {
+        page = Math.max(1, page - 1);
+        renderPage();
+        sound('volume');
+      });
+    }
+    if (next) {
+      next.addEventListener('click', function () {
+        page = Math.min(12, page + 1);
+        renderPage();
+        sound('volume');
+      });
+    }
+  }
+
+  /* ── Find My ────────────────────────────────────────── */
+  function wireFindMy(el) {
+    if (!el || el.dataset.wired) return;
+    el.dataset.wired = '1';
+    function select(name) {
+      el.querySelectorAll('.fm-row, .fm-pin').forEach(function (n) {
+        n.classList.toggle('is-selected', n.getAttribute('data-dev') === name);
+      });
+      sound('pop');
+    }
+    el.querySelectorAll('.fm-row, .fm-pin').forEach(function (n) {
+      n.addEventListener('click', function () {
+        select(n.getAttribute('data-dev'));
+      });
+    });
+    el.querySelectorAll('.fm-tab').forEach(function (tab) {
+      tab.addEventListener('click', function () {
+        el.querySelectorAll('.fm-tab').forEach(function (t) {
+          t.classList.remove('active');
+        });
+        tab.classList.add('active');
+        sound('tink');
+      });
+    });
+    var play = el.querySelector('#fm-play');
+    if (play) {
+      play.addEventListener('click', function () {
+        sound('sosumi');
+        if (global.MacShell && MacShell.notify) {
+          MacShell.notify('Find My', 'Playing Sound', 'Device is playing a sound', 'now');
+        }
+      });
+    }
+    var dir = el.querySelector('#fm-directions');
+    if (dir) {
+      dir.addEventListener('click', function () {
+        sound('pop');
+        if (global.MacShell && MacShell.openApp) MacShell.openApp('maps');
+      });
+    }
+  }
+
+  /* ── Time Machine ───────────────────────────────────── */
+  function wireTimeMachine(el) {
+    if (!el || el.dataset.wired) return;
+    el.dataset.wired = '1';
+    var idx = 0;
+    var labels = ['Today, 9:00 AM', 'Yesterday, 9:00 AM', '2 days ago', '3 days ago', 'Last Week'];
+    var label = el.querySelector('#tm-label');
+    var stack = el.querySelector('#tm-stack');
+    function update() {
+      if (label) label.textContent = labels[idx] || labels[0];
+      if (stack) stack.style.setProperty('--tm', idx);
+      sound('pop');
+    }
+    var back = el.querySelector('#tm-back');
+    var fwd = el.querySelector('#tm-fwd');
+    if (back) {
+      back.addEventListener('click', function () {
+        idx = Math.min(labels.length - 1, idx + 1);
+        update();
+      });
+    }
+    if (fwd) {
+      fwd.addEventListener('click', function () {
+        idx = Math.max(0, idx - 1);
+        update();
+      });
+    }
+    var restore = el.querySelector('#tm-restore');
+    if (restore) {
+      restore.addEventListener('click', function () {
+        sound('hero');
+        if (global.MacShell && MacShell.notify) {
+          MacShell.notify('Time Machine', 'Restore', 'Restored sample files from ' + (labels[idx] || ''), 'now');
+        }
+      });
+    }
+  }
+
+  /* ── Passwords ──────────────────────────────────────── */
+  function wirePasswords(el) {
+    if (!el || el.dataset.wired) return;
+    el.dataset.wired = '1';
+    el.querySelectorAll('.pw-copy').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var site = btn.getAttribute('data-site') || 'site';
+        var demo = 'demo-password-' + site.replace(/\W/g, '');
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(demo).catch(function () {});
+        }
+        btn.textContent = 'Copied';
+        sound('tink');
+        setTimeout(function () {
+          btn.textContent = 'Copy';
+        }, 1200);
+        if (global.MacShell && MacShell.notify) {
+          MacShell.notify('Passwords', 'Copied', 'Password for ' + site, 'now');
+        }
+      });
+    });
+    var search = el.querySelector('#pw-search');
+    if (search) {
+      search.addEventListener('input', function () {
+        var q = search.value.toLowerCase();
+        el.querySelectorAll('.pw-row').forEach(function (row) {
+          var site = (row.getAttribute('data-site') || '').toLowerCase();
+          row.style.display = !q || site.indexOf(q) >= 0 ? '' : 'none';
+        });
+      });
+    }
+  }
+
+  /* ── Console live log ───────────────────────────────── */
+  function wireConsole(el) {
+    if (!el || el.dataset.wired) return;
+    el.dataset.wired = '1';
+    var log = el.querySelector('#console-log');
+    var paused = false;
+    var sources = ['kernel', 'WindowServer', 'Safari', 'Finder', 'dock', 'bluetoothd', 'mds'];
+    var msgs = [
+      'IOKit: power state change',
+      'Display sleep prevented',
+      'Network reachability changed',
+      'Sandbox: allow file-read-data',
+      'LaunchServices: registered app',
+      'CoreAudio: device sample rate 48000',
+    ];
+    var iv = setInterval(function () {
+      if (!el.isConnected) {
+        clearInterval(iv);
+        return;
+      }
+      if (paused || !log) return;
+      var d = new Date();
+      var t =
+        String(d.getHours()).padStart(2, '0') +
+        ':' +
+        String(d.getMinutes()).padStart(2, '0') +
+        ':' +
+        String(d.getSeconds()).padStart(2, '0');
+      var line = document.createElement('div');
+      line.innerHTML =
+        '<span class="c-time">' +
+        t +
+        '</span> <span class="c-src">' +
+        sources[Math.floor(Math.random() * sources.length)] +
+        '</span> ' +
+        msgs[Math.floor(Math.random() * msgs.length)];
+      log.appendChild(line);
+      log.scrollTop = log.scrollHeight;
+      while (log.children.length > 80) log.removeChild(log.firstChild);
+    }, 1500);
+    var clear = el.querySelector('#console-clear');
+    if (clear) {
+      clear.addEventListener('click', function () {
+        if (log) log.innerHTML = '';
+        sound('emptyTrash');
+      });
+    }
+    var pause = el.querySelector('#console-pause');
+    if (pause) {
+      pause.addEventListener('click', function () {
+        paused = !paused;
+        pause.textContent = paused ? 'Resume' : 'Pause';
+        sound('pop');
+      });
+    }
+  }
+
+  /* ── Magnifier ──────────────────────────────────────── */
+  function wireMagnifier(el) {
+    if (!el || el.dataset.wired) return;
+    el.dataset.wired = '1';
+    var content = el.querySelector('#mag-content');
+    var zoom = el.querySelector('#mag-zoom');
+    var bright = el.querySelector('#mag-bright');
+    var filter = el.querySelector('#mag-filter');
+    function apply() {
+      if (!content) return;
+      var z = zoom ? zoom.value : 2;
+      var b = bright ? bright.value / 100 : 1;
+      var f = filter ? filter.value : 'none';
+      var filt = 'brightness(' + b + ')';
+      if (f === 'invert') filt += ' invert(1)';
+      if (f === 'gray') filt += ' grayscale(1)';
+      if (f === 'contrast') filt += ' contrast(1.6)';
+      content.style.transform = 'scale(' + z + ')';
+      content.style.filter = filt;
+    }
+    if (zoom) zoom.addEventListener('input', function () { apply(); sound('volume'); });
+    if (bright) bright.addEventListener('input', apply);
+    if (filter) filter.addEventListener('change', function () { apply(); sound('tink'); });
+    apply();
+  }
+
   /* ── Activity Monitor live meters ───────────────────── */
   function wireActivityMonitorLive(el) {
     if (!el || el.dataset.live) return;
@@ -2699,6 +3079,14 @@
         if (id === 'voice-memos') wireVoiceMemos(body);
         if (id === 'image-playground') wireImagePlayground(body);
         if (id === 'digital-color-meter') wireColorMeter(body);
+        if (id === 'quicktime') wireQuickTime(body);
+        if (id === 'news') wireNews(body);
+        if (id === 'books') wireBooks(body);
+        if (id === 'find-my') wireFindMy(body);
+        if (id === 'time-machine') wireTimeMachine(body);
+        if (id === 'passwords') wirePasswords(body);
+        if (id === 'console') wireConsole(body);
+        if (id === 'magnifier') wireMagnifier(body);
         if (id === 'system-settings') {
           wireSoundButtons(body);
           enhanceSoundPane(body);
