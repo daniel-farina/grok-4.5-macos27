@@ -3,9 +3,9 @@
 Job started: 2026-07-17T20:55:45Z · Cancel after ~3h · `scheduler_delete 019f71def611`
 
 ## This loop
-- [x] Image Capture: photo thumbs, select all, import→Photos, dblclick download
-- [x] AirPort: scan finds bases; Edit/Restart; BT select device then send
-- [x] Boot Camp demo flow; Weather more cities; iWork Save; System Info copy
+- [x] Maps: drop pin, directions steps, map modes, more places
+- [x] Keychain search + add; Audio MIDI test tone; ColorSync assign
+- [x] Voice Memos delete/play; FaceTime contact search
 - [x] Audit ALL PASS
 
 ## Process

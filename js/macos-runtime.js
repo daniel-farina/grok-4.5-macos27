@@ -2296,14 +2296,56 @@
     var cardTitle = el.querySelector('.maps27-card-info strong');
     var cardSub = el.querySelector('.maps27-card-info .muted, .maps27-card-info p');
     var pin = el.querySelector('.maps27-pin');
+    var lastPlace = 'Apple Park';
     var places = {
       'apple park': { sub: 'Cupertino · Infinite Loop area', x: 48, y: 42 },
       coffee: { sub: 'Nearby cafés', x: 36, y: 55 },
       park: { sub: 'City park · Open space', x: 62, y: 38 },
       airport: { sub: 'International Airport', x: 22, y: 60 },
+      museum: { sub: 'City Museum · Culture district', x: 55, y: 48 },
+      library: { sub: 'Central Library', x: 40, y: 35 },
+      hotel: { sub: 'Grand Hotel · Downtown', x: 58, y: 58 },
+      grocery: { sub: 'Market · Open until 10 PM', x: 44, y: 62 },
     };
+    function showDirections(dest) {
+      var panel = el.querySelector('.maps27-directions');
+      if (!panel) {
+        panel = document.createElement('div');
+        panel.className = 'maps27-directions';
+        panel.innerHTML =
+          '<strong>Directions</strong>' +
+          '<ol class="maps27-steps"></ol>' +
+          '<p class="muted maps27-eta"></p>' +
+          '<button type="button" class="btn-glass maps27-end-route">End Route</button>';
+        var host = el.querySelector('.maps27-card, .maps27-side, .maps27-body') || el;
+        host.appendChild(panel);
+        panel.querySelector('.maps27-end-route').addEventListener('click', function () {
+          panel.hidden = true;
+          sound('pop');
+        });
+      }
+      panel.hidden = false;
+      var steps = [
+        'Head north on Infinite Loop',
+        'Turn right onto Demo Blvd',
+        'Continue 1.2 mi',
+        'Arrive at ' + dest,
+      ];
+      var ol = panel.querySelector('.maps27-steps');
+      if (ol) {
+        ol.innerHTML = steps.map(function (s) {
+          return '<li></li>';
+        }).join('');
+        Array.prototype.forEach.call(ol.children, function (li, i) {
+          li.textContent = steps[i];
+        });
+      }
+      var eta = panel.querySelector('.maps27-eta');
+      if (eta) eta.textContent = '12 min · 3.4 mi · Avoiding tolls';
+    }
     function go(q) {
       if (!q) return;
+      lastPlace = q;
       var key = q.toLowerCase();
       var hit = null;
       Object.keys(places).forEach(function (k) {
@@ -2348,6 +2390,12 @@
           x.classList.remove('active');
         });
         m.classList.add('active');
+        var mode = (m.textContent || '').trim();
+        if (canvas) {
+          canvas.dataset.mode = mode.toLowerCase();
+          canvas.style.filter =
+            /sat/i.test(mode) ? 'saturate(0.3) contrast(1.1)' : /transit/i.test(mode) ? 'hue-rotate(40deg)' : 'none';
+        }
         sound('tink');
       });
     });
@@ -2362,12 +2410,42 @@
         sound('volume');
       });
     });
+    if (canvas) {
+      canvas.style.cursor = 'crosshair';
+      canvas.addEventListener('click', function (e) {
+        if (e.target.closest('.maps27-pin, button, a')) return;
+        var r = canvas.getBoundingClientRect();
+        var x = ((e.clientX - r.left) / r.width) * 100;
+        var y = ((e.clientY - r.top) / r.height) * 100;
+        if (pin) {
+          pin.style.left = x + '%';
+          pin.style.top = y + '%';
+          pin.classList.add('is-bounce');
+          setTimeout(function () {
+            pin.classList.remove('is-bounce');
+          }, 400);
+        }
+        lastPlace = 'Dropped Pin';
+        if (cardTitle) cardTitle.textContent = 'Dropped Pin';
+        if (cardSub) cardSub.textContent = x.toFixed(1) + '°, ' + y.toFixed(1) + '° · Custom location';
+        sound('tink');
+      });
+    }
     el.querySelectorAll('.maps27-btn.primary, .maps27-chip.primary').forEach(function (btn) {
       btn.addEventListener('click', function () {
+        showDirections(lastPlace);
         sound('hero');
         if (global.MacShell && MacShell.notify) {
-          MacShell.notify('Maps', 'Route', 'Directions started (demo)', 'now');
+          MacShell.notify('Maps', 'Route', 'Directions to ' + lastPlace, 'now');
         }
+      });
+    });
+    el.querySelectorAll('.maps27-fav, .maps27-suggest, .maps27-place').forEach(function (item) {
+      item.style.cursor = 'pointer';
+      item.addEventListener('click', function () {
+        var t = item.getAttribute('data-place') || item.textContent.trim();
+        if (search) search.value = t;
+        go(t);
       });
     });
   }
@@ -2947,6 +3025,16 @@
         setCalling(true, n ? n.textContent : 'Friend');
       });
     });
+    var ftSearch = el.querySelector('.ft-search, input[type="search"]');
+    if (ftSearch) {
+      ftSearch.addEventListener('input', function () {
+        var q = (ftSearch.value || '').toLowerCase().trim();
+        el.querySelectorAll('.ft-contact').forEach(function (row) {
+          var t = (row.textContent || '').toLowerCase();
+          row.style.display = !q || t.indexOf(q) >= 0 ? '' : 'none';
+        });
+      });
+    }
   }
 
   /* ── TextEdit ───────────────────────────────────────── */
@@ -4390,7 +4478,8 @@
     if (!el || el.dataset.wired) return;
     el.dataset.wired = '1';
     var shown = false;
-    el.querySelectorAll('.kc-row').forEach(function (row) {
+    var list = el.querySelector('.kc-list, #kc-list') || el;
+    function wireRow(row) {
       row.addEventListener('click', function () {
         el.querySelectorAll('.kc-row').forEach(function (r) {
           r.classList.remove('is-selected');
@@ -4399,19 +4488,21 @@
         var n = el.querySelector('#kc-name');
         var k = el.querySelector('#kc-kind');
         var p = el.querySelector('#kc-pass');
-        if (n) n.textContent = row.getAttribute('data-name') || '';
-        if (k) k.textContent = row.querySelector('.muted') ? row.querySelector('.muted').textContent : '';
+        if (n) n.textContent = row.getAttribute('data-name') || (row.querySelector('strong') && row.querySelector('strong').textContent) || '';
+        if (k) k.textContent = row.querySelector('.muted') ? row.querySelector('.muted').textContent : 'Internet password';
         if (p) p.textContent = '••••••••••••';
         shown = false;
         sound('pop');
       });
-    });
+    }
+    el.querySelectorAll('.kc-row').forEach(wireRow);
     var show = el.querySelector('#kc-show');
     if (show) {
       show.addEventListener('click', function () {
         var p = el.querySelector('#kc-pass');
         shown = !shown;
         if (p) p.textContent = shown ? 'demo-keychain-secret' : '••••••••••••';
+        show.textContent = shown ? 'Hide' : 'Show';
         sound('tink');
       });
     }
@@ -4427,6 +4518,38 @@
         if (global.MacShell && MacShell.notify) {
           MacShell.notify('Keychain Access', 'Copied', 'Password copied (demo)', 'now');
         }
+      });
+    }
+    var search = el.querySelector('#kc-search, .kc-search, input[type="search"]');
+    if (search) {
+      search.addEventListener('input', function () {
+        var q = (search.value || '').toLowerCase().trim();
+        el.querySelectorAll('.kc-row').forEach(function (row) {
+          var t = (row.textContent || '').toLowerCase();
+          row.style.display = !q || t.indexOf(q) >= 0 ? '' : 'none';
+        });
+      });
+    }
+    if (!el.querySelector('#kc-add')) {
+      var bar = el.querySelector('.kc-toolbar, .app-toolbar') || el;
+      var add = document.createElement('button');
+      add.type = 'button';
+      add.className = 'btn-glass';
+      add.id = 'kc-add';
+      add.textContent = '+ Item';
+      bar.appendChild(add);
+      add.addEventListener('click', function () {
+        var row = document.createElement('div');
+        row.className = 'kc-row is-selected';
+        row.setAttribute('data-name', 'new.example.com');
+        row.innerHTML = '<strong>new.example.com</strong><span class="muted">Internet password</span>';
+        el.querySelectorAll('.kc-row').forEach(function (r) {
+          r.classList.remove('is-selected');
+        });
+        list.appendChild(row);
+        wireRow(row);
+        row.click();
+        sound('hero');
       });
     }
   }
@@ -4454,6 +4577,36 @@
     if (vol) {
       vol.addEventListener('input', function () {
         sound('volume');
+      });
+    }
+    var rate = el.querySelector('#ams-rate');
+    if (rate) {
+      rate.addEventListener('change', function () {
+        sound('tink');
+        if (global.MacShell && MacShell.notify) {
+          MacShell.notify('Audio MIDI Setup', 'Sample rate', rate.value + ' Hz', 'now');
+        }
+      });
+    }
+    if (!el.querySelector('#ams-test')) {
+      var host = el.querySelector('.ams-detail, .app-main') || el;
+      var test = document.createElement('button');
+      test.type = 'button';
+      test.className = 'btn-primary';
+      test.id = 'ams-test';
+      test.textContent = 'Play Test Tone';
+      test.style.cssText = 'margin:12px 0';
+      host.appendChild(test);
+      test.addEventListener('click', function () {
+        if (global.MacSounds && MacSounds.note) {
+          MacSounds.note(440, 0.4, 'sine');
+          setTimeout(function () {
+            MacSounds.note(880, 0.3, 'sine');
+          }, 200);
+        } else sound('glass');
+        if (global.MacShell && MacShell.notify) {
+          MacShell.notify('Audio MIDI Setup', 'Test', '440 Hz tone', 'now');
+        }
       });
     }
   }
@@ -4837,8 +4990,27 @@
           r.classList.remove('is-selected');
         });
         row.classList.add('is-selected');
+        var name = row.querySelector('strong') || row;
         var n = el.querySelector('#cs-name');
-        if (n) n.textContent = row.getAttribute('data-profile') || '';
+        if (n) n.textContent = row.getAttribute('data-profile') || name.textContent || '';
+        var detail = el.querySelector('#cs-detail, .cs-detail');
+        if (!detail) {
+          detail = document.createElement('div');
+          detail.id = 'cs-detail';
+          detail.className = 'settings-card glass';
+          detail.style.cssText = 'padding:14px;margin:12px';
+          el.appendChild(detail);
+        }
+        detail.innerHTML =
+          '<strong></strong><p class="muted">Display profile · sRGB IEC61966-2.1 compatible (demo)</p>' +
+          '<button type="button" class="btn-primary cs-assign">Assign to Display</button>';
+        detail.querySelector('strong').textContent = name.textContent || 'Profile';
+        detail.querySelector('.cs-assign').addEventListener('click', function () {
+          sound('hero');
+          if (global.MacShell && MacShell.notify) {
+            MacShell.notify('ColorSync', 'Assigned', name.textContent || 'Profile', 'now');
+          }
+        });
         sound('pop');
       });
     });
@@ -6528,6 +6700,34 @@
             MacShell.notify('Voice Memos', 'Saved', 'New Recording ' + recCount, 'now');
           }
         }
+      });
+    }
+    if (!el.querySelector('#vm-delete') && list) {
+      var bar = rec && rec.parentNode;
+      var del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'btn-glass';
+      del.id = 'vm-delete';
+      del.textContent = 'Delete';
+      if (bar) bar.appendChild(del);
+      else el.appendChild(del);
+      del.addEventListener('click', function () {
+        var sel = list.querySelector('.vm-row.is-selected');
+        if (!sel) {
+          sound('sosumi');
+          return;
+        }
+        sel.remove();
+        if (status) status.textContent = 'Deleted';
+        sound('emptyTrash');
+      });
+    }
+    var playBtn = el.querySelector('#vm-play');
+    if (playBtn) {
+      playBtn.addEventListener('click', function () {
+        var sel = list && list.querySelector('.vm-row.is-selected');
+        if (sel) playRow(sel);
+        else sound('sosumi');
       });
     }
   }
