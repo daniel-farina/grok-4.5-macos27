@@ -2513,3 +2513,191 @@ html[data-theme='light'] .mail-compose-fields textarea {
 .rem-add-row {
   padding: 12px 16px 20px;
 }
+
+/* Photo Booth */
+.photo-booth {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  height: 100%;
+  box-sizing: border-box;
+  background: #1c1c1e;
+  color: #fff;
+}
+.pb-viewfinder {
+  position: relative;
+  width: min(100%, 480px);
+  aspect-ratio: 4/3;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #000;
+}
+.pb-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: none;
+}
+.pb-fallback {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 72px;
+  background: linear-gradient(145deg, #333, #111);
+}
+.pb-flash {
+  position: absolute;
+  inset: 0;
+  background: #fff;
+  opacity: 0.85;
+}
+.pb-effects {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+}
+.pb-fx {
+  border: none;
+  border-radius: 999px;
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: 12px;
+  cursor: default;
+}
+.pb-fx.active {
+  background: #0a84ff;
+}
+.pb-shutter {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  font-size: 22px;
+}
+.pb-strip {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  max-width: 100%;
+  min-height: 56px;
+  padding: 4px;
+}
+.pb-thumb {
+  width: 72px;
+  height: 54px;
+  object-fit: cover;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+/* FaceTime */
+.facetime-app .ft-stage {
+  position: relative;
+  height: 280px;
+  margin: 12px;
+  border-radius: 16px;
+  overflow: hidden;
+  background: linear-gradient(160deg, #1a1a2e, #3d2c8d);
+}
+.ft-remote {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  gap: 6px;
+}
+.ft-remote-avatar { font-size: 64px; }
+.ft-remote-name { font-size: 20px; font-weight: 600; }
+.ft-self {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  width: 100px;
+  height: 140px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #222;
+  border: 2px solid rgba(255,255,255,0.3);
+}
+.ft-self-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.ft-self-fallback {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-size: 12px;
+}
+.ft-controls {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  padding: 12px;
+}
+.ft-ctrl {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(120,120,128,0.24);
+  font-size: 18px;
+  cursor: default;
+}
+.ft-ctrl.primary { background: #30d158; }
+.ft-ctrl.danger { background: #ff453a; color: #fff; }
+.ft-ctrl.is-active { outline: 2px solid #0a84ff; }
+.ft-contact {
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: default;
+}
+
+/* Preview draw */
+.preview27-canvas { position: relative; }
+.preview-draw-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: auto;
+  z-index: 2;
+}
+.preview-text-ann {
+  position: absolute;
+  top: 40%;
+  left: 20%;
+  padding: 4px 8px;
+  background: rgba(255, 255, 0, 0.35);
+  border: 1px dashed #c90;
+  font-size: 14px;
+  min-width: 80px;
+  z-index: 3;
+}
+.preview27-page {
+  transition: transform 0.15s ease;
+}
+
+/* Calculator history */
+.calc-history {
+  max-height: 56px;
+  overflow: auto;
+  padding: 4px 12px;
+  font-size: 11px;
+  opacity: 0.55;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.calc-hist-line { padding: 1px 0; }

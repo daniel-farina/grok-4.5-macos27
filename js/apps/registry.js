@@ -4434,14 +4434,59 @@
 
   if (APPS['photo-booth']) {
     APPS['photo-booth'].open = function () {
-      return `<div class="photo-booth">
-      <div class="pb-viewfinder"><div class="pb-face">😊</div></div>
-      <div class="pb-effects">
-        ${['Normal', 'Sepia', 'Noir', 'Comic', 'Glow', 'Mirror'].map((e, i) => `<div class="pb-fx ${i === 0 ? 'active' : ''}">${e}</div>`).join('')}
+      return `<div class="photo-booth" id="photo-booth-app">
+      <div class="pb-viewfinder">
+        <video class="pb-video" autoplay playsinline muted></video>
+        <canvas class="pb-canvas" hidden></canvas>
+        <div class="pb-face pb-fallback">😊</div>
+        <div class="pb-flash" hidden></div>
       </div>
-      <button class="btn-primary pb-shutter">●</button>
+      <div class="pb-effects">
+        ${['Normal', 'Sepia', 'Noir', 'Comic', 'Glow', 'Mirror']
+          .map((e, i) => `<button type="button" class="pb-fx ${i === 0 ? 'active' : ''}" data-fx="${e.toLowerCase()}">${e}</button>`)
+          .join('')}
+      </div>
+      <div class="pb-strip" id="pb-strip" aria-label="Captured photos"></div>
+      <button type="button" class="btn-primary pb-shutter" title="Take Photo">●</button>
+      <p class="muted center pb-hint">Allow camera for live view · Effects are simulated</p>
     </div>`;
     };
+    APPS['photo-booth'].width = 640;
+    APPS['photo-booth'].height = 560;
+  }
+
+  if (APPS.facetime) {
+    APPS.facetime.open = function () {
+      return `<div class="app-layout col facetime-app" id="facetime-app">
+        <div class="ft-stage">
+          <div class="ft-remote">
+            <div class="ft-remote-avatar">🙂</div>
+            <div class="ft-remote-name">Friend</div>
+            <div class="ft-remote-status muted">Ready to call</div>
+          </div>
+          <div class="ft-self">
+            <video class="ft-self-video" autoplay playsinline muted></video>
+            <div class="ft-self-fallback">You</div>
+          </div>
+        </div>
+        <div class="ft-controls">
+          <button type="button" class="ft-ctrl" data-ft="mute" title="Mute">🔇</button>
+          <button type="button" class="ft-ctrl danger" data-ft="end" title="End">📵</button>
+          <button type="button" class="ft-ctrl primary" data-ft="call" title="Call">📹</button>
+          <button type="button" class="ft-ctrl" data-ft="flip" title="Flip">🔄</button>
+        </div>
+        <div class="app-list ft-recents">
+          ${['Alex Chen', 'Jordan Lee', 'Sam Rivera', 'Design Team']
+            .map(
+              (n) =>
+                `<button type="button" class="app-list-row ft-contact"><div class="row-main"><strong>${n}</strong><span class="muted">FaceTime Video</span></div><span class="row-meta">Call</span></button>`
+            )
+            .join('')}
+        </div>
+      </div>`;
+    };
+    APPS.facetime.width = 480;
+    APPS.facetime.height = 640;
   }
 
   if (APPS['image-playground']) {

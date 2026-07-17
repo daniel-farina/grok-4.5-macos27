@@ -1,33 +1,25 @@
 # Functional checklist (loop job `019f71def611`)
 
-Job started: 2026-07-17T20:55:45Z · Cancel after ~3h total · `scheduler_delete 019f71def611`
+Job started: 2026-07-17T20:55:45Z · Cancel after ~3h · `scheduler_delete 019f71def611`
 
 ## Done
-- [x] System sounds (Web Audio macOS-style alerts + boot chime)
-- [x] Messages: send, auto-reply, conversation switch
-- [x] Safari: navigate iframe, favorites, start page
-- [x] Photos: 20 funny images + lightbox
-- [x] Finder: double-click folders / apps
-- [x] iPhone Mirroring: home + mini apps
-- [x] Sidecar: draw on iPad canvas
-- [x] Settings Sound demos
-- [x] **Mail:** select messages, folders, New Message compose/send, reply, trash, get mail
-- [x] **Notes:** select, new note, delete, folders, B/I/U format
-- [x] **Calendar:** Day/Week/Month/Year segment, Today, + event
-- [x] **Maps:** search, modes, zoom, directions notify
-- [x] **Music:** play/pause + album double-click
-- [x] **Terminal:** error sosumi sound
-- [x] **Reminders:** check sound + New Reminder
-- [x] **Phone:** full dialer + call sim
-- [x] **Control Center:** toggle sounds, Wi‑Fi/BT/Focus persist, volume ticks
-- [x] **Menus:** empty-trash, force-quit, hide, wallpaper, copy/cut/paste, show-all
+- [x] System sounds + boot chime
+- [x] Messages, Safari, Photos (20 funny), Finder folders
+- [x] iPhone Mirroring, Sidecar
+- [x] Mail compose/send, Notes, Calendar, Maps, Music, Terminal, Reminders, Phone
+- [x] Control Center persist + volume; menu actions
+- [x] **Preview:** zoom in/out, markup tools, sketch layer, text annotation
+- [x] **Photo Booth:** getUserMedia live camera, effects, shutter strip
+- [x] **FaceTime:** call UI, contacts, mute/end, self preview camera
+- [x] **TextEdit:** B/I/U, align, font/size, ruler toggle
+- [x] **Calculator:** history strip on equals
+- [x] **Contacts:** select, add, message/call/video/mail actions
+- [x] **Stocks:** range chips
 
 ## Next loops
-- [ ] Preview zoom / markup tools
-- [ ] Photo Booth getUserMedia
-- [ ] FaceTime call UI simulation
-- [ ] Remaining bulk utility apps richer UIs
 - [ ] Mission Control / Stage Manager polish
-- [ ] Contacts edit/save
-- [ ] Stocks row interaction (already partial)
-- [ ] Calculator history strip
+- [ ] Weather / Clock / Freeform deeper interaction
+- [ ] Bulk utility apps (Disk Utility already rich)
+- [ ] App Store browse/install sim
+- [ ] Stickies already editable
+- [ ] Empty trash from Finder toolbar
