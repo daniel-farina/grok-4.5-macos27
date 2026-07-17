@@ -2385,23 +2385,54 @@
     var status = el.querySelector('.ft-remote-status');
     var nameEl = el.querySelector('.ft-remote-name');
     var selfVid = el.querySelector('.ft-self-video');
+    var remote = el.querySelector('.ft-remote');
     var calling = false;
+    var muted = false;
+    var videoOff = false;
+    var secs = 0;
+    var timer = null;
+    var stream = null;
 
     if (selfVid && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
       navigator.mediaDevices
         .getUserMedia({ video: true, audio: false })
-        .then(function (stream) {
-          selfVid.srcObject = stream;
+        .then(function (s) {
+          stream = s;
+          selfVid.srcObject = s;
+          var fb = el.querySelector('.ft-self-fallback');
+          if (fb) fb.style.display = 'none';
         })
         .catch(function () {});
     }
 
+    function fmt(s) {
+      var m = Math.floor(s / 60);
+      var r = s % 60;
+      return (m < 10 ? '0' : '') + m + ':' + (r < 10 ? '0' : '') + r;
+    }
+
     function setCalling(on, name) {
       calling = on;
-      if (status) status.textContent = on ? 'Connected · 00:12' : 'Ready to call';
+      clearInterval(timer);
+      secs = 0;
       if (name && nameEl) nameEl.textContent = name;
+      if (status) status.textContent = on ? 'Connecting…' : 'Ready to call';
       el.classList.toggle('is-in-call', on);
+      if (remote) remote.classList.toggle('is-connected', on);
       sound(on ? 'submarine' : 'pop');
+      if (on) {
+        if (global.MacShell && MacShell.notify) {
+          MacShell.notify('FaceTime', 'Calling', name || 'Friend', 'now');
+        }
+        setTimeout(function () {
+          if (!calling) return;
+          if (status) status.textContent = 'Connected · 00:00';
+          timer = setInterval(function () {
+            secs += 1;
+            if (status) status.textContent = 'Connected · ' + fmt(secs);
+          }, 1000);
+        }, 900);
+      }
     }
 
     el.querySelectorAll('[data-ft]').forEach(function (btn) {
@@ -2410,10 +2441,23 @@
         if (a === 'call') setCalling(true, nameEl ? nameEl.textContent : 'Friend');
         if (a === 'end') setCalling(false);
         if (a === 'mute') {
-          btn.classList.toggle('is-active');
+          muted = !muted;
+          btn.classList.toggle('is-active', muted);
+          btn.textContent = muted ? '🔈' : '🔇';
           sound('tink');
+          if (status && calling) status.textContent = (muted ? 'Muted · ' : 'Connected · ') + fmt(secs);
         }
-        if (a === 'flip') sound('pop');
+        if (a === 'flip' || a === 'camera') {
+          videoOff = !videoOff;
+          btn.classList.toggle('is-active', videoOff);
+          if (selfVid) selfVid.style.opacity = videoOff ? '0.15' : '1';
+          if (stream) {
+            stream.getVideoTracks().forEach(function (t) {
+              t.enabled = !videoOff;
+            });
+          }
+          sound('pop');
+        }
       });
     });
     el.querySelectorAll('.ft-contact').forEach(function (row) {
@@ -4684,9 +4728,7 @@
     el.dataset.wired = '1';
     var input = el.querySelector('input');
     var ask = el.querySelector('.btn-primary');
-    var thread = el.querySelector('[style*="flex-direction:column"]') || el.querySelector('.app-layout') || el;
     function reply(q) {
-      var box = el.querySelector('[style*="justify-content:flex-end"]') || el.querySelector('.app-main') || el;
       var you = document.createElement('div');
       you.className = 'settings-card glass';
       you.style.cssText = 'padding:12px 14px;align-self:flex-start;max-width:85%;margin:6px 0';
@@ -4703,9 +4745,50 @@
         'Your Mac is running macOS 27 (virtual).',
       ];
       var a = answers[Math.floor(Math.random() * answers.length)];
-      if (/weather/i.test(q)) a = 'It is 72° and partly cloudy in City.';
-      if (/time|clock/i.test(q)) a = 'It is ' + nowTime() + '.';
-      if (/calendar|meeting/i.test(q)) a = 'You have Design Review at 10:00 AM and Team Sync at 2:00 PM.';
+      var openId = null;
+      if (/weather/i.test(q)) {
+        a = 'It is 72° and partly cloudy. Opening Weather.';
+        openId = 'weather';
+      } else if (/time|clock/i.test(q)) {
+        a = 'It is ' + nowTime() + '. Opening Clock.';
+        openId = 'clock';
+      } else if (/calendar|meeting|schedule/i.test(q)) {
+        a = 'You have Design Review at 10:00 AM and Team Sync at 2:00 PM.';
+        openId = 'calendar';
+      } else if (/music|play|song/i.test(q)) {
+        a = 'Playing Liquid Glass on Music.';
+        openId = 'music';
+      } else if (/message|text/i.test(q)) {
+        a = 'Opening Messages.';
+        openId = 'messages';
+      } else if (/mail|email/i.test(q)) {
+        a = 'Opening Mail.';
+        openId = 'mail';
+      } else if (/photo/i.test(q)) {
+        a = 'Opening Photos.';
+        openId = 'photos';
+      } else if (/safari|browser|web/i.test(q)) {
+        a = 'Opening Safari.';
+        openId = 'safari';
+      } else if (/setting|preference/i.test(q)) {
+        a = 'Opening System Settings.';
+        openId = 'system-settings';
+      } else if (/iphone|mirror/i.test(q)) {
+        a = 'Opening iPhone Mirroring.';
+        openId = 'iphone-mirroring';
+      } else if (/sidecar|ipad/i.test(q)) {
+        a = 'Opening Sidecar.';
+        openId = 'sidecar';
+      } else if (/screenshot|capture/i.test(q)) {
+        a = 'Taking a screenshot.';
+        if (global.MacShell && MacShell.captureScreenshot) MacShell.captureScreenshot('full');
+      } else if (/lock/i.test(q)) {
+        a = 'Locking your Mac.';
+        if (global.MacShell && MacShell.showLockScreen) MacShell.showLockScreen('Lock Screen');
+      } else if (/facetime|video call/i.test(q)) {
+        a = 'Opening FaceTime.';
+        openId = 'facetime';
+      }
       si.innerHTML = '<span class="muted">Siri</span><p style="margin:4px 0 0"></p>';
       si.querySelector('p').textContent = a;
       var host = el.querySelector('[style*="justify-content:flex-end"]');
@@ -4715,6 +4798,11 @@
         host.scrollTop = host.scrollHeight;
       }
       sound('messageReceived');
+      if (openId && global.MacShell && MacShell.openApp) {
+        setTimeout(function () {
+          MacShell.openApp(openId);
+        }, 500);
+      }
     }
     function go() {
       if (!input || !input.value.trim()) return;
@@ -5371,6 +5459,29 @@
         if (global.MacShell && MacShell.notify) {
           MacShell.notify('QuickTime Player', 'Recording', 'Screen recording started (demo)', 'now');
         }
+        /* Capture a real screenshot as "recording finished" clip later */
+        setTimeout(function () {
+          if (global.MacShell && MacShell.captureScreenshot) {
+            MacShell.captureScreenshot('window');
+          }
+          if (global.MacShell && MacShell.notify) {
+            MacShell.notify('QuickTime Player', 'Recording saved', 'Demo clip on Desktop', 'now');
+          }
+          sound('hero');
+        }, 2200);
+      });
+    }
+    var progress = el.querySelector('.qt-progress, #qt-fill');
+    var bar = el.querySelector('.qt-progress') || (fill && fill.parentElement);
+    if (bar) {
+      bar.style.cursor = 'pointer';
+      bar.addEventListener('click', function (e) {
+        var r = bar.getBoundingClientRect();
+        var pct = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
+        t = Math.floor(pct * dur);
+        if (fill) fill.style.width = pct * 100 + '%';
+        if (timeEl) timeEl.textContent = fmt(t) + ' / ' + fmt(dur);
+        sound('volume');
       });
     }
   }

@@ -4119,3 +4119,70 @@ html[data-theme='light'] .kbd-panel {
 .boot-overlay {
   cursor: pointer;
 }
+
+/* Continuity handoff pill */
+.continuity-handoff {
+  position: fixed;
+  right: 16px;
+  bottom: 88px;
+  z-index: 9000;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 8px 8px 10px;
+  border-radius: 16px;
+  background: rgba(40, 40, 42, 0.88);
+  backdrop-filter: blur(28px) saturate(160%);
+  -webkit-backdrop-filter: blur(28px) saturate(160%);
+  border: 0.5px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 0.35s ease, transform 0.35s ease;
+  color: #fff;
+}
+.continuity-handoff.is-show {
+  opacity: 1;
+  transform: translateY(0);
+}
+.handoff-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  padding: 6px 10px;
+  border-radius: 12px;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+.handoff-main:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+.handoff-ico { font-size: 22px; line-height: 1; }
+.handoff-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  font-size: 12px;
+}
+.handoff-text strong { font-weight: 600; font-size: 13px; }
+.handoff-x {
+  border: none;
+  background: transparent;
+  color: rgba(255,255,255,0.55);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 12px;
+}
+.handoff-x:hover { background: rgba(255,255,255,0.1); color: #fff; }
+.facetime-app.is-in-call .ft-remote {
+  box-shadow: 0 0 0 2px rgba(48, 209, 88, 0.55);
+}
+.ft-ctrl.is-active {
+  outline: 2px solid #0a84ff;
+}

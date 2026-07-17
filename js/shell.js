@@ -3626,6 +3626,52 @@
     });
   }
 
+  /* Continuity handoff pill (demo devices nearby) */
+  function showContinuityHandoff() {
+    if (document.getElementById('continuity-handoff')) return;
+    try {
+      if (sessionStorage.getItem('macos-handoff-dismissed') === '1') return;
+    } catch (e) {}
+    var pill = document.createElement('div');
+    pill.id = 'continuity-handoff';
+    pill.className = 'continuity-handoff glass';
+    pill.innerHTML =
+      '<button type="button" class="handoff-main" data-hand="iphone">' +
+      '<span class="handoff-ico">📱</span>' +
+      '<span class="handoff-text"><strong>iPhone</strong><span class="muted">Safari · Continuity</span></span></button>' +
+      '<button type="button" class="handoff-main" data-hand="ipad">' +
+      '<span class="handoff-ico">📱</span>' +
+      '<span class="handoff-text"><strong>iPad</strong><span class="muted">Sidecar</span></span></button>' +
+      '<button type="button" class="handoff-x" aria-label="Dismiss">✕</button>';
+    document.body.appendChild(pill);
+    setTimeout(function () {
+      pill.classList.add('is-show');
+    }, 80);
+    pill.querySelector('[data-hand="iphone"]').addEventListener('click', function () {
+      openApp('iphone-mirroring');
+      pill.classList.remove('is-show');
+      setTimeout(function () {
+        if (pill.parentNode) pill.parentNode.removeChild(pill);
+      }, 300);
+    });
+    pill.querySelector('[data-hand="ipad"]').addEventListener('click', function () {
+      openApp('sidecar');
+      pill.classList.remove('is-show');
+      setTimeout(function () {
+        if (pill.parentNode) pill.parentNode.removeChild(pill);
+      }, 300);
+    });
+    pill.querySelector('.handoff-x').addEventListener('click', function () {
+      try {
+        sessionStorage.setItem('macos-handoff-dismissed', '1');
+      } catch (e2) {}
+      pill.classList.remove('is-show');
+      setTimeout(function () {
+        if (pill.parentNode) pill.parentNode.removeChild(pill);
+      }, 300);
+    });
+  }
+
   /* ── Public API ────────────────────────────────────── */
 
   var MacShell = {
@@ -3660,8 +3706,12 @@
       if (options.skipBoot) {
         bootDone = true;
         if (options.onReady) options.onReady();
+        showContinuityHandoff();
       } else {
-        runBoot(options.onReady);
+        runBoot(function () {
+          if (options.onReady) options.onReady();
+          showContinuityHandoff();
+        });
       }
       return this;
     },

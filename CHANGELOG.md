@@ -13,8 +13,8 @@ Public commits track multi-minute interactive work on this virtual macOS 27 desk
 See `docs/LOOP_PRACTICE.md` for why we commit every loop.
 
 ### 2026-07-17 / 18 (loop demo)
-- Phone dialer tabs; Games mini-session; Safari Reading List
-- Continuity handoff toasts; App Store OPEN; iWork; Continuity menu
+- FaceTime timer/mute/camera; Siri open-app intents; Continuity handoff pill
+- QuickTime seek + record; Phone; Games; Safari Reading List
 - Commit-as-you-go for multi-minute Grok 4.5 loops
 
 ### 2026-07-17
