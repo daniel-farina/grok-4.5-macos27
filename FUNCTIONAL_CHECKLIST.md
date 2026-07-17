@@ -3,11 +3,11 @@
 Job started: 2026-07-17T20:55:45Z · Cancel after ~3h · `scheduler_delete 019f71def611`
 
 ## This loop
-- [x] Safari: multi-tab strip (new / switch / close), Forward history, iframe navigate
-- [x] Clock: timer end chime + alarm toggles
-- [x] Disk Utility: First Aid progress on volume
-- [x] Digital Color Meter: copy hex (click or button)
-- [x] Magnifier: funny photo samples + Next sample
+- [x] Image Playground: Create from 20 funny photos, Save download, Vary
+- [x] Print Center: job queue with print progress stages
+- [x] Tips: clickable tips open Spotlight/CC/iPhone/Sidecar/wallpaper/etc.
+- [x] Screenshot app: in-window preview after capture (onComplete)
+- [x] Console: filter search; Migration wizard steps; AirPort scan
 - [x] Audit ALL PASS
 
 ## Process

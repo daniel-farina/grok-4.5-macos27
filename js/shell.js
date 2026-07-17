@@ -1624,8 +1624,11 @@
     }, 50);
   }
 
-  function captureScreenshot(mode) {
+  var lastScreenshotData = null;
+
+  function captureScreenshot(mode, opts) {
     mode = mode || 'full';
+    opts = opts || {};
     var flash = document.createElement('div');
     flash.className = 'screenshot-flash';
     document.body.appendChild(flash);
@@ -1661,6 +1664,7 @@
       ctx.fillText(stamp, 16, canvas.height - 14);
 
       var data = canvas.toDataURL('image/png');
+      lastScreenshotData = data;
       var a = document.createElement('a');
       var fname =
         'Screenshot ' +
@@ -1691,6 +1695,11 @@
 
       if (global.MacSounds && MacSounds.play) MacSounds.play('tink');
       notify('Screenshot', 'Screenshot saved', fname, 'now');
+      if (typeof opts.onComplete === 'function') {
+        try {
+          opts.onComplete(data, fname);
+        } catch (e) {}
+      }
       return data;
     }
 
@@ -2965,6 +2974,9 @@
     showForceQuit: showForceQuit,
     showKeyboardCheatSheet: showKeyboardCheatSheet,
     captureScreenshot: captureScreenshot,
+    getLastScreenshot: function () {
+      return lastScreenshotData;
+    },
     openLaunchpad: openLaunchpad,
     closeLaunchpad: hideLaunchpad,
     toggleLaunchpad: toggleLaunchpad,

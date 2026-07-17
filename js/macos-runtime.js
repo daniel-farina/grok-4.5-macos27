@@ -3272,7 +3272,19 @@
     if (!el || el.dataset.wired) return;
     el.dataset.wired = '1';
     var step = 1;
-    var status = el.querySelector('#mig-status');
+    var status = el.querySelector('#mig-status, #ma-status, .ma-status');
+    var labels = [
+      '',
+      'Select transfer method',
+      'Looking for Macs, Time Machine backups…',
+      'Transfer complete',
+    ];
+    function setStep(n) {
+      step = n;
+      if (status) status.textContent = labels[step] || 'Step ' + step + ' of 3';
+      var prog = el.querySelector('#ma-progress, .ma-progress');
+      if (prog) prog.style.width = Math.min(100, ((step - 1) / 2) * 100) + '%';
+    }
     el.querySelectorAll('.mig-opt').forEach(function (opt) {
       opt.addEventListener('click', function () {
         el.querySelectorAll('.mig-opt').forEach(function (o) {
@@ -3287,8 +3299,7 @@
     var cont = el.querySelector('#mig-continue');
     if (cont) {
       cont.addEventListener('click', function () {
-        step = Math.min(3, step + 1);
-        if (status) status.textContent = 'Step ' + step + ' of 3';
+        setStep(Math.min(3, step + 1));
         sound(step === 3 ? 'hero' : 'tink');
         if (step === 3 && global.MacShell && MacShell.notify) {
           MacShell.notify('Migration Assistant', 'Complete', 'Demo migration finished', 'now');
@@ -3298,11 +3309,25 @@
     var back = el.querySelector('#mig-back');
     if (back) {
       back.addEventListener('click', function () {
-        step = Math.max(1, step - 1);
-        if (status) status.textContent = 'Step ' + step + ' of 3';
+        setStep(Math.max(1, step - 1));
         sound('pop');
       });
     }
+    el.querySelectorAll('button, .btn-primary, .btn-glass').forEach(function (btn) {
+      if (btn.id === 'mig-continue' || btn.id === 'mig-back' || btn.dataset.ma) return;
+      btn.dataset.ma = '1';
+      btn.addEventListener('click', function () {
+        var t = (btn.textContent || '').toLowerCase();
+        if (/continue|next|transfer|start/i.test(t)) {
+          setStep(Math.min(3, step + 1));
+          sound(step === 3 ? 'hero' : 'pop');
+        } else if (/back|previous/i.test(t)) {
+          setStep(Math.max(1, step - 1));
+          sound('tink');
+        }
+      });
+    });
+    setStep(1);
   }
 
   /* ── VoiceOver Utility ──────────────────────────────── */
@@ -3393,21 +3418,27 @@
   function wireAirport(el) {
     if (!el || el.dataset.wired) return;
     el.dataset.wired = '1';
-    var scan = el.querySelector('#ap-scan');
+    var scan = el.querySelector('#ap-scan') || el.querySelector('.btn-primary');
     var list = el.querySelector('#ap-list');
-    if (scan) {
+    if (scan && !scan.dataset.apWired) {
+      scan.dataset.apWired = '1';
       scan.addEventListener('click', function () {
-        if (list) {
-          list.innerHTML =
-            '<p class="muted">Scanning…</p>';
-          sound('pop');
-          setTimeout(function () {
+        var status = el.querySelector('#ap-status');
+        if (status) status.textContent = 'Scanning…';
+        if (list) list.innerHTML = '<p class="muted">Scanning…</p>';
+        sound('purr');
+        setTimeout(function () {
+          if (status) status.textContent = 'No AirPort base stations found (demo network)';
+          if (list) {
             list.innerHTML =
               '<div class="settings-card glass" style="padding:14px;text-align:left;max-width:360px;margin:0 auto">' +
               '<strong>No base stations</strong><p class="muted" style="margin:6px 0 0">Still no AirPort devices on this network (demo).</p></div>';
-            sound('sosumi');
-          }, 900);
-        }
+          }
+          sound('sosumi');
+          if (global.MacShell && MacShell.notify) {
+            MacShell.notify('AirPort Utility', 'Scan complete', 'No base stations nearby', 'now');
+          }
+        }, 1000);
       });
     }
   }
@@ -3541,18 +3572,71 @@
       Widgets: function () {
         sound('pop');
       },
+      Mission: function () {
+        if (global.MacShell && MacShell.openMissionControl) MacShell.openMissionControl();
+      },
+      Screenshot: function () {
+        if (global.MacShell && MacShell.captureScreenshot) MacShell.captureScreenshot('full');
+      },
+      Appearance: function () {
+        if (global.MacShell && MacShell.cycleAppearance) MacShell.cycleAppearance();
+        else if (global.MacShell && MacShell.openApp) MacShell.openApp('system-settings');
+      },
+      Wallpaper: function () {
+        if (global.MacShell && MacShell.cycleWallpaper) MacShell.cycleWallpaper();
+      },
+      Continuity: function () {
+        if (global.MacShell && MacShell.openApp) MacShell.openApp('iphone-mirroring');
+      },
+      iPhone: function () {
+        if (global.MacShell && MacShell.openApp) MacShell.openApp('iphone-mirroring');
+      },
+      Sidecar: function () {
+        if (global.MacShell && MacShell.openApp) MacShell.openApp('sidecar');
+      },
+      Finder: function () {
+        if (global.MacShell && MacShell.openApp) MacShell.openApp('finder');
+      },
+      Settings: function () {
+        if (global.MacShell && MacShell.openApp) MacShell.openApp('system-settings');
+      },
     };
-    el.querySelectorAll('.settings-card, .glass').forEach(function (card) {
+    function runTip(t, body) {
+      var text = (t + ' ' + (body || '')).toLowerCase();
+      sound('tink');
+      if (map[t]) {
+        map[t]();
+        return;
+      }
+      var keys = Object.keys(map);
+      for (var i = 0; i < keys.length; i++) {
+        if (text.indexOf(keys[i].toLowerCase()) >= 0) {
+          map[keys[i]]();
+          return;
+        }
+      }
+      if (/spotlight|⌘space|command.space/i.test(text)) map.Spotlight();
+      else if (/launchpad/i.test(text)) map.Launchpad();
+      else if (/control center/i.test(text)) map['Control Center']();
+      else if (/mission control/i.test(text)) map.Mission();
+      else if (/stage manager/i.test(text)) map['Stage Manager']();
+      else if (/screenshot/i.test(text)) map.Screenshot();
+      else if (/wallpaper/i.test(text)) map.Wallpaper();
+      else if (/iphone|mirroring|continuity/i.test(text)) map.Continuity();
+      else if (/sidecar|ipad/i.test(text)) map.Sidecar();
+      else if (/settings|system settings/i.test(text)) map.Settings();
+      else if (global.MacShell && MacShell.notify) {
+        MacShell.notify('Tips', t, 'Try this feature from the menu bar or Dock', 'now');
+      }
+    }
+    el.querySelectorAll('.settings-card, .glass, .tip-card').forEach(function (card) {
       var strong = card.querySelector('strong');
       if (!strong) return;
       card.style.cursor = 'pointer';
       card.addEventListener('click', function () {
         var t = strong.textContent.trim();
-        sound('tink');
-        if (map[t]) map[t]();
-        else if (global.MacShell && MacShell.notify) {
-          MacShell.notify('Tips', t, 'Try this feature from the menu bar or Dock', 'now');
-        }
+        var p = card.querySelector('p, .muted');
+        runTip(t, p ? p.textContent : '');
       });
     });
   }
@@ -4504,6 +4588,7 @@
     if (!el || el.dataset.wired) return;
     el.dataset.wired = '1';
     var style = 'Animation';
+    var lastSrc = '';
     el.querySelectorAll('.ip-style').forEach(function (btn) {
       btn.addEventListener('click', function () {
         el.querySelectorAll('.ip-style').forEach(function (b) {
@@ -4517,26 +4602,55 @@
     var create = el.querySelector('#ip-create');
     var preview = el.querySelector('#ip-preview');
     var prompt = el.querySelector('#ip-prompt');
+    function setPreview(src) {
+      lastSrc = src;
+      if (!preview) return;
+      preview.innerHTML =
+        '<img src="' +
+        src +
+        '" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:12px" />' +
+        '<div class="ip-actions" style="display:flex;gap:8px;margin-top:10px;justify-content:center">' +
+        '<button type="button" class="btn-glass" id="ip-save">Save</button>' +
+        '<button type="button" class="btn-glass" id="ip-again">Vary</button></div>';
+      var save = preview.querySelector('#ip-save');
+      var again = preview.querySelector('#ip-again');
+      if (save) {
+        save.addEventListener('click', function () {
+          var a = document.createElement('a');
+          a.href = lastSrc;
+          a.download = 'Image-Playground-' + Date.now() + '.jpg';
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          sound('hero');
+          if (global.MacShell && MacShell.notify) {
+            MacShell.notify('Image Playground', 'Saved', 'Image downloaded', 'now');
+          }
+        });
+      }
+      if (again) {
+        again.addEventListener('click', function () {
+          if (create) create.click();
+        });
+      }
+    }
     if (create) {
       create.addEventListener('click', function () {
         create.textContent = 'Creating…';
+        create.disabled = true;
         sound('pop');
         setTimeout(function () {
           create.textContent = 'Create';
-          if (preview) {
-            var n = 1 + Math.floor(Math.random() * 12);
-            var nn = n < 10 ? '0' + n : String(n);
-            preview.innerHTML =
-              '<img src="assets/photos/funny/funny-' +
-              nn +
-              '.jpg" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:12px" />';
-          }
+          create.disabled = false;
+          var n = 1 + Math.floor(Math.random() * 20);
+          var nn = n < 10 ? '0' + n : String(n);
+          setPreview('assets/photos/funny/funny-' + nn + '.jpg');
           sound('hero');
           if (global.MacShell && MacShell.notify) {
             MacShell.notify(
               'Image Playground',
-              'Created',
-              (prompt && prompt.value) || style,
+              'Created · ' + style,
+              (prompt && prompt.value) || 'Demo image',
               'now'
             );
           }
@@ -4961,6 +5075,7 @@
     el.dataset.wired = '1';
     var log = el.querySelector('#console-log');
     var paused = false;
+    var filterQ = '';
     var sources = ['kernel', 'WindowServer', 'Safari', 'Finder', 'dock', 'bluetoothd', 'mds'];
     var msgs = [
       'IOKit: power state change',
@@ -4970,6 +5085,13 @@
       'LaunchServices: registered app',
       'CoreAudio: device sample rate 48000',
     ];
+    function applyFilter() {
+      if (!log) return;
+      log.querySelectorAll(':scope > div').forEach(function (line) {
+        var t = (line.textContent || '').toLowerCase();
+        line.style.display = !filterQ || t.indexOf(filterQ) >= 0 ? '' : 'none';
+      });
+    }
     var iv = setInterval(function () {
       if (!el.isConnected) {
         clearInterval(iv);
@@ -4982,15 +5104,20 @@
         function p2(n) { n = String(n); return n.length < 2 ? '0' + n : n; }
         return p2(d.getHours()) + ':' + p2(d.getMinutes()) + ':' + p2(d.getSeconds());
       })();
+      var src = sources[Math.floor(Math.random() * sources.length)];
+      var msg = msgs[Math.floor(Math.random() * msgs.length)];
       var line = document.createElement('div');
       line.innerHTML =
         '<span class="c-time">' +
         t +
         '</span> <span class="c-src">' +
-        sources[Math.floor(Math.random() * sources.length)] +
+        src +
         '</span> ' +
-        msgs[Math.floor(Math.random() * msgs.length)];
+        msg;
       log.appendChild(line);
+      if (filterQ && (line.textContent || '').toLowerCase().indexOf(filterQ) < 0) {
+        line.style.display = 'none';
+      }
       log.scrollTop = log.scrollHeight;
       while (log.children.length > 80) log.removeChild(log.firstChild);
     }, 1500);
@@ -5007,6 +5134,25 @@
         paused = !paused;
         pause.textContent = paused ? 'Resume' : 'Pause';
         sound('pop');
+      });
+    }
+    var search = el.querySelector('#console-search, .console-search, input[type="search"]');
+    if (!search) {
+      var tb = el.querySelector('.toolbar, .app-toolbar') || el.querySelector('[class*="toolbar"]');
+      if (tb) {
+        search = document.createElement('input');
+        search.type = 'search';
+        search.id = 'console-search';
+        search.placeholder = 'Filter';
+        search.className = 'search-field';
+        search.style.cssText = 'max-width:160px;margin-left:auto';
+        tb.appendChild(search);
+      }
+    }
+    if (search) {
+      search.addEventListener('input', function () {
+        filterQ = search.value.toLowerCase().trim();
+        applyFilter();
       });
     }
   }
@@ -5407,6 +5553,8 @@
   function wirePrintCenter(el) {
     if (!el || el.dataset.wired) return;
     el.dataset.wired = '1';
+    var jobN = 0;
+    var docs = ['Design Brief.pdf', 'Invoice.pdf', 'Notes.txt', 'Photo.jpg', 'Report.pdf'];
     el.querySelectorAll('.pc-printer').forEach(function (p) {
       p.addEventListener('click', function () {
         el.querySelectorAll('.pc-printer').forEach(function (x) {
@@ -5417,22 +5565,51 @@
       });
     });
     var jobs = el.querySelector('#pc-jobs');
-    var add = el.querySelector('#pc-add');
-    if (add && jobs) {
-      add.addEventListener('click', function () {
-        if (jobs.querySelector('.muted')) jobs.innerHTML = '';
-        var row = document.createElement('div');
-        row.className = 'pc-job';
-        row.innerHTML =
-          '<strong>Document.pdf</strong><span class="muted">Queued · 2 pages</span><button type="button" class="btn-glass pc-job-del">✕</button>';
-        jobs.appendChild(row);
-        row.querySelector('.pc-job-del').addEventListener('click', function () {
-          row.remove();
-          sound('emptyTrash');
-        });
-        sound('hero');
-      });
+    function runJob(row) {
+      var meta = row.querySelector('.muted');
+      var stages = ['Printing · 1 of 2', 'Printing · 2 of 2', 'Finishing…', 'Completed'];
+      var i = 0;
+      var iv = setInterval(function () {
+        if (!row.isConnected) {
+          clearInterval(iv);
+          return;
+        }
+        if (meta) meta.textContent = stages[i];
+        i++;
+        if (i >= stages.length) {
+          clearInterval(iv);
+          sound('tink');
+          setTimeout(function () {
+            if (row.isConnected) {
+              row.style.opacity = '0.5';
+              if (meta) meta.textContent = 'Done';
+            }
+          }, 600);
+        }
+      }, 700);
     }
+    function addJob() {
+      if (!jobs) return;
+      if (jobs.querySelector('.muted') && !jobs.querySelector('.pc-job')) jobs.innerHTML = '';
+      jobN++;
+      var row = document.createElement('div');
+      row.className = 'pc-job';
+      var name = docs[jobN % docs.length];
+      row.innerHTML =
+        '<strong></strong><span class="muted">Queued · 2 pages</span><button type="button" class="btn-glass pc-job-del">✕</button>';
+      row.querySelector('strong').textContent = name;
+      jobs.appendChild(row);
+      row.querySelector('.pc-job-del').addEventListener('click', function () {
+        row.remove();
+        sound('emptyTrash');
+      });
+      sound('hero');
+      setTimeout(function () {
+        runJob(row);
+      }, 400);
+    }
+    var add = el.querySelector('#pc-add');
+    if (add) add.addEventListener('click', addJob);
     var del = el.querySelector('#pc-delete');
     if (del && jobs) {
       del.addEventListener('click', function () {
@@ -5449,6 +5626,16 @@
         sound('tink');
         if (global.MacShell && MacShell.notify) {
           MacShell.notify('Print Center', 'Printer', 'Queue resumed', 'now');
+        }
+        if (jobs && !jobs.querySelector('.pc-job')) addJob();
+      });
+    }
+    var pause = el.querySelector('#pc-pause');
+    if (pause) {
+      pause.addEventListener('click', function () {
+        sound('pop');
+        if (global.MacShell && MacShell.notify) {
+          MacShell.notify('Print Center', 'Printer', 'Queue paused', 'now');
         }
       });
     }

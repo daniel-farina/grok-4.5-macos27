@@ -13,10 +13,10 @@ Public commits track multi-minute interactive work on this virtual macOS 27 desk
 See `docs/LOOP_PRACTICE.md` for why we commit every loop.
 
 ### 2026-07-17 / 18 (loop demo)
-- Safari multi-tab + Forward; Clock timer chime; Disk Utility First Aid
-- Color Meter copy hex; Magnifier photo samples
-- TextEdit, Activity Monitor, Find My, Contacts, Font Book
-- Dictionary, Home, Stickies, Sidecar, iPhone, and more
+- Image Playground save/vary; Print Center job progress; Tips actions
+- Screenshot in-app preview; Console filter; Migration + AirPort scan
+- Safari multi-tab; Clock timer; Disk First Aid; Color Meter; Magnifier
+- TextEdit, Activity Monitor, Find My, Contacts, Font Book, and more
 - Commit-as-you-go for multi-minute Grok 4.5 loops
 
 ### 2026-07-17

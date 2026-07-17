@@ -6055,17 +6055,30 @@ return theGreeting</textarea>
           const status = el.querySelector('#shot-status');
           const preview = el.querySelector('#shot-preview');
           if (global.MacShell && typeof MacShell.captureScreenshot === 'function') {
-            MacShell.captureScreenshot(mode);
-            if (status) {
-              status.textContent =
-                'Downloading Screenshot · ' + new Date().toLocaleTimeString() + ' · ' + mode;
-            }
+            if (status) status.textContent = 'Capturing…';
+            MacShell.captureScreenshot(mode, {
+              onComplete: (data) => {
+                if (status) {
+                  status.textContent =
+                    'Saved · ' + new Date().toLocaleTimeString() + ' · ' + mode;
+                }
+                if (preview) {
+                  preview.hidden = false;
+                  preview.innerHTML = '';
+                  if (typeof data === 'string' && data.indexOf('data:image') === 0) {
+                    const img = document.createElement('img');
+                    img.src = data;
+                    img.alt = 'Screenshot preview';
+                    img.style.cssText = 'max-width:100%;border-radius:10px;display:block;margin-top:8px';
+                    preview.appendChild(img);
+                  } else {
+                    preview.textContent = 'Capture saved (' + mode + ')';
+                  }
+                }
+              },
+            });
           } else if (status) {
             status.textContent = 'Screenshot service unavailable';
-          }
-          if (preview) {
-            preview.hidden = false;
-            preview.textContent = 'Capture triggered (' + mode + ')';
           }
         });
       });
