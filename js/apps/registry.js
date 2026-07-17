@@ -3973,11 +3973,15 @@ Save stores a demo document name from the first line.</div>
         const arg = parts.slice(1).join(' ');
         if (base === 'help') {
           print(
-            'Built-in: help date whoami clear uname ls pwd cd echo cat open neofetch history fortune cowsay ping curl env hostname uptime cal say afplay touch mkdir which python3 node'
+            'Built-in: help date whoami clear uname ls pwd cd echo cat open neofetch history fortune cowsay ping curl env hostname uptime cal say afplay touch mkdir which python3 node top ps df free man tree pbcopy pbpaste git brew diskutil id groups sw_vers'
           );
         } else if (base === 'say') {
-          print('say: ' + (arg || '(silence)'));
-          if (global.MacSounds && MacSounds.play) MacSounds.play('submarine');
+          print('say: “' + (arg || 'hello') + '”');
+          if (window.speechSynthesis) {
+            window.speechSynthesis.speak(new SpeechSynthesisUtterance(arg || 'hello'));
+          } else if (global.MacSounds && MacSounds.play) {
+            MacSounds.play('submarine');
+          }
         } else if (base === 'afplay') {
           const snd = arg || 'sosumi';
           print('Playing ' + snd + ' (synthesized)');
@@ -3990,7 +3994,13 @@ Save stores a demo document name from the first line.</div>
         } else if (base === 'date') print(new Date().toString());
         else if (base === 'whoami') print('user');
         else if (base === 'hostname') print('macos-27.local');
-        else if (base === 'pwd') print(cwd === '~' ? '/Users/user' : cwd.replace(/^~/, '/Users/user'));
+        else if (base === 'id') print('uid=501(user) gid=20(staff) groups=20(staff),12(everyone),61(localaccounts)');
+        else if (base === 'groups') print('staff everyone localaccounts');
+        else if (base === 'sw_vers') {
+          print('ProductName:\tmacOS');
+          print('ProductVersion:\t27.0');
+          print('BuildVersion:\t27A100 (virtual)');
+        } else if (base === 'pwd') print(cwd === '~' ? '/Users/user' : cwd.replace(/^~/, '/Users/user'));
         else if (base === 'uname') {
           if (parts[1] === '-a') print('Darwin macos-27 27.0.0 Darwin Kernel Version 27.0.0 root:xnu-10000/RELEASE_ARM64_T6000 arm64');
           else print('Darwin');
@@ -4005,6 +4015,15 @@ Save stores a demo document name from the first line.</div>
             print('drwxr-xr-x  user  staff  Music');
             print('drwxr-xr-x  user  staff  Pictures');
           } else print('Applications  Desktop  Documents  Downloads  Library  Movies  Music  Pictures');
+        } else if (base === 'tree') {
+          print('.');
+          print('├── Applications');
+          print('├── Desktop');
+          print('│   └── wallpaper.jpg');
+          print('├── Documents');
+          print('│   └── README.md');
+          print('└── Pictures');
+          print('    └── funny/');
         } else if (base === 'cd') {
           if (!arg || arg === '~' || arg === '/') cwd = '~';
           else if (arg === '..') cwd = '~';
@@ -4023,10 +4042,28 @@ Save stores a demo document name from the first line.</div>
             calculator: 'calculator',
             terminal: 'terminal',
             settings: 'system-settings',
+            'system-settings': 'system-settings',
             photos: 'photos',
             music: 'music',
+            mail: 'mail',
+            messages: 'messages',
+            notes: 'notes',
+            calendar: 'calendar',
+            maps: 'maps',
+            weather: 'weather',
+            stocks: 'stocks',
+            podcasts: 'podcasts',
+            books: 'books',
+            chess: 'chess',
+            siri: 'siri',
+            preview: 'preview',
+            textedit: 'textedit',
+            facetime: 'facetime',
+            iphone: 'iphone-mirroring',
+            sidecar: 'sidecar',
           };
-          const id = map[(arg || 'finder').toLowerCase()] || arg.toLowerCase().replace(/\s+/g, '-');
+          const key = (arg || 'finder').toLowerCase().replace(/\.app$/, '');
+          const id = map[key] || key.replace(/\s+/g, '-');
           if (global.MacShell && MacShell.openApp) {
             MacShell.openApp(id);
             print(`Opening ${id}…`);
@@ -4039,8 +4076,49 @@ Save stores a demo document name from the first line.</div>
           print('USER=user');
           print('HOME=/Users/user');
           print('LANG=en_US.UTF-8');
+          print('PATH=/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin');
         } else if (base === 'uptime') print('12:00  up 1 day,  4:12,  1 user,  load averages: 1.20 1.10 1.05');
-        else if (base === 'cal' || base === 'calendar') {
+        else if (base === 'top' || base === 'ps') {
+          print('PID   COMMAND      %CPU  MEM');
+          print('1     launchd     0.1   12M');
+          print('88    WindowServer 4.2  180M');
+          print('312   Finder      0.8   95M');
+          print('401   Safari      2.1  240M');
+          print('512   Terminal    0.3   48M');
+        } else if (base === 'df' || base === 'diskutil') {
+          print('Filesystem      Size   Used  Avail Capacity  Mounted on');
+          print('/dev/disk3s1s1  500G   220G   260G    46%    /');
+          print('/dev/disk3s5    500G    12G   260G     5%    /System/Volumes/Data');
+        } else if (base === 'free') {
+          print('              total        used        free');
+          print('Mem:          24Gi        9.2Gi       14Gi');
+        } else if (base === 'man') {
+          print('MAN(1)                    User Commands');
+          print('NAME');
+          print('       ' + (arg || 'help') + ' — demo manual page');
+          print('SEE ALSO');
+          print('       help(1), open(1)');
+        } else if (base === 'pbcopy') {
+          const t = arg || 'clipboard demo';
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(t).catch(function () {});
+          }
+          print('Copied ' + t.length + ' bytes');
+        } else if (base === 'pbpaste') {
+          print('(clipboard demo text)');
+        } else if (base === 'git') {
+          if (parts[1] === 'status') {
+            print('On branch main');
+            print('Your branch is up to date with \'origin/main\'.');
+            print('nothing to commit, working tree clean');
+          } else if (parts[1] === 'log') {
+            print('commit fa73d4a (HEAD -> main)');
+            print('Author: Demo <demo@example.com>');
+            print('    iPhone Calculator/Calendar/Reminders/Sounds');
+          } else print('usage: git <command> [status|log|help]');
+        } else if (base === 'brew') {
+          print('Homebrew 4.x (demo) — not installed; simulated only');
+        } else if (base === 'cal' || base === 'calendar') {
           print('     July 2026');
           print('Su Mo Tu We Th Fr Sa');
           print('          1  2  3  4');
@@ -4087,11 +4165,6 @@ Save stores a demo document name from the first line.</div>
           print('CPU: Apple silicon (sim)');
           print('Memory: 24 GB');
           print('Resolution: ' + (typeof screen !== 'undefined' ? screen.width + 'x' + screen.height : '1920x1080'));
-        } else if (base === 'say') {
-          print(`say: “${arg || 'hello'}”`);
-          if (window.speechSynthesis) {
-            window.speechSynthesis.speak(new SpeechSynthesisUtterance(arg || 'hello'));
-          }
         } else {
           print(`zsh: command not found: ${base}`);
           if (global.MacSounds && MacSounds.play) MacSounds.play('sosumi');

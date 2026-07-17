@@ -2447,6 +2447,28 @@
         sound('tink');
       });
     });
+    var musicSearch = el.querySelector('.search-field, input[type="search"], .music-search');
+    if (musicSearch) {
+      musicSearch.addEventListener('input', function () {
+        var q = (musicSearch.value || '').toLowerCase().trim();
+        el.querySelectorAll('.album-card, .music-track, .song-row').forEach(function (card) {
+          var t = (card.textContent || '').toLowerCase();
+          card.style.display = !q || t.indexOf(q) >= 0 ? '' : 'none';
+        });
+      });
+    }
+    var seek = el.querySelector('.np-bar, .progress-bar, .mp-bar');
+    if (seek && !seek.dataset.seekWired) {
+      seek.dataset.seekWired = '1';
+      seek.style.cursor = 'pointer';
+      seek.addEventListener('click', function (e) {
+        var r = seek.getBoundingClientRect();
+        pos = Math.max(0, Math.min(100, ((e.clientX - r.left) / r.width) * 100));
+        var bar = el.querySelector('.np-bar-fill, .mini-player .fill, .mp-fill, .progress-fill');
+        if (bar) bar.style.width = pos + '%';
+        sound('volume');
+      });
+    }
   }
 
   /* ── Terminal extras ────────────────────────────────── */
@@ -2660,9 +2682,33 @@
           page.appendChild(note);
           note.focus();
         }
+        if (id === 'rotate' && page) {
+          var rot = parseInt(page.dataset.rot || '0', 10) + 90;
+          page.dataset.rot = String(rot % 360);
+          page.style.transform = 'scale(' + zoom + ') rotate(' + (rot % 360) + 'deg)';
+        }
         sound('tink');
       });
     });
+    /* Markup: export annotated page */
+    if (!el.querySelector('#preview-export')) {
+      var ptb = el.querySelector('.preview27-toolbar, .preview27-tb');
+      if (ptb) {
+        var exp = document.createElement('button');
+        exp.type = 'button';
+        exp.className = 'preview27-tb-btn';
+        exp.id = 'preview-export';
+        exp.title = 'Export';
+        exp.textContent = 'Export';
+        ptb.appendChild(exp);
+        exp.addEventListener('click', function () {
+          sound('hero');
+          if (global.MacShell && MacShell.notify) {
+            MacShell.notify('Preview', 'Exported', 'Document saved (demo)', 'now');
+          }
+        });
+      }
+    }
     /* Open a funny photo as the preview document */
     var openPhoto = el.querySelector('[title="Open"], .preview27-tb-btn[title="Open"], #preview-open');
     function loadSamplePhoto() {
@@ -5489,6 +5535,51 @@
       } else if (/facetime|video call/i.test(q)) {
         a = 'Opening FaceTime.';
         openId = 'facetime';
+      } else if (/note/i.test(q)) {
+        a = 'Opening Notes.';
+        openId = 'notes';
+      } else if (/map|direction|navigate/i.test(q)) {
+        a = 'Opening Maps.';
+        openId = 'maps';
+      } else if (/calculat|math|what is \d/i.test(q)) {
+        a = 'Opening Calculator.';
+        openId = 'calculator';
+      } else if (/stock|market|share price/i.test(q)) {
+        a = 'Opening Stocks.';
+        openId = 'stocks';
+      } else if (/terminal|shell|command line/i.test(q)) {
+        a = 'Opening Terminal.';
+        openId = 'terminal';
+      } else if (/podcast/i.test(q)) {
+        a = 'Opening Podcasts.';
+        openId = 'podcasts';
+      } else if (/book|read/i.test(q)) {
+        a = 'Opening Books.';
+        openId = 'books';
+      } else if (/game|chess/i.test(q)) {
+        a = 'Opening Games.';
+        openId = 'games';
+      } else if (/find my|where is my/i.test(q)) {
+        a = 'Opening Find My.';
+        openId = 'find-my';
+      } else if (/reminder|todo|to-do/i.test(q)) {
+        a = 'Opening Reminders.';
+        openId = 'reminders';
+      } else if (/contact|phone book/i.test(q)) {
+        a = 'Opening Contacts.';
+        openId = 'contacts';
+      } else if (/dark mode|light mode|appearance/i.test(q)) {
+        a = 'Toggling appearance.';
+        if (global.MacShell && MacShell.toggleAppearance) MacShell.toggleAppearance();
+        else if (document.documentElement) {
+          var th = document.documentElement.getAttribute('data-theme');
+          document.documentElement.setAttribute('data-theme', th === 'light' ? 'dark' : 'light');
+        }
+      } else if (/volume|mute/i.test(q)) {
+        a = 'Adjusting volume (demo).';
+        sound('volume');
+      } else if (/hello|hi siri|hey/i.test(q)) {
+        a = 'Hi! I can open apps, check weather, take screenshots, and more.';
       }
       si.innerHTML = '<span class="muted">Siri</span><p style="margin:4px 0 0"></p>';
       si.querySelector('p').textContent = a;
@@ -6336,6 +6427,33 @@
         page = Math.min(12, page + 1);
         renderPage();
         sound('volume');
+      });
+    }
+    el.tabIndex = 0;
+    el.addEventListener('keydown', function (e) {
+      if (reader && reader.hidden) return;
+      if (e.key === 'ArrowRight' || e.key === ' ') {
+        e.preventDefault();
+        page = Math.min(12, page + 1);
+        renderPage();
+        sound('volume');
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        page = Math.max(1, page - 1);
+        renderPage();
+        sound('volume');
+      } else if (e.key === 'Escape' && back) {
+        back.click();
+      }
+    });
+    var bookSearch = el.querySelector('.search-field, input[type="search"]');
+    if (bookSearch) {
+      bookSearch.addEventListener('input', function () {
+        var q = (bookSearch.value || '').toLowerCase().trim();
+        el.querySelectorAll('.book-cover').forEach(function (cover) {
+          var t = (cover.getAttribute('data-book') || cover.textContent || '').toLowerCase();
+          cover.style.display = !q || t.indexOf(q) >= 0 ? '' : 'none';
+        });
       });
     }
   }
