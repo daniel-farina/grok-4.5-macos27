@@ -13,6 +13,7 @@ Public commits track multi-minute interactive work on this virtual macOS 27 desk
 See `docs/LOOP_PRACTICE.md` for why we commit every loop.
 
 ### 2026-07-17 / 18 (loop demo)
+- Freeform export/clear; Stickies persist; Grapher/Automator/Script Editor depth
 - Terminal shell commands expanded; Siri more open-app intents; Books keys; Music seek
 - iPhone Calculator/Calendar/Reminders/Sounds; FaceTime timer; Sidecar Save Sketch
 - Chess AI reply/New/Undo; Calculator history recall; GarageBand piano notes; TextEdit save/open

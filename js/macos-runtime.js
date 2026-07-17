@@ -3808,6 +3808,55 @@
         ink.style.pointerEvents = (btn.getAttribute('title') || '').toLowerCase().indexOf('pen') >= 0 ? 'auto' : 'none';
       });
     });
+
+    /* Clear board + export */
+    var ffBar = el.querySelector('.ff27-toolbar, .ff27-tb, .ff27-top') || el;
+    if (!el.querySelector('#ff-clear')) {
+      var clearBtn = document.createElement('button');
+      clearBtn.type = 'button';
+      clearBtn.className = 'btn-glass';
+      clearBtn.id = 'ff-clear';
+      clearBtn.textContent = 'Clear';
+      clearBtn.style.cssText = 'margin:4px';
+      ffBar.appendChild(clearBtn);
+      clearBtn.addEventListener('click', function () {
+        canvas.querySelectorAll('.ff27-sticky, .ff27-shape, .ff27-text-box').forEach(function (n) {
+          n.remove();
+        });
+        ctx.clearRect(0, 0, ink.width, ink.height);
+        sound('emptyTrash');
+      });
+    }
+    if (!el.querySelector('#ff-export')) {
+      var expBtn = document.createElement('button');
+      expBtn.type = 'button';
+      expBtn.className = 'btn-primary';
+      expBtn.id = 'ff-export';
+      expBtn.textContent = 'Export';
+      expBtn.style.cssText = 'margin:4px';
+      ffBar.appendChild(expBtn);
+      expBtn.addEventListener('click', function () {
+        try {
+          var out = document.createElement('canvas');
+          out.width = ink.width;
+          out.height = ink.height;
+          var octx = out.getContext('2d');
+          octx.fillStyle = '#f5f5f7';
+          octx.fillRect(0, 0, out.width, out.height);
+          octx.drawImage(ink, 0, 0);
+          var a = document.createElement('a');
+          a.href = out.toDataURL('image/png');
+          a.download = 'freeform-board.png';
+          a.click();
+          sound('hero');
+          if (global.MacShell && MacShell.notify) {
+            MacShell.notify('Freeform', 'Exported', 'freeform-board.png', 'now');
+          }
+        } catch (err) {
+          sound('sosumi');
+        }
+      });
+    }
   }
 
   /* ── App Store GET / install ────────────────────────── */
@@ -4206,13 +4255,47 @@
       run.addEventListener('click', function () {
         if (log) log.textContent = 'Running…';
         sound('pop');
-        setTimeout(function () {
-          if (log) log.textContent = 'Workflow completed successfully';
-          sound('hero');
-          if (global.MacShell && MacShell.notify) {
-            MacShell.notify('Automator', 'Workflow', 'Finished running', 'now');
+        var steps = el.querySelectorAll('.am-step');
+        var i = 0;
+        var iv = setInterval(function () {
+          if (!el.isConnected) {
+            clearInterval(iv);
+            return;
           }
-        }, 800);
+          if (i < steps.length) {
+            steps[i].classList.add('is-running');
+            if (log) log.textContent = 'Running · ' + (steps[i].textContent || 'step');
+            i++;
+          } else {
+            clearInterval(iv);
+            steps.forEach(function (s) {
+              s.classList.remove('is-running');
+              s.classList.add('is-done');
+            });
+            if (log) log.textContent = 'Workflow completed successfully';
+            sound('hero');
+            if (global.MacShell && MacShell.notify) {
+              MacShell.notify('Automator', 'Workflow', 'Finished running', 'now');
+            }
+          }
+        }, 400);
+      });
+    }
+    if (!el.querySelector('#am-clear') && workflow) {
+      var clearAm = document.createElement('button');
+      clearAm.type = 'button';
+      clearAm.className = 'btn-glass';
+      clearAm.id = 'am-clear';
+      clearAm.textContent = 'Clear';
+      var amBar = run && run.parentNode;
+      if (amBar) amBar.appendChild(clearAm);
+      clearAm.addEventListener('click', function () {
+        workflow.querySelectorAll('.am-step').forEach(function (s, idx) {
+          if (idx > 0) s.remove();
+        });
+        step = 1;
+        if (log) log.textContent = 'Ready · Workflow cleared';
+        sound('emptyTrash');
       });
     }
   }
@@ -4920,14 +5003,61 @@
       });
     }
 
+    function persistStickies() {
+      try {
+        var data = [];
+        board.querySelectorAll('.sticky').forEach(function (s) {
+          data.push({
+            text: s.textContent || '',
+            left: s.style.left,
+            top: s.style.top,
+            color: colors.find(function (c) {
+              return s.classList.contains(c);
+            }) || 'y',
+          });
+        });
+        localStorage.setItem('macos-stickies', JSON.stringify(data));
+      } catch (e) {}
+    }
+
+    function restoreStickies() {
+      try {
+        var raw = localStorage.getItem('macos-stickies');
+        if (!raw) return;
+        var data = JSON.parse(raw);
+        if (!data || !data.length) return;
+        board.querySelectorAll('.sticky').forEach(function (s) {
+          s.remove();
+        });
+        data.forEach(function (d, i) {
+          var n = document.createElement('div');
+          n.className = 'sticky ' + (d.color || 'y');
+          n.contentEditable = 'true';
+          n.textContent = d.text || '';
+          n.style.left = d.left || 24 + i * 20 + 'px';
+          n.style.top = d.top || 24 + i * 20 + 'px';
+          board.appendChild(n);
+          wireOne(n, i);
+        });
+      } catch (e) {}
+    }
+
     board.querySelectorAll('.sticky').forEach(wireOne);
+    restoreStickies();
+    board.addEventListener('input', function () {
+      persistStickies();
+    });
+    board.addEventListener('pointerup', function () {
+      persistStickies();
+    });
 
     if (!el.querySelector('.sticky-add')) {
       var bar = document.createElement('div');
       bar.className = 'sticky-toolbar';
       bar.innerHTML =
         '<button type="button" class="btn-primary sticky-add">+ Note</button>' +
-        '<button type="button" class="btn-glass sticky-color" title="Next color">Color</button>';
+        '<button type="button" class="btn-glass sticky-color" title="Next color">Color</button>' +
+        '<button type="button" class="btn-glass sticky-del" title="Delete">Delete</button>';
       board.appendChild(bar);
       bar.querySelector('.sticky-add').addEventListener('click', function () {
         var n = document.createElement('div');
@@ -4941,6 +5071,7 @@
         board.appendChild(n);
         wireOne(n, board.querySelectorAll('.sticky').length);
         n.focus();
+        persistStickies();
         sound('hero');
       });
       bar.querySelector('.sticky-color').addEventListener('click', function () {
@@ -4951,7 +5082,18 @@
           active.classList.remove(c);
         });
         active.classList.add(colors[colorIdx]);
+        persistStickies();
         sound('tink');
+      });
+      bar.querySelector('.sticky-del').addEventListener('click', function () {
+        var active = board.querySelector('.sticky:focus') || board.querySelector('.sticky');
+        if (!active) {
+          sound('sosumi');
+          return;
+        }
+        active.remove();
+        persistStickies();
+        sound('emptyTrash');
       });
     }
   }
@@ -5664,6 +5806,41 @@
         def: 'A translucent material effect that samples and tints content behind a surface.',
         related: ['blur', 'glass', 'liquid'],
       },
+      continuity: {
+        pos: 'noun',
+        def: 'Apple features that let devices work together—Handoff, Universal Clipboard, Sidecar, and iPhone Mirroring.',
+        related: ['sidecar', 'iphone', 'macos', 'handoff'],
+      },
+      sidecar: {
+        pos: 'noun',
+        def: 'A feature that uses an iPad as a second display for a Mac, with Apple Pencil support.',
+        related: ['continuity', 'ipad', 'macos'],
+      },
+      handoff: {
+        pos: 'noun',
+        def: 'Continuity feature for starting a task on one device and continuing on another.',
+        related: ['continuity', 'iphone', 'macos'],
+      },
+      stage: {
+        pos: 'noun',
+        def: 'Stage Manager organizes windows into sets, focusing one app while others wait on the side.',
+        related: ['macos', 'window', 'mission'],
+      },
+      mission: {
+        pos: 'noun',
+        def: 'Mission Control shows all open windows, desktops, and full-screen apps at a glance.',
+        related: ['macos', 'stage', 'spaces'],
+      },
+      spaces: {
+        pos: 'noun',
+        def: 'Multiple desktops on macOS for organizing apps across virtual workspaces.',
+        related: ['mission', 'macos', 'stage'],
+      },
+      widget: {
+        pos: 'noun',
+        def: 'A small desktop or Notification Center surface for glanceable information.',
+        related: ['macos', 'notification', 'desktop'],
+      },
     };
     var input = el.querySelector('.search-field, input[type="search"], input');
     function show(word) {
@@ -5775,6 +5952,20 @@
     var btn = el.querySelector('#grapher-plot');
     if (!canvas) return;
     var ctx = canvas.getContext('2d');
+    var amp = 1;
+    if (sel && !sel.querySelector('option[value="tan"]')) {
+      [
+        ['tan', 'tan(x)'],
+        ['exp', 'e^(−x²)'],
+        ['abs', '|sin(x)|'],
+        ['wave', 'wave mix'],
+      ].forEach(function (pair) {
+        var o = document.createElement('option');
+        o.value = pair[0];
+        o.textContent = pair[1];
+        sel.appendChild(o);
+      });
+    }
     function plot() {
       var w = canvas.width;
       var h = canvas.height;
@@ -5795,10 +5986,14 @@
       for (var i = 0; i <= w; i++) {
         var x = (i / w) * 4 * Math.PI - 2 * Math.PI;
         var y = 0;
-        if (type === 'sin') y = Math.sin(x);
-        else if (type === 'cos') y = Math.cos(x);
-        else if (type === 'x2') y = (x * x) / 10 - 1;
-        else y = Math.sin(x) + 0.5 * Math.sin(3 * x);
+        if (type === 'sin') y = Math.sin(x) * amp;
+        else if (type === 'cos') y = Math.cos(x) * amp;
+        else if (type === 'x2') y = ((x * x) / 10 - 1) * amp;
+        else if (type === 'tan') y = Math.max(-3, Math.min(3, Math.tan(x))) * 0.4 * amp;
+        else if (type === 'exp') y = Math.exp(-x * x * 0.15) * 2 * amp - 1;
+        else if (type === 'abs') y = Math.abs(Math.sin(x)) * amp;
+        else if (type === 'wave') y = (Math.sin(x) + 0.5 * Math.sin(3 * x) + 0.25 * Math.cos(5 * x)) * amp;
+        else y = (Math.sin(x) + 0.5 * Math.sin(3 * x)) * amp;
         var py = h / 2 - y * (h * 0.28);
         if (i === 0) ctx.moveTo(i, py);
         else ctx.lineTo(i, py);
@@ -5808,6 +6003,21 @@
     }
     if (btn) btn.addEventListener('click', plot);
     if (sel) sel.addEventListener('change', plot);
+    if (!el.querySelector('#grapher-amp')) {
+      var host = btn && btn.parentNode;
+      if (host) {
+        var ampBtn = document.createElement('button');
+        ampBtn.type = 'button';
+        ampBtn.className = 'btn-glass';
+        ampBtn.id = 'grapher-amp';
+        ampBtn.textContent = 'Amplitude';
+        host.appendChild(ampBtn);
+        ampBtn.addEventListener('click', function () {
+          amp = amp >= 1.8 ? 0.6 : amp + 0.4;
+          plot();
+        });
+      }
+    }
     plot();
   }
 
@@ -5830,14 +6040,48 @@
         var src = code ? code.value : '';
         var m = src.match(/display dialog\s+"([^"]+)"/i);
         var ret = src.match(/return\s+(\w+)/i);
+        var openM = src.match(/tell application\s+"([^"]+)"/i);
+        var beepM = /beep/i.test(src);
+        var sayM = src.match(/say\s+"([^"]+)"/i);
         var out = m ? 'dialog → “' + m[1] + '”' : 'script finished';
         if (ret) out += ' · result: ' + ret[1];
+        if (openM) {
+          out += ' · open “' + openM[1] + '”';
+          var appMap = {
+            Safari: 'safari',
+            Finder: 'finder',
+            Music: 'music',
+            Notes: 'notes',
+            Calculator: 'calculator',
+            Terminal: 'terminal',
+            Photos: 'photos',
+            Messages: 'messages',
+            Mail: 'mail',
+          };
+          var id = appMap[openM[1]] || openM[1].toLowerCase().replace(/\s+/g, '-');
+          if (global.MacShell && MacShell.openApp) {
+            setTimeout(function () {
+              MacShell.openApp(id);
+            }, 300);
+          }
+        }
+        if (beepM) sound('sosumi');
+        if (sayM) {
+          out += ' · say “' + sayM[1] + '”';
+          if (window.speechSynthesis) {
+            window.speechSynthesis.speak(new SpeechSynthesisUtterance(sayM[1]));
+          } else sound('submarine');
+        }
         if (log) log.innerHTML = '<strong>Result</strong><br/>' + out;
-        sound('funk');
+        sound(beepM ? 'sosumi' : 'funk');
         if (m && global.MacShell && MacShell.notify) {
           MacShell.notify('Script Editor', 'Dialog', m[1], 'now');
         }
       });
+    }
+    if (code && !code.value.trim()) {
+      code.value =
+        'tell application "Finder"\n  display dialog "Hello from AppleScript (demo)"\nend tell\nbeep\n';
     }
   }
 
