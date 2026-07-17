@@ -3135,6 +3135,25 @@ html[data-theme='dark'] .maps27-chip {
 html[data-theme='dark'] .maps27-chip.primary {
   background: #0a84ff;
 }
+.maps27-directions {
+  margin: 10px 12px 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 0.5px solid rgba(0, 0, 0, 0.08);
+  font-size: 13px;
+}
+html[data-theme='dark'] .maps27-directions {
+  background: rgba(40, 40, 42, 0.9);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+.maps27-steps {
+  margin: 8px 0 8px 18px;
+  padding: 0;
+}
+.maps27-steps li {
+  margin: 4px 0;
+}
 .maps27-card-eta {
   display: flex;
   align-items: center;
