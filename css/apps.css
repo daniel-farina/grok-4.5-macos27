@@ -2576,6 +2576,94 @@
 .iphone-dock-icon {
   cursor: pointer;
 }
+.iapp-calc-disp {
+  text-align: right;
+  font-size: 36px;
+  font-weight: 300;
+  padding: 12px 8px;
+  font-variant-numeric: tabular-nums;
+}
+.iapp-calc-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+.iapp-calc-key {
+  border: none;
+  border-radius: 50%;
+  aspect-ratio: 1;
+  font-size: 18px;
+  background: #e5e5ea;
+  color: #1d1d1f;
+  cursor: pointer;
+}
+.iapp-calc-key.op {
+  background: #ff9f0a;
+  color: #fff;
+}
+.iapp-calc-key.zero {
+  grid-column: span 2;
+  border-radius: 24px;
+  aspect-ratio: auto;
+  height: 48px;
+}
+.iapp-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+.iapp-cal-day {
+  border: none;
+  background: transparent;
+  border-radius: 50%;
+  aspect-ratio: 1;
+  font-size: 13px;
+  cursor: pointer;
+  color: #1d1d1f;
+}
+.iapp-cal-day.is-selected {
+  background: #0a84ff;
+  color: #fff;
+}
+.iapp-rem-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 4px;
+  border-bottom: 0.5px solid rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+  font-size: 15px;
+}
+.iapp-rem-check {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid #0a84ff;
+  flex-shrink: 0;
+}
+.iapp-rem-item.is-done {
+  opacity: 0.45;
+  text-decoration: line-through;
+}
+.iapp-rem-item.is-done .iapp-rem-check {
+  background: #0a84ff;
+}
+.iapp-sound-btn {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: #fff;
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  text-transform: capitalize;
+}
+.iapp-sound-btn.is-active {
+  outline: 2px solid #0a84ff;
+}
 
 /* Calendar new event sheet + Messages compose sheet */
 .cal-new-event,

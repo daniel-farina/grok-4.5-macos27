@@ -771,6 +771,10 @@
         { icon: '📝', name: 'Notes', app: 'notes' },
         { icon: '📹', name: 'FaceTime', app: 'facetime' },
         { icon: '🎛', name: 'Controls', app: 'control' },
+        { icon: '🧮', name: 'Calculator', app: 'calculator' },
+        { icon: '📅', name: 'Calendar', app: 'calendar' },
+        { icon: '✅', name: 'Reminders', app: 'reminders' },
+        { icon: '🔊', name: 'Sounds', app: 'sounds' },
       ]
         .map(function (a) {
           return (
@@ -1074,22 +1078,131 @@
           }, 600);
         });
       }
-      /* Control Center tiles */
-      view.querySelectorAll('.icc-tile').forEach(function (tile) {
-        tile.addEventListener('click', function () {
-          tile.classList.toggle('is-active');
-          sound('pop');
-        });
-      });
-      /* FaceTime */
+      /* FaceTime with live timer */
       var ft = view.querySelector('#iphone-ft-call');
       if (ft) {
+        var ftSec = 0;
+        var ftIv = null;
         ft.addEventListener('click', function () {
           var st = view.querySelector('.iapp-ft-status');
-          if (st) st.textContent = 'Connected · 00:08';
-          sound('submarine');
+          var on = ft.classList.toggle('is-on-call');
+          if (on) {
+            ft.textContent = 'End';
+            ftSec = 0;
+            sound('submarine');
+            if (ftIv) clearInterval(ftIv);
+            ftIv = setInterval(function () {
+              if (!view.isConnected) {
+                clearInterval(ftIv);
+                return;
+              }
+              ftSec++;
+              var m = Math.floor(ftSec / 60);
+              var s = ftSec % 60;
+              if (st)
+                st.textContent =
+                  'Connected · ' + m + ':' + (s < 10 ? '0' : '') + s;
+            }, 1000);
+            if (st) st.textContent = 'Connected · 0:00';
+          } else {
+            ft.textContent = 'Video Call';
+            if (ftIv) clearInterval(ftIv);
+            if (st) st.textContent = 'Call ended';
+            sound('pop');
+          }
         });
       }
+      /* iPhone Calculator */
+      var calcDisp = view.querySelector('#iphone-calc-disp');
+      var calcBuf = '0';
+      var calcOp = null;
+      var calcLeft = null;
+      function calcShow() {
+        if (calcDisp) calcDisp.textContent = calcBuf;
+      }
+      view.querySelectorAll('.iapp-calc-key').forEach(function (key) {
+        key.addEventListener('click', function () {
+          var k = key.getAttribute('data-k');
+          sound('volume');
+          if (k >= '0' && k <= '9') {
+            calcBuf = calcBuf === '0' ? k : calcBuf + k;
+          } else if (k === '.') {
+            if (calcBuf.indexOf('.') < 0) calcBuf += '.';
+          } else if (k === 'C') {
+            calcBuf = '0';
+            calcOp = null;
+            calcLeft = null;
+          } else if (k === '±') {
+            calcBuf = String(parseFloat(calcBuf) * -1);
+          } else if (k === '%' ) {
+            calcBuf = String(parseFloat(calcBuf) / 100);
+          } else if ('+-×÷'.indexOf(k) >= 0) {
+            calcLeft = parseFloat(calcBuf);
+            calcOp = k;
+            calcBuf = '0';
+          } else if (k === '=') {
+            var r = parseFloat(calcBuf);
+            var l = calcLeft != null ? calcLeft : r;
+            if (calcOp === '+') r = l + r;
+            else if (calcOp === '-') r = l - r;
+            else if (calcOp === '×') r = l * r;
+            else if (calcOp === '÷') r = r === 0 ? 0 : l / r;
+            calcBuf = String(Math.round(r * 1e8) / 1e8);
+            calcOp = null;
+            calcLeft = null;
+            sound('tink');
+          }
+          calcShow();
+        });
+      });
+      /* Reminders check */
+      view.querySelectorAll('.iapp-rem-item').forEach(function (item) {
+        item.addEventListener('click', function () {
+          item.classList.toggle('is-done');
+          sound(item.classList.contains('is-done') ? 'tink' : 'pop');
+        });
+      });
+      /* Calendar days */
+      view.querySelectorAll('.iapp-cal-day').forEach(function (day) {
+        day.addEventListener('click', function () {
+          view.querySelectorAll('.iapp-cal-day').forEach(function (d) {
+            d.classList.remove('is-selected');
+          });
+          day.classList.add('is-selected');
+          sound('tink');
+        });
+      });
+      /* Sound samples */
+      view.querySelectorAll('.iapp-sound-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var name = btn.getAttribute('data-sound') || 'pop';
+          sound(name);
+          view.querySelectorAll('.iapp-sound-btn').forEach(function (b) {
+            b.classList.remove('is-active');
+          });
+          btn.classList.add('is-active');
+        });
+      });
+      /* Control Center special tiles */
+      view.querySelectorAll('.icc-tile[data-cc]').forEach(function (tile) {
+        tile.addEventListener('click', function () {
+          var act = tile.getAttribute('data-cc');
+          if (act === 'camera') openIApp('camera');
+          else if (act === 'flashlight') {
+            tile.classList.toggle('is-active');
+            sound('tink');
+          } else if (act === 'focus') {
+            tile.classList.toggle('is-active');
+            sound('purr');
+            if (global.MacShell && MacShell.notify) {
+              MacShell.notify('iPhone', 'Focus', tile.classList.contains('is-active') ? 'On' : 'Off', 'now');
+            }
+          } else {
+            tile.classList.toggle('is-active');
+            sound('pop');
+          }
+        });
+      });
     }
 
     function openIApp(id) {
@@ -1170,13 +1283,62 @@
         control:
           '<div class="iapp-cc"><div class="iapp-nav"><button type="button" class="iapp-back" data-back>‹</button><div class="iapp-title">Control Center</div></div>' +
           '<div class="icc-grid">' +
-          '<button type="button" class="icc-tile is-active">Wi‑Fi</button>' +
-          '<button type="button" class="icc-tile is-active">Bluetooth</button>' +
-          '<button type="button" class="icc-tile">AirDrop</button>' +
-          '<button type="button" class="icc-tile">Focus</button>' +
-          '<button type="button" class="icc-tile">Flashlight</button>' +
-          '<button type="button" class="icc-tile">Camera</button>' +
+          '<button type="button" class="icc-tile is-active" data-cc="wifi">Wi‑Fi</button>' +
+          '<button type="button" class="icc-tile is-active" data-cc="bt">Bluetooth</button>' +
+          '<button type="button" class="icc-tile" data-cc="airdrop">AirDrop</button>' +
+          '<button type="button" class="icc-tile" data-cc="focus">Focus</button>' +
+          '<button type="button" class="icc-tile" data-cc="flashlight">Flashlight</button>' +
+          '<button type="button" class="icc-tile" data-cc="camera">Camera</button>' +
           '</div></div>',
+        calculator:
+          '<div class="iapp-calc"><div class="iapp-nav"><button type="button" class="iapp-back" data-back>‹</button><div class="iapp-title">Calculator</div></div>' +
+          '<div class="iapp-calc-disp" id="iphone-calc-disp">0</div>' +
+          '<div class="iapp-calc-grid">' +
+          ['C', '±', '%', '÷', '7', '8', '9', '×', '4', '5', '6', '-', '1', '2', '3', '+', '0', '.', '=']
+            .map(function (k) {
+              var cls = 'iapp-calc-key' + (/[÷×+\-=]/.test(k) ? ' op' : '') + (k === '0' ? ' zero' : '');
+              return (
+                '<button type="button" class="' +
+                cls +
+                '" data-k="' +
+                k +
+                '">' +
+                k +
+                '</button>'
+              );
+            })
+            .join('') +
+          '</div></div>',
+        calendar:
+          '<div class="iapp-cal"><div class="iapp-nav"><button type="button" class="iapp-back" data-back>‹</button><div class="iapp-title">July 2026</div></div>' +
+          '<div class="iapp-cal-grid">' +
+          Array.from({ length: 31 }, function (_, i) {
+            var d = i + 1;
+            var sel = d === 17 ? ' is-selected' : '';
+            return '<button type="button" class="iapp-cal-day' + sel + '">' + d + '</button>';
+          }).join('') +
+          '</div><p class="muted" style="padding:8px 12px">Project sync · 10:00 AM</p></div>',
+        reminders:
+          '<div class="iapp-rem"><div class="iapp-nav"><button type="button" class="iapp-back" data-back>‹</button><div class="iapp-title">Reminders</div></div>' +
+          '<div class="iapp-rem-item"><span class="iapp-rem-check"></span>Finish Liquid Glass polish</div>' +
+          '<div class="iapp-rem-item"><span class="iapp-rem-check"></span>Review Launchpad icons</div>' +
+          '<div class="iapp-rem-item"><span class="iapp-rem-check"></span>Call design team</div>' +
+          '<div class="iapp-rem-item"><span class="iapp-rem-check"></span>Ship wallpaper pack</div></div>',
+        sounds:
+          '<div class="iapp-sounds"><div class="iapp-nav"><button type="button" class="iapp-back" data-back>‹</button><div class="iapp-title">Sounds</div></div>' +
+          '<p class="muted" style="padding:0 12px 8px">Tap classic system alerts</p>' +
+          ['pop', 'tink', 'sosumi', 'hero', 'funk', 'purr', 'glass', 'blow', 'submarine', 'messageSent']
+            .map(function (s) {
+              return (
+                '<button type="button" class="iapp-sound-btn" data-sound="' +
+                s +
+                '">' +
+                s +
+                '</button>'
+              );
+            })
+            .join('') +
+          '</div>',
       };
       view.innerHTML =
         screens[id] ||
@@ -1286,6 +1448,7 @@
       '<div class="device-caption">' +
       '<strong>Sidecar</strong><span class="muted ipad-conn-label">iPad as second display · Connected</span>' +
       '<div class="device-actions">' +
+      '<button type="button" class="btn-glass" id="sidecar-save">Save Sketch</button>' +
       '<button type="button" class="btn-glass" id="sidecar-disconnect">Disconnect</button>' +
       '<button type="button" class="btn-glass" id="sidecar-mirror">Mirror</button>' +
       '<button type="button" class="btn-primary" id="sidecar-extend">Extend</button>' +
@@ -1458,6 +1621,24 @@
         sound('hero');
         if (global.MacShell && MacShell.notify) {
           MacShell.notify('Sidecar', 'Extend', 'Using as extended desktop', 'now');
+        }
+      });
+    }
+    var saveSketch = el.querySelector('#sidecar-save');
+    if (saveSketch) {
+      saveSketch.addEventListener('click', function () {
+        try {
+          var url = canvas.toDataURL('image/png');
+          var a = document.createElement('a');
+          a.href = url;
+          a.download = 'sidecar-sketch.png';
+          a.click();
+          sound('hero');
+          if (global.MacShell && MacShell.notify) {
+            MacShell.notify('Sidecar', 'Sketch saved', 'sidecar-sketch.png', 'now');
+          }
+        } catch (err) {
+          sound('sosumi');
         }
       });
     }
