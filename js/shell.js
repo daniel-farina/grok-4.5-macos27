@@ -1743,6 +1743,17 @@
         break;
       case 'empty-trash':
         if (confirm('Are you sure you want to permanently erase the items in the Trash?')) {
+          try {
+            var fw =
+              global.WindowManager &&
+              WindowManager.getWindowByAppId &&
+              WindowManager.getWindowByAppId('finder');
+            var fbody = fw && fw.el && fw.el.querySelector('.window-content, .finder-app');
+            if (fbody && typeof fbody._finderShow === 'function') {
+              /* clear via re-show after emptying data if exposed */
+            }
+            document.dispatchEvent(new CustomEvent('finder:empty-trash'));
+          } catch (err) {}
           if (global.MacSounds && MacSounds.play) MacSounds.play('emptyTrash');
           notify('Finder', 'Trash', 'Trash is empty', 'now');
         }

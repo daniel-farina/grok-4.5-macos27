@@ -203,17 +203,41 @@
     airdrop: {
       title: 'AirDrop',
       crumbs: ['AirDrop'],
-      files: [],
+      files: [
+        { title: 'Waiting for others…', kind: 'doc', hue: 210 },
+      ],
     },
     network: {
       title: 'Network',
       crumbs: ['Network'],
-      files: [],
+      files: [
+        { title: 'My Mac (This Computer)', kind: 'folder', hue: 210 },
+        { title: 'Shared Server', kind: 'folder', hue: 200 },
+      ],
     },
     trash: {
       title: 'Trash',
       crumbs: ['Trash'],
-      files: [],
+      files: [
+        { title: 'Old Notes.txt', kind: 'doc', hue: 40 },
+        { title: 'Screenshot past.png', kind: 'shot', hue: 220 },
+      ],
+    },
+    public: {
+      title: 'Public',
+      crumbs: ['Macintosh HD', 'Users', 'User', 'Public'],
+      files: [
+        { title: 'Drop Box', kind: 'folder', hue: 210 },
+      ],
+    },
+    library: {
+      title: 'Library',
+      crumbs: ['Macintosh HD', 'Users', 'User', 'Library'],
+      files: [
+        { title: 'Application Support', kind: 'folder', hue: 210 },
+        { title: 'Preferences', kind: 'folder', hue: 200 },
+        { title: 'Caches', kind: 'folder', hue: 40 },
+      ],
     },
   };
 
@@ -474,6 +498,8 @@
     onMount(el) {
       let currentNav = 'desktop';
       let currentView = 'icons';
+      const history = ['desktop'];
+      let histIdx = 0;
 
       const wireSelection = (root) => {
         const sel =
@@ -528,10 +554,17 @@
         wireSelection(el);
       };
 
-      const show = (id) => {
+      const show = (id, pushHist) => {
         const loc = FINDER_LOCATIONS[id];
         if (!loc) return;
         currentNav = id;
+        if (pushHist !== false) {
+          history.splice(histIdx + 1);
+          if (history[histIdx] !== id) {
+            history.push(id);
+            histIdx = history.length - 1;
+          }
+        }
         el.querySelectorAll('.finder-sb-item[data-nav]').forEach((n) => {
           n.classList.toggle('active', n.getAttribute('data-nav') === id);
         });
@@ -539,7 +572,77 @@
         if (title) title.textContent = loc.title;
         const pathbar = el.querySelector('#finder-pathbar');
         if (pathbar) pathbar.innerHTML = finderCrumbs(loc.crumbs);
+        const status = el.querySelector('#finder-statusbar .finder-status-count');
+        if (status) {
+          const n = (loc.files || []).length;
+          status.textContent = n + ' item' + (n === 1 ? '' : 's');
+        }
         renderContent();
+      };
+
+      const folderNavMap = {
+        Applications: 'apps',
+        Desktop: 'desktop',
+        Documents: 'docs',
+        Downloads: 'down',
+        Movies: 'movies',
+        Music: 'music',
+        Pictures: 'pictures',
+        'iCloud Drive': 'icloud',
+        User: 'home',
+        Users: 'home',
+        'Macintosh HD': 'drive',
+        AirDrop: 'airdrop',
+        Network: 'network',
+        Trash: 'trash',
+        Public: 'public',
+        Library: 'library',
+        Photos: 'pictures',
+        'Photos Library': 'pictures',
+        Pages: 'docs',
+        Numbers: 'docs',
+        Keynote: 'docs',
+        TV: 'movies',
+        'Home Videos': 'movies',
+      };
+
+      const appOpenMap = {
+        Safari: 'safari',
+        Mail: 'mail',
+        Messages: 'messages',
+        Photos: 'photos',
+        Music: 'music',
+        Calendar: 'calendar',
+        Notes: 'notes',
+        Terminal: 'terminal',
+        Maps: 'maps',
+        'System Settings': 'system-settings',
+        Settings: 'system-settings',
+        Calculator: 'calculator',
+        Preview: 'preview',
+        TextEdit: 'textedit',
+        Dictionary: 'dictionary',
+        Clock: 'clock',
+        Weather: 'weather',
+        Home: 'home',
+        Books: 'books',
+        News: 'news',
+        Stocks: 'stocks',
+        'Voice Memos': 'voice-memos',
+        Freeform: 'freeform',
+        Finder: 'finder',
+        TV: 'tv',
+        Podcasts: 'podcasts',
+        AppStore: 'appstore',
+        'App Store': 'appstore',
+        FaceTime: 'facetime',
+        Contacts: 'contacts',
+        Reminders: 'reminders',
+        Keynote: 'keynote',
+        Pages: 'pages',
+        Numbers: 'numbers',
+        Chess: 'chess',
+        Siri: 'siri',
       };
 
       el.querySelectorAll('.finder-sb-item[data-nav]').forEach((item) => {
@@ -552,6 +655,60 @@
           renderContent();
         });
       });
+      /* Back / Forward toolbar */
+      const backBtn = el.querySelector('.tb-seg[aria-label="Back"]');
+      const fwdBtn = el.querySelector('.tb-seg[aria-label="Forward"]');
+      if (backBtn) {
+        backBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (histIdx > 0) {
+            histIdx--;
+            show(history[histIdx], false);
+          }
+        });
+      }
+      if (fwdBtn) {
+        fwdBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (histIdx < history.length - 1) {
+            histIdx++;
+            show(history[histIdx], false);
+          }
+        });
+      }
+      /* Double-click folders / apps */
+      el.addEventListener('dblclick', (e) => {
+        const item = e.target.closest(
+          '.finder-icon-item, .finder-list-row, .finder-col-item, .finder-gal-thumb'
+        );
+        if (!item) return;
+        const label =
+          item.querySelector('.finder-label, .fl-title, .fc-title, .finder-gal-label') ||
+          item;
+        const name = (label.textContent || '').trim();
+        if (folderNavMap[name] && FINDER_LOCATIONS[folderNavMap[name]]) {
+          show(folderNavMap[name]);
+          if (global.MacSounds && MacSounds.play) MacSounds.play('pop');
+          return;
+        }
+        const base = name.replace(/\.app$/i, '');
+        if (appOpenMap[base] && global.MacShell && MacShell.openApp) {
+          MacShell.openApp(appOpenMap[base]);
+          if (global.MacSounds && MacSounds.play) MacSounds.play('pop');
+          return;
+        }
+        if (/\.pdf$/i.test(name) && global.MacShell) {
+          MacShell.openApp('preview');
+        } else if (/\.(png|jpe?g|gif)$/i.test(name) && global.MacShell) {
+          MacShell.openApp('photos');
+        } else if (/\.(mp4|mov)$/i.test(name) && global.MacShell) {
+          MacShell.openApp('quicktime');
+        } else if (/\.(txt|rtf|md)$/i.test(name) && global.MacShell) {
+          MacShell.openApp('textedit');
+        } else if (/\.dmg$/i.test(name) && global.MacShell && MacShell.notify) {
+          MacShell.notify('Finder', 'Disk Image', name + ' (demo mount)', 'now');
+        }
+      });
       /* Keyboard shortcuts ⌘1–4 style (without meta for demo) */
       el.addEventListener('keydown', (e) => {
         if (!(e.metaKey || e.ctrlKey)) return;
@@ -561,6 +718,12 @@
           currentView = map[e.key];
           renderContent();
         }
+      });
+      /* Expose show for shell menu Go commands */
+      el._finderShow = show;
+      document.addEventListener('finder:empty-trash', () => {
+        if (FINDER_LOCATIONS.trash) FINDER_LOCATIONS.trash.files = [];
+        if (currentNav === 'trash') show('trash', false);
       });
       wireSelection(el);
     },
