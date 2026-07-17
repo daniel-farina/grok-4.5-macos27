@@ -4491,17 +4491,144 @@
 
   if (APPS['image-playground']) {
     APPS['image-playground'].open = function () {
-      return `<div class="app-layout col">
+      return `<div class="app-layout col" id="image-playground-app">
       ${toolbar(`<strong>Image Playground</strong>`)}
       <div class="ip-create">
-        <div class="ip-preview glass">✨</div>
-        <input class="search-field grow" placeholder="Describe an image…" value="A glass orb floating over mountains at sunset" />
+        <div class="ip-preview glass" id="ip-preview">✨</div>
+        <input class="search-field grow" id="ip-prompt" placeholder="Describe an image…" value="A glass orb floating over mountains at sunset" />
         <div class="ip-styles">
-          ${['Animation', 'Illustration', 'Sketch'].map((s, i) => `<button class="btn-glass ${i === 0 ? 'active' : ''}">${s}</button>`).join('')}
+          ${['Animation', 'Illustration', 'Sketch'].map((s, i) => `<button type="button" class="btn-glass ip-style ${i === 0 ? 'active' : ''}" data-style="${s}">${s}</button>`).join('')}
         </div>
-        <button class="btn-primary">Create</button>
+        <button type="button" class="btn-primary" id="ip-create">Create</button>
       </div>
     </div>`;
+    };
+  }
+
+  if (APPS.grapher) {
+    APPS.grapher.width = 720;
+    APPS.grapher.height = 520;
+    APPS.grapher.open = function () {
+      return `<div class="app-layout col grapher-app" id="grapher-app">
+        ${toolbar(`<strong>Grapher</strong>
+          <select id="grapher-eq" class="te27-select">
+            <option value="sin">y = sin(x)</option>
+            <option value="cos">y = cos(x)</option>
+            <option value="x2">y = x²</option>
+            <option value="wave">y = sin(x)+0.5sin(3x)</option>
+          </select>
+          <button type="button" class="btn-primary" id="grapher-plot">Plot</button>`)}
+        <canvas id="grapher-canvas" width="680" height="400" style="margin:12px auto;display:block;background:#0b1220;border-radius:10px;max-width:calc(100% - 24px)"></canvas>
+        <p class="muted center" style="padding-bottom:12px">2D Graph · Sample equation plotter</p>
+      </div>`;
+    };
+  }
+
+  if (APPS['script-editor']) {
+    APPS['script-editor'].width = 640;
+    APPS['script-editor'].height = 480;
+    APPS['script-editor'].open = function () {
+      return `<div class="app-layout col script-editor-app" id="script-editor-app">
+        ${toolbar(`<strong>Script Editor</strong>
+          <button type="button" class="btn-primary" id="se-run">Run ▶</button>
+          <button type="button" class="btn-glass" id="se-compile">Compile</button>`)}
+        <textarea id="se-code" class="se-code" spellcheck="false">display dialog "Hello macOS 27"
+
+-- Sample AppleScript-style demo
+set theGreeting to "Liquid Glass"
+return theGreeting</textarea>
+        <div class="se-log" id="se-log"><span class="muted">Result will appear here…</span></div>
+      </div>`;
+    };
+  }
+
+  if (APPS.home) {
+    APPS.home.open = function () {
+      const devices = [
+        { name: 'Living Room Lights', state: 'On · 72%', kind: 'light', on: true },
+        { name: 'Thermostat', state: '72°', kind: 'climate', on: true },
+        { name: 'Front Door', state: 'Locked', kind: 'lock', on: true },
+        { name: 'Garage', state: 'Closed', kind: 'opener', on: false },
+        { name: 'Patio Lights', state: 'Off', kind: 'light', on: false },
+        { name: 'Office Fan', state: 'Off', kind: 'fan', on: false },
+      ];
+      return `<div class="app-layout col home-app" id="home-app">
+        ${toolbar(`<strong>Home</strong><span class="muted">My Home</span>`)}
+        <div class="home-grid">
+          ${devices
+            .map(
+              (d, i) =>
+                `<button type="button" class="home-tile ${d.on ? 'is-on' : ''}" data-home-idx="${i}" data-kind="${d.kind}">
+                  <span class="home-tile-icon">${d.kind === 'light' ? '💡' : d.kind === 'lock' ? '🔒' : d.kind === 'climate' ? '🌡' : d.kind === 'fan' ? '🌀' : '🚪'}</span>
+                  <strong>${d.name}</strong>
+                  <span class="home-tile-state muted">${d.state}</span>
+                </button>`
+            )
+            .join('')}
+        </div>
+      </div>`;
+    };
+    APPS.home.width = 720;
+    APPS.home.height = 480;
+  }
+
+  if (APPS.shortcuts) {
+    APPS.shortcuts.open = function () {
+      const items = [
+        { t: 'Morning Routine', s: 'Automation' },
+        { t: 'Shazam Music', s: 'Music' },
+        { t: 'Take Screenshot', s: 'Scripting' },
+        { t: 'Focus Work', s: 'Focus' },
+        { t: 'Send ETA', s: 'Location' },
+      ];
+      return `<div class="app-layout col" id="shortcuts-app">
+        ${toolbar(`<strong>Shortcuts</strong>`)}
+        <div class="shortcuts-list">
+          ${items
+            .map(
+              (it) =>
+                `<div class="shortcut-row">
+                  <div><strong>${it.t}</strong><div class="muted">${it.s}</div></div>
+                  <button type="button" class="btn-primary sc-run" data-sc="${it.t}">Run</button>
+                </div>`
+            )
+            .join('')}
+        </div>
+      </div>`;
+    };
+  }
+
+  if (APPS['voice-memos']) {
+    APPS['voice-memos'].open = function () {
+      return `<div class="app-layout col" id="voice-memos-app">
+        ${toolbar(`<strong>Voice Memos</strong>`)}
+        <div class="vm-list">
+          <div class="vm-row"><strong>Meeting Ideas</strong><span class="muted">0:42</span></div>
+          <div class="vm-row"><strong>Song Hook</strong><span class="muted">1:18</span></div>
+        </div>
+        <div class="vm-record-bar">
+          <button type="button" class="btn-primary" id="vm-record">● Record</button>
+          <span class="muted" id="vm-status">Ready</span>
+        </div>
+      </div>`;
+    };
+  }
+
+  if (APPS['digital-color-meter']) {
+    APPS['digital-color-meter'].open = function () {
+      return `<div class="app-layout col" id="dcm-app">
+        ${toolbar(`<strong>Digital Color Meter</strong>`)}
+        <div style="padding:20px;display:flex;gap:16px;align-items:center">
+          <div id="dcm-swatch" style="width:96px;height:96px;border-radius:12px;background:#7CA8FF;border:1px solid rgba(255,255,255,0.25)"></div>
+          <div style="flex:1;display:grid;gap:8px">
+            <div class="settings-row"><span>Red</span><span class="muted" id="dcm-r">124</span></div>
+            <div class="settings-row"><span>Green</span><span class="muted" id="dcm-g">168</span></div>
+            <div class="settings-row"><span>Blue</span><span class="muted" id="dcm-b">255</span></div>
+            <div class="settings-row"><span>Hex</span><strong id="dcm-hex">#7CA8FF</strong></div>
+          </div>
+        </div>
+        <p class="muted center" style="padding:0 16px 16px">Move mouse over desktop to sample colors</p>
+      </div>`;
     };
   }
 

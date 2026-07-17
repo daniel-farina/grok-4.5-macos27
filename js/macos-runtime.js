@@ -2029,6 +2029,367 @@
     });
   }
 
+  /* ── Siri ───────────────────────────────────────────── */
+  function wireSiri(el) {
+    if (!el || el.dataset.wired) return;
+    el.dataset.wired = '1';
+    var input = el.querySelector('input');
+    var ask = el.querySelector('.btn-primary');
+    var thread = el.querySelector('[style*="flex-direction:column"]') || el.querySelector('.app-layout') || el;
+    function reply(q) {
+      var box = el.querySelector('[style*="justify-content:flex-end"]') || el.querySelector('.app-main') || el;
+      var you = document.createElement('div');
+      you.className = 'settings-card glass';
+      you.style.cssText = 'padding:12px 14px;align-self:flex-start;max-width:85%;margin:6px 0';
+      you.innerHTML = '<span class="muted">You</span><p style="margin:4px 0 0"></p>';
+      you.querySelector('p').textContent = q;
+      var si = document.createElement('div');
+      si.className = 'settings-card glass';
+      si.style.cssText = 'padding:12px 14px;align-self:flex-end;max-width:85%;margin:6px 0';
+      var answers = [
+        'Here is what I found in your simulated calendar and apps.',
+        'It is a great day for Liquid Glass demos.',
+        'I set a timer for 5 minutes (demo).',
+        'Opening System Settings is a good place to start.',
+        'Your Mac is running macOS 27 (virtual).',
+      ];
+      var a = answers[Math.floor(Math.random() * answers.length)];
+      if (/weather/i.test(q)) a = 'It is 72° and partly cloudy in City.';
+      if (/time|clock/i.test(q)) a = 'It is ' + nowTime() + '.';
+      if (/calendar|meeting/i.test(q)) a = 'You have Design Review at 10:00 AM and Team Sync at 2:00 PM.';
+      si.innerHTML = '<span class="muted">Siri</span><p style="margin:4px 0 0"></p>';
+      si.querySelector('p').textContent = a;
+      var host = el.querySelector('[style*="justify-content:flex-end"]');
+      if (host) {
+        host.appendChild(you);
+        host.appendChild(si);
+        host.scrollTop = host.scrollHeight;
+      }
+      sound('messageReceived');
+    }
+    function go() {
+      if (!input || !input.value.trim()) return;
+      reply(input.value.trim());
+      input.value = '';
+    }
+    if (ask) ask.addEventListener('click', go);
+    if (input) {
+      input.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') go();
+      });
+    }
+  }
+
+  /* ── Dictionary lookup ──────────────────────────────── */
+  function wireDictionary(el) {
+    if (!el || el.dataset.wired) return;
+    el.dataset.wired = '1';
+    var dict = {
+      liquid: 'Having a consistency like that of water or oil; flowing freely.',
+      glass: 'A hard, brittle substance, typically transparent, made by fusing sand with soda.',
+      interface: 'A point where two systems meet and interact.',
+      macos: 'The operating system designed by Apple for Mac computers.',
+      blur: 'To make or become unclear or less distinct.',
+    };
+    var input = el.querySelector('.search-field, input[type="search"], input');
+    function show(word) {
+      var w = (word || 'liquid').toLowerCase().trim();
+      var def = dict[w] || 'No exact match in the sample dictionary. Try: liquid, glass, interface, macos, blur.';
+      var main = el.querySelector('.app-main') || el;
+      var body = main.querySelector('[style*="padding:20px"]') || main;
+      if (body) {
+        body.innerHTML =
+          '<div style="padding:20px 24px"><h2 style="margin:0 0 4px"></h2>' +
+          '<p class="muted" style="margin:0 0 16px">Sample dictionary</p>' +
+          '<div class="settings-card glass" style="padding:14px 16px"><strong>Definition</strong>' +
+          '<p class="muted" style="margin:6px 0 0" id="dict-def"></p></div></div>';
+        body.querySelector('h2').textContent = w;
+        body.querySelector('#dict-def').textContent = def;
+      }
+      sound('pop');
+    }
+    if (input) {
+      input.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') show(input.value);
+      });
+    }
+  }
+
+  /* ── Grapher plot ───────────────────────────────────── */
+  function wireGrapher(el) {
+    if (!el || el.dataset.wired) return;
+    el.dataset.wired = '1';
+    var canvas = el.querySelector('#grapher-canvas');
+    var sel = el.querySelector('#grapher-eq');
+    var btn = el.querySelector('#grapher-plot');
+    if (!canvas) return;
+    var ctx = canvas.getContext('2d');
+    function plot() {
+      var w = canvas.width;
+      var h = canvas.height;
+      ctx.fillStyle = '#0b1220';
+      ctx.fillRect(0, 0, w, h);
+      ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(0, h / 2);
+      ctx.lineTo(w, h / 2);
+      ctx.moveTo(w / 2, 0);
+      ctx.lineTo(w / 2, h);
+      ctx.stroke();
+      var type = sel ? sel.value : 'sin';
+      ctx.strokeStyle = '#5ac8fa';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      for (var i = 0; i <= w; i++) {
+        var x = (i / w) * 4 * Math.PI - 2 * Math.PI;
+        var y = 0;
+        if (type === 'sin') y = Math.sin(x);
+        else if (type === 'cos') y = Math.cos(x);
+        else if (type === 'x2') y = (x * x) / 10 - 1;
+        else y = Math.sin(x) + 0.5 * Math.sin(3 * x);
+        var py = h / 2 - y * (h * 0.28);
+        if (i === 0) ctx.moveTo(i, py);
+        else ctx.lineTo(i, py);
+      }
+      ctx.stroke();
+      sound('tink');
+    }
+    if (btn) btn.addEventListener('click', plot);
+    if (sel) sel.addEventListener('change', plot);
+    plot();
+  }
+
+  /* ── Script Editor ──────────────────────────────────── */
+  function wireScriptEditor(el) {
+    if (!el || el.dataset.wired) return;
+    el.dataset.wired = '1';
+    var run = el.querySelector('#se-run');
+    var compile = el.querySelector('#se-compile');
+    var log = el.querySelector('#se-log');
+    var code = el.querySelector('#se-code');
+    if (compile) {
+      compile.addEventListener('click', function () {
+        if (log) log.innerHTML = '<span style="color:#30d158">✓ Compiled successfully</span>';
+        sound('hero');
+      });
+    }
+    if (run) {
+      run.addEventListener('click', function () {
+        var src = code ? code.value : '';
+        var m = src.match(/display dialog\s+"([^"]+)"/i);
+        var ret = src.match(/return\s+(\w+)/i);
+        var out = m ? 'dialog → “' + m[1] + '”' : 'script finished';
+        if (ret) out += ' · result: ' + ret[1];
+        if (log) log.innerHTML = '<strong>Result</strong><br/>' + out;
+        sound('funk');
+        if (m && global.MacShell && MacShell.notify) {
+          MacShell.notify('Script Editor', 'Dialog', m[1], 'now');
+        }
+      });
+    }
+  }
+
+  /* ── Home app toggles ───────────────────────────────── */
+  function wireHome(el) {
+    if (!el || el.dataset.wired) return;
+    el.dataset.wired = '1';
+    el.querySelectorAll('.home-tile').forEach(function (tile) {
+      tile.addEventListener('click', function () {
+        var on = tile.classList.toggle('is-on');
+        var st = tile.querySelector('.home-tile-state');
+        var kind = tile.getAttribute('data-kind');
+        if (st) {
+          if (kind === 'light') st.textContent = on ? 'On · 80%' : 'Off';
+          else if (kind === 'lock') st.textContent = on ? 'Locked' : 'Unlocked';
+          else if (kind === 'opener') st.textContent = on ? 'Open' : 'Closed';
+          else if (kind === 'climate') st.textContent = on ? '72°' : 'Off';
+          else st.textContent = on ? 'On' : 'Off';
+        }
+        sound(on ? 'pop' : 'tink');
+      });
+    });
+  }
+
+  /* ── Shortcuts run ──────────────────────────────────── */
+  function wireShortcuts(el) {
+    if (!el || el.dataset.wired) return;
+    el.dataset.wired = '1';
+    el.querySelectorAll('.sc-run').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var name = btn.getAttribute('data-sc') || 'Shortcut';
+        btn.textContent = '…';
+        sound('pop');
+        setTimeout(function () {
+          btn.textContent = 'Run';
+          sound('hero');
+          if (global.MacShell && MacShell.notify) {
+            MacShell.notify('Shortcuts', 'Finished', name, 'now');
+          }
+          if (/Screenshot/i.test(name) && global.MacShell && MacShell.openApp) {
+            MacShell.openApp('screenshot');
+          }
+        }, 700);
+      });
+    });
+  }
+
+  /* ── Voice Memos ────────────────────────────────────── */
+  function wireVoiceMemos(el) {
+    if (!el || el.dataset.wired) return;
+    el.dataset.wired = '1';
+    var rec = el.querySelector('#vm-record');
+    var status = el.querySelector('#vm-status');
+    var list = el.querySelector('.vm-list');
+    var recording = false;
+    var t0 = 0;
+    var timer = null;
+    if (rec) {
+      rec.addEventListener('click', function () {
+        recording = !recording;
+        if (recording) {
+          rec.textContent = '■ Stop';
+          t0 = Date.now();
+          sound('purr');
+          timer = setInterval(function () {
+            var s = Math.floor((Date.now() - t0) / 1000);
+            if (status) status.textContent = 'Recording 0:' + (s < 10 ? '0' : '') + s;
+          }, 250);
+        } else {
+          rec.textContent = '● Record';
+          if (timer) clearInterval(timer);
+          var s = Math.floor((Date.now() - t0) / 1000);
+          if (status) status.textContent = 'Saved';
+          if (list) {
+            var row = document.createElement('div');
+            row.className = 'vm-row';
+            row.innerHTML =
+              '<strong>New Recording</strong><span class="muted">0:' +
+              (s < 10 ? '0' : '') +
+              s +
+              '</span>';
+            list.insertBefore(row, list.firstChild);
+          }
+          sound('hero');
+        }
+      });
+    }
+  }
+
+  /* ── Image Playground ───────────────────────────────── */
+  function wireImagePlayground(el) {
+    if (!el || el.dataset.wired) return;
+    el.dataset.wired = '1';
+    var style = 'Animation';
+    el.querySelectorAll('.ip-style').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        el.querySelectorAll('.ip-style').forEach(function (b) {
+          b.classList.remove('active');
+        });
+        btn.classList.add('active');
+        style = btn.getAttribute('data-style') || style;
+        sound('tink');
+      });
+    });
+    var create = el.querySelector('#ip-create');
+    var preview = el.querySelector('#ip-preview');
+    var prompt = el.querySelector('#ip-prompt');
+    if (create) {
+      create.addEventListener('click', function () {
+        create.textContent = 'Creating…';
+        sound('pop');
+        setTimeout(function () {
+          create.textContent = 'Create';
+          if (preview) {
+            var n = 1 + Math.floor(Math.random() * 12);
+            var nn = n < 10 ? '0' + n : String(n);
+            preview.innerHTML =
+              '<img src="assets/photos/funny/funny-' +
+              nn +
+              '.jpg" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:12px" />';
+          }
+          sound('hero');
+          if (global.MacShell && MacShell.notify) {
+            MacShell.notify(
+              'Image Playground',
+              'Created',
+              (prompt && prompt.value) || style,
+              'now'
+            );
+          }
+        }, 900);
+      });
+    }
+  }
+
+  /* ── Digital Color Meter sample ─────────────────────── */
+  function wireColorMeter(el) {
+    if (!el || el.dataset.wired) return;
+    el.dataset.wired = '1';
+    function sample(e) {
+      var r = Math.min(255, Math.max(0, Math.floor((e.clientX / window.innerWidth) * 255)));
+      var g = Math.min(255, Math.max(0, Math.floor((e.clientY / window.innerHeight) * 255)));
+      var b = Math.min(255, Math.max(0, 255 - Math.floor(((r + g) / 2) % 256)));
+      var hex =
+        '#' +
+        [r, g, b]
+          .map(function (v) {
+            var h = v.toString(16);
+            return h.length === 1 ? '0' + h : h;
+          })
+          .join('')
+          .toUpperCase();
+      var sw = el.querySelector('#dcm-swatch');
+      if (sw) sw.style.background = hex;
+      var er = el.querySelector('#dcm-r');
+      var eg = el.querySelector('#dcm-g');
+      var eb = el.querySelector('#dcm-b');
+      var eh = el.querySelector('#dcm-hex');
+      if (er) er.textContent = r;
+      if (eg) eg.textContent = g;
+      if (eb) eb.textContent = b;
+      if (eh) eh.textContent = hex;
+    }
+    document.addEventListener('mousemove', function (e) {
+      if (!el.isConnected) return;
+      sample(e);
+    });
+  }
+
+  /* ── Activity Monitor live meters ───────────────────── */
+  function wireActivityMonitorLive(el) {
+    if (!el || el.dataset.live) return;
+    el.dataset.live = '1';
+    var fills = el.querySelectorAll('.am27-meter-fill');
+    var vals = el.querySelectorAll('.am27-meter-val');
+    var summary = el.querySelector('.am27-cpu-summary strong');
+    var rows = el.querySelectorAll('.am27-table tbody tr');
+    var iv = setInterval(function () {
+      if (!el.isConnected) {
+        clearInterval(iv);
+        return;
+      }
+      var sys = 10 + Math.random() * 25;
+      var user = 5 + Math.random() * 20;
+      var idle = Math.max(5, 100 - sys - user);
+      var arr = [sys, user, idle];
+      fills.forEach(function (f, i) {
+        if (arr[i] != null) f.style.width = arr[i].toFixed(0) + '%';
+      });
+      vals.forEach(function (v, i) {
+        if (arr[i] != null) v.textContent = arr[i].toFixed(0) + '%';
+      });
+      if (summary) summary.textContent = (sys + user).toFixed(0) + '%';
+      rows.forEach(function (row) {
+        var cpuCell = row.querySelectorAll('.am27-num')[0];
+        if (!cpuCell) return;
+        var base = parseFloat(cpuCell.textContent) || 1;
+        var n = Math.max(0.1, base + (Math.random() - 0.5) * 1.5);
+        cpuCell.textContent = n.toFixed(1);
+      });
+    }, 1200);
+  }
+
   /* ── Chess / Games simple interact ──────────────────── */
   function wireChess(el) {
     if (!el || el.dataset.wired) return;
@@ -2316,7 +2677,10 @@
         if (id === 'weather') wireWeather(body);
         if (id === 'freeform') wireFreeform(body);
         if (id === 'appstore') wireAppStore(body);
-        if (id === 'activity-monitor') wireActivityMonitor(body);
+        if (id === 'activity-monitor') {
+          wireActivityMonitor(body);
+          wireActivityMonitorLive(body);
+        }
         if (id === 'stickies') wireStickies(body);
         if (id === 'clock') wireClock(body);
         if (id === 'pages' || id === 'numbers' || id === 'keynote') wireIWork(body);
@@ -2326,6 +2690,15 @@
         if (id === 'books') wireMediaList(body, 'Books');
         if (id === 'disk-utility') wireDiskUtility(body);
         if (id === 'chess' || id === 'games') wireChess(body);
+        if (id === 'siri') wireSiri(body);
+        if (id === 'dictionary') wireDictionary(body);
+        if (id === 'grapher') wireGrapher(body);
+        if (id === 'script-editor') wireScriptEditor(body);
+        if (id === 'home') wireHome(body);
+        if (id === 'shortcuts') wireShortcuts(body);
+        if (id === 'voice-memos') wireVoiceMemos(body);
+        if (id === 'image-playground') wireImagePlayground(body);
+        if (id === 'digital-color-meter') wireColorMeter(body);
         if (id === 'system-settings') {
           wireSoundButtons(body);
           enhanceSoundPane(body);
