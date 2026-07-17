@@ -3775,3 +3775,18 @@ html.is-offline #wifi-btn::after {
   background: rgba(120,120,128,0.12);
   font-size: 12px;
 }
+
+/* Focus / Do Not Disturb menubar moon */
+#focus-menubar-badge {
+  color: #bf5af2;
+  font-size: 14px;
+}
+html.focus-mode #menubar {
+  /* subtle cue when DND is on */
+}
+html.focus-mode #notification-center .nc-header h2::after {
+  content: ' · Focus';
+  opacity: 0.55;
+  font-weight: 500;
+  font-size: 12px;
+}

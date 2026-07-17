@@ -515,7 +515,35 @@
     applyWallpaper(WALLPAPERS[wallpaperIndex]);
   }
 
-  function notify(app, title, message, time) {
+  function isFocusModeOn() {
+    try {
+      return localStorage.getItem('macos-cc-focus') === '1';
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function setFocusMode(on) {
+    try {
+      localStorage.setItem('macos-cc-focus', on ? '1' : '0');
+    } catch (e) {}
+    document.documentElement.classList.toggle('focus-mode', !!on);
+    var badge = $('#focus-menubar-badge');
+    if (badge) badge.hidden = !on;
+    var tile = $('#control-center [data-cc="focus"]');
+    if (tile) {
+      tile.classList.toggle('is-active', !!on);
+      var sub = tile.querySelector('.cc-sublabel');
+      if (sub) sub.textContent = on ? 'On' : 'Off';
+    }
+  }
+
+  function notify(app, title, message, time, opts) {
+    opts = opts || {};
+    /* Do Not Disturb: suppress banners unless forced (e.g. system critical) */
+    if (isFocusModeOn() && !opts.force && app !== 'Focus') {
+      return;
+    }
     var list = $('#notification-list');
     if (!list) return;
     // Remove empty state
@@ -2381,6 +2409,14 @@
             var label = tile.querySelector('.cc-label');
             if (label) label.textContent = 'Do Not Disturb';
             sub.textContent = on ? 'On' : 'Off';
+            setFocusMode(on);
+            notify(
+              'Focus',
+              on ? 'Do Not Disturb On' : 'Do Not Disturb Off',
+              on ? 'Notifications are silenced' : 'Notifications will appear again',
+              'now',
+              { force: true }
+            );
           } else if (cc === 'airdrop') sub.textContent = on ? 'Everyone' : 'Contacts Only';
           else if (cc === 'wifi') sub.textContent = on ? 'Home Network' : 'Off';
           else sub.textContent = on ? 'On' : 'Off';
@@ -2402,8 +2438,10 @@
         tile.classList.toggle('is-active', on);
         var sub = tile.querySelector('.cc-sublabel');
         if (!sub) return;
-        if (cc === 'focus') sub.textContent = on ? 'On' : 'Off';
-        else if (cc === 'airdrop') sub.textContent = on ? 'Everyone' : 'Contacts Only';
+        if (cc === 'focus') {
+          sub.textContent = on ? 'On' : 'Off';
+          setFocusMode(on);
+        } else if (cc === 'airdrop') sub.textContent = on ? 'Everyone' : 'Contacts Only';
         else if (cc === 'wifi') sub.textContent = on ? 'Home Network' : 'Off';
         else sub.textContent = on ? 'On' : 'Off';
       } catch (e) {}

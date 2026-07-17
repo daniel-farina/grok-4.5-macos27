@@ -1060,7 +1060,8 @@
           var tEl = el.querySelector('.np-time');
           if (tEl) {
             var s = Math.floor((pos / 100) * 222);
-            tEl.textContent = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+            var sec = s % 60;
+            tEl.textContent = Math.floor(s / 60) + ':' + (sec < 10 ? '0' : '') + sec;
           }
         }, 250);
       }
@@ -3254,11 +3255,10 @@
       if (paused || !log) return;
       var d = new Date();
       var t =
-        String(d.getHours()).padStart(2, '0') +
-        ':' +
-        String(d.getMinutes()).padStart(2, '0') +
-        ':' +
-        String(d.getSeconds()).padStart(2, '0');
+        (function () {
+        function p2(n) { n = String(n); return n.length < 2 ? '0' + n : n; }
+        return p2(d.getHours()) + ':' + p2(d.getMinutes()) + ':' + p2(d.getSeconds());
+      })();
       var line = document.createElement('div');
       line.innerHTML =
         '<span class="c-time">' +
