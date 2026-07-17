@@ -5204,7 +5204,14 @@ return theGreeting</textarea>
         { name: 'Office Fan', state: 'Off', kind: 'fan', on: false },
       ];
       return `<div class="app-layout col home-app" id="home-app">
-        ${toolbar(`<strong>Home</strong><span class="muted">My Home</span>`)}
+        ${toolbar(`<strong>Home</strong><span class="muted">My Home</span>
+          <button type="button" class="btn-glass" data-home-scene="morning">Good Morning</button>
+          <button type="button" class="btn-glass" data-home-scene="night">Good Night</button>
+          <button type="button" class="btn-glass" data-home-scene="away">I'm Away</button>`)}
+        <div class="home-scenes">
+          <button type="button" class="home-scene-chip" data-home-scene="all-on">All On</button>
+          <button type="button" class="home-scene-chip" data-home-scene="all-off">All Off</button>
+        </div>
         <div class="home-grid">
           ${devices
             .map(

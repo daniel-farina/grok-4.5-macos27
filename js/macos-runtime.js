@@ -1970,6 +1970,41 @@
         sound('tink');
       });
     });
+    /* Open a funny photo as the preview document */
+    var openPhoto = el.querySelector('[title="Open"], .preview27-tb-btn[title="Open"], #preview-open');
+    function loadSamplePhoto() {
+      var n = 1 + Math.floor(Math.random() * 20);
+      var nn = n < 10 ? '0' + n : String(n);
+      var canvas = el.querySelector('.preview27-canvas, .preview27-page');
+      if (!canvas) return;
+      var img = canvas.querySelector('.preview-sample-img');
+      if (!img) {
+        img = document.createElement('img');
+        img.className = 'preview-sample-img';
+        img.alt = '';
+        img.style.cssText = 'max-width:100%;border-radius:8px;display:block;margin:0 auto';
+        canvas.insertBefore(img, canvas.firstChild);
+      }
+      img.src = 'assets/photos/funny/funny-' + nn + '.jpg';
+      sound('hero');
+      if (global.MacShell && MacShell.notify) {
+        MacShell.notify('Preview', 'Opened', 'funny-' + nn + '.jpg', 'now');
+      }
+    }
+    if (openPhoto) openPhoto.addEventListener('click', loadSamplePhoto);
+    else {
+      var tb = el.querySelector('.preview27-toolbar, .preview27-tb');
+      if (tb && !tb.querySelector('#preview-open')) {
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'preview27-tb-btn';
+        btn.id = 'preview-open';
+        btn.title = 'Open';
+        btn.textContent = 'Open…';
+        tb.appendChild(btn);
+        btn.addEventListener('click', loadSamplePhoto);
+      }
+    }
   }
 
   /* ── Photo Booth: camera + effects + capture ────────── */
@@ -2058,7 +2093,9 @@
           ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
           img.src = canvas.toDataURL('image/jpeg', 0.85);
         } else {
-          img.src = 'assets/photos/funny/funny-0' + (1 + Math.floor(Math.random() * 6)) + '.jpg';
+          var rn = 1 + Math.floor(Math.random() * 20);
+          var rnn = rn < 10 ? '0' + rn : String(rn);
+          img.src = 'assets/photos/funny/funny-' + rnn + '.jpg';
         }
         if (strip) {
           strip.insertBefore(img, strip.firstChild);
@@ -3222,7 +3259,12 @@
     var board = el.querySelector('.stickies-board') || el;
     board.style.position = board.style.position || 'relative';
     board.style.minHeight = board.style.minHeight || '360px';
-    el.querySelectorAll('.sticky').forEach(function (s, i) {
+    var colors = ['y', 'p', 'b', 'g', 'o'];
+    var colorIdx = 0;
+
+    function wireOne(s, i) {
+      if (s.dataset.stickyWired) return;
+      s.dataset.stickyWired = '1';
       s.contentEditable = 'true';
       s.style.position = 'absolute';
       if (!s.style.left) s.style.left = 24 + (i % 3) * 160 + 'px';
@@ -3234,15 +3276,22 @@
       s.addEventListener('focus', function () {
         sound('pop');
       });
+      s.addEventListener('dblclick', function (e) {
+        if (e.shiftKey) {
+          e.preventDefault();
+          colorIdx = (colorIdx + 1) % colors.length;
+          colors.forEach(function (c) {
+            s.classList.remove(c);
+          });
+          s.classList.add(colors[colorIdx]);
+          sound('tink');
+        }
+      });
       var drag = false;
       var ox = 0;
       var oy = 0;
       s.addEventListener('pointerdown', function (e) {
-        if (e.target !== s && e.target.isContentEditable && e.detail > 0) {
-          /* allow text selection when clicking inside after focus */
-        }
         if (e.metaKey || e.altKey) return;
-        // drag from edge: hold shift or drag when not selecting text
         if (document.activeElement === s && !e.shiftKey) return;
         drag = true;
         s.setPointerCapture(e.pointerId);
@@ -3251,7 +3300,7 @@
         ox = e.clientX - r.left;
         oy = e.clientY - r.top;
         s.style.cursor = 'grabbing';
-        s.style.zIndex = '20';
+        s.style.zIndex = String(30 + board.querySelectorAll('.sticky').length);
       });
       s.addEventListener('pointermove', function (e) {
         if (!drag) return;
@@ -3265,30 +3314,40 @@
         drag = false;
         s.style.cursor = 'grab';
       });
-    });
-    // Add sticky button if missing
+    }
+
+    board.querySelectorAll('.sticky').forEach(wireOne);
+
     if (!el.querySelector('.sticky-add')) {
-      var add = document.createElement('button');
-      add.type = 'button';
-      add.className = 'btn-primary sticky-add';
-      add.textContent = '+ Note';
-      add.style.cssText = 'position:absolute;right:12px;bottom:12px;z-index:30';
-      board.appendChild(add);
-      add.addEventListener('click', function () {
+      var bar = document.createElement('div');
+      bar.className = 'sticky-toolbar';
+      bar.innerHTML =
+        '<button type="button" class="btn-primary sticky-add">+ Note</button>' +
+        '<button type="button" class="btn-glass sticky-color" title="Next color">Color</button>';
+      board.appendChild(bar);
+      bar.querySelector('.sticky-add').addEventListener('click', function () {
         var n = document.createElement('div');
-        n.className = 'sticky y';
+        var c = colors[colorIdx % colors.length];
+        colorIdx++;
+        n.className = 'sticky ' + c;
         n.contentEditable = 'true';
         n.textContent = 'New sticky';
-        n.style.position = 'absolute';
-        n.style.left = 40 + Math.random() * 120 + 'px';
-        n.style.top = 40 + Math.random() * 80 + 'px';
-        n.style.minWidth = '140px';
-        n.style.minHeight = '120px';
+        n.style.left = 40 + Math.random() * 160 + 'px';
+        n.style.top = 40 + Math.random() * 100 + 'px';
         board.appendChild(n);
+        wireOne(n, board.querySelectorAll('.sticky').length);
+        n.focus();
         sound('hero');
-        // re-wire simply
-        el.dataset.wired = '';
-        wireStickies(el);
+      });
+      bar.querySelector('.sticky-color').addEventListener('click', function () {
+        var active = board.querySelector('.sticky:focus') || board.querySelector('.sticky');
+        if (!active) return;
+        colorIdx = (colorIdx + 1) % colors.length;
+        colors.forEach(function (c) {
+          active.classList.remove(c);
+        });
+        active.classList.add(colors[colorIdx]);
+        sound('tink');
       });
     }
   }
@@ -3609,33 +3668,155 @@
     if (!el || el.dataset.wired) return;
     el.dataset.wired = '1';
     var dict = {
-      liquid: 'Having a consistency like that of water or oil; flowing freely.',
-      glass: 'A hard, brittle substance, typically transparent, made by fusing sand with soda.',
-      interface: 'A point where two systems meet and interact.',
-      macos: 'The operating system designed by Apple for Mac computers.',
-      blur: 'To make or become unclear or less distinct.',
+      liquid: {
+        pos: 'adjective & noun',
+        def: 'Having a consistency like that of water or oil; flowing freely but of constant volume.',
+        related: ['fluid', 'aqueous', 'molten', 'glass'],
+      },
+      glass: {
+        pos: 'noun',
+        def: 'A hard, brittle substance, typically transparent, made by fusing sand with soda and lime.',
+        related: ['crystal', 'pane', 'liquid', 'blur'],
+      },
+      interface: {
+        pos: 'noun',
+        def: 'A point where two systems, subjects, or organizations meet and interact.',
+        related: ['macos', 'design', 'blur', 'glass'],
+      },
+      macos: {
+        pos: 'noun',
+        def: 'The operating system designed by Apple for Mac computers (this build is a web simulation of macOS 27).',
+        related: ['interface', 'siri', 'finder', 'dock'],
+      },
+      blur: {
+        pos: 'verb & noun',
+        def: 'To make or become unclear or less distinct; soft diffusion used in Liquid Glass materials.',
+        related: ['glass', 'liquid', 'vibrancy', 'depth'],
+      },
+      dock: {
+        pos: 'noun',
+        def: 'A row of application icons at the edge of the screen used to launch and switch apps.',
+        related: ['macos', 'finder', 'spotlight'],
+      },
+      finder: {
+        pos: 'noun',
+        def: 'The macOS file manager used to browse folders, open files, and manage the desktop.',
+        related: ['macos', 'folder', 'dock'],
+      },
+      spotlight: {
+        pos: 'noun',
+        def: 'System-wide search opened with ⌘Space to find apps, files, and web results.',
+        related: ['macos', 'siri', 'finder'],
+      },
+      siri: {
+        pos: 'noun',
+        def: 'Apple’s voice assistant for questions, shortcuts, and system actions (demo mode here).',
+        related: ['macos', 'spotlight', 'intelligence'],
+      },
+      vibrancy: {
+        pos: 'noun',
+        def: 'A translucent material effect that samples and tints content behind a surface.',
+        related: ['blur', 'glass', 'liquid'],
+      },
     };
     var input = el.querySelector('.search-field, input[type="search"], input');
     function show(word) {
-      var w = (word || 'liquid').toLowerCase().trim();
-      var def = dict[w] || 'No exact match in the sample dictionary. Try: liquid, glass, interface, macos, blur.';
+      var w = (word || 'liquid').toLowerCase().trim().replace(/[^a-z0-9-]/g, '');
+      var entry = dict[w];
       var main = el.querySelector('.app-main') || el;
-      var body = main.querySelector('[style*="padding:20px"]') || main;
-      if (body) {
+      var body = main.querySelector('.dict-body') || main.querySelector('[style*="padding:20px"]');
+      if (!body) {
+        body = document.createElement('div');
+        body.className = 'dict-body';
+        main.appendChild(body);
+      }
+      body.className = 'dict-body';
+      if (!entry) {
+        var keys = Object.keys(dict).join(', ');
         body.innerHTML =
           '<div style="padding:20px 24px"><h2 style="margin:0 0 4px"></h2>' +
-          '<p class="muted" style="margin:0 0 16px">Sample dictionary</p>' +
-          '<div class="settings-card glass" style="padding:14px 16px"><strong>Definition</strong>' +
-          '<p class="muted" style="margin:6px 0 0" id="dict-def"></p></div></div>';
-        body.querySelector('h2').textContent = w;
-        body.querySelector('#dict-def').textContent = def;
+          '<p class="muted">No exact match in the sample dictionary.</p>' +
+          '<p class="muted" style="margin-top:12px">Try: ' +
+          keys +
+          '</p>' +
+          '<div class="dict-chips"></div></div>';
+        body.querySelector('h2').textContent = w || '—';
+        var chips = body.querySelector('.dict-chips');
+        Object.keys(dict).forEach(function (k) {
+          var b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'dict-chip';
+          b.textContent = k;
+          b.addEventListener('click', function () {
+            if (input) input.value = k;
+            show(k);
+          });
+          chips.appendChild(b);
+        });
+        sound('sosumi');
+        return;
       }
+      body.innerHTML =
+        '<div style="padding:20px 24px"><h2 style="margin:0 0 4px"></h2>' +
+        '<p class="muted" style="margin:0 0 16px" id="dict-pos"></p>' +
+        '<div class="settings-card glass" style="padding:14px 16px;margin-bottom:12px"><strong>Definition</strong>' +
+        '<p class="muted" style="margin:6px 0 0" id="dict-def"></p></div>' +
+        '<div class="settings-card glass" style="padding:14px 16px"><strong>Related</strong>' +
+        '<div class="dict-chips" id="dict-related" style="margin-top:8px"></div></div></div>';
+      body.querySelector('h2').textContent = w;
+      body.querySelector('#dict-pos').textContent = entry.pos + ' · Sample dictionary';
+      body.querySelector('#dict-def').textContent = entry.def;
+      var rel = body.querySelector('#dict-related');
+      (entry.related || []).forEach(function (k) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'dict-chip';
+        b.textContent = k;
+        b.addEventListener('click', function () {
+          if (input) input.value = k;
+          show(k);
+        });
+        rel.appendChild(b);
+      });
+      if (input) input.value = w;
       sound('pop');
     }
     if (input) {
       input.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter') show(input.value);
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          show(input.value);
+        }
       });
+    }
+    el.querySelectorAll('.app-sidebar-item, .app-nav-item').forEach(function (item) {
+      item.addEventListener('click', function () {
+        el.querySelectorAll('.app-sidebar-item, .app-nav-item').forEach(function (x) {
+          x.classList.remove('active');
+        });
+        item.classList.add('active');
+        sound('tink');
+      });
+    });
+    /* seed related chips on first open if static page present */
+    var existing = el.querySelector('.dict-chips');
+    if (!existing) {
+      var seed = el.querySelector('.settings-card:last-child p.muted');
+      if (seed && /fluid/i.test(seed.textContent || '')) {
+        seed.innerHTML = '';
+        seed.className = 'dict-chips';
+        ['liquid', 'glass', 'interface', 'macos', 'blur', 'dock'].forEach(function (k) {
+          var b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'dict-chip';
+          b.textContent = k;
+          b.addEventListener('click', function () {
+            if (input) input.value = k;
+            show(k);
+          });
+          seed.appendChild(b);
+        });
+      }
     }
   }
 
@@ -3718,19 +3899,55 @@
   function wireHome(el) {
     if (!el || el.dataset.wired) return;
     el.dataset.wired = '1';
+
+    function applyTile(tile, on) {
+      tile.classList.toggle('is-on', on);
+      var st = tile.querySelector('.home-tile-state');
+      var kind = tile.getAttribute('data-kind');
+      if (!st) return;
+      if (kind === 'light') st.textContent = on ? 'On · 80%' : 'Off';
+      else if (kind === 'lock') st.textContent = on ? 'Locked' : 'Unlocked';
+      else if (kind === 'opener') st.textContent = on ? 'Open' : 'Closed';
+      else if (kind === 'climate') st.textContent = on ? '72°' : 'Off';
+      else if (kind === 'fan') st.textContent = on ? 'On · Low' : 'Off';
+      else st.textContent = on ? 'On' : 'Off';
+    }
+
     el.querySelectorAll('.home-tile').forEach(function (tile) {
       tile.addEventListener('click', function () {
-        var on = tile.classList.toggle('is-on');
-        var st = tile.querySelector('.home-tile-state');
-        var kind = tile.getAttribute('data-kind');
-        if (st) {
-          if (kind === 'light') st.textContent = on ? 'On · 80%' : 'Off';
-          else if (kind === 'lock') st.textContent = on ? 'Locked' : 'Unlocked';
-          else if (kind === 'opener') st.textContent = on ? 'Open' : 'Closed';
-          else if (kind === 'climate') st.textContent = on ? '72°' : 'Off';
-          else st.textContent = on ? 'On' : 'Off';
-        }
+        var on = !tile.classList.contains('is-on');
+        applyTile(tile, on);
         sound(on ? 'pop' : 'tink');
+      });
+    });
+
+    function scene(name) {
+      el.querySelectorAll('.home-tile').forEach(function (tile) {
+        var kind = tile.getAttribute('data-kind');
+        if (name === 'morning') {
+          applyTile(tile, kind === 'light' || kind === 'climate' || kind === 'fan');
+        } else if (name === 'night') {
+          applyTile(tile, kind === 'lock');
+        } else if (name === 'away') {
+          applyTile(tile, kind === 'lock');
+          el.querySelectorAll('.home-tile[data-kind="light"], .home-tile[data-kind="fan"]').forEach(function (t) {
+            applyTile(t, false);
+          });
+        } else if (name === 'all-on') {
+          applyTile(tile, true);
+        } else if (name === 'all-off') {
+          applyTile(tile, kind === 'lock');
+        }
+      });
+      sound('hero');
+      if (global.MacShell && MacShell.notify) {
+        MacShell.notify('Home', 'Scene', name.replace(/-/g, ' '), 'now');
+      }
+    }
+
+    el.querySelectorAll('[data-home-scene]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        scene(btn.getAttribute('data-home-scene'));
       });
     });
   }
@@ -3766,13 +3983,71 @@
     var status = el.querySelector('#vm-status');
     var list = el.querySelector('.vm-list');
     var recording = false;
+    var playing = false;
     var t0 = 0;
     var timer = null;
+    var playTimer = null;
+    var recCount = 0;
+
+    function wireRow(row) {
+      if (!row || row.dataset.vm) return;
+      row.dataset.vm = '1';
+      row.style.cursor = 'pointer';
+      row.addEventListener('click', function () {
+        el.querySelectorAll('.vm-row').forEach(function (r) {
+          r.classList.remove('is-selected', 'is-playing');
+        });
+        row.classList.add('is-selected');
+        sound('pop');
+      });
+      row.addEventListener('dblclick', function () {
+        playRow(row);
+      });
+    }
+
+    function playRow(row) {
+      if (playTimer) clearInterval(playTimer);
+      el.querySelectorAll('.vm-row').forEach(function (r) {
+        r.classList.remove('is-playing');
+      });
+      row.classList.add('is-playing', 'is-selected');
+      playing = true;
+      var title = row.querySelector('strong');
+      var name = title ? title.textContent : 'Recording';
+      var elapsed = 0;
+      var durText = (row.querySelector('.muted') || {}).textContent || '0:30';
+      var parts = durText.split(':');
+      var dur = (parseInt(parts[0], 10) || 0) * 60 + (parseInt(parts[1], 10) || 30);
+      if (dur > 20) dur = 8;
+      if (status) status.textContent = 'Playing · ' + name;
+      sound('funk');
+      playTimer = setInterval(function () {
+        elapsed++;
+        if (status) status.textContent = 'Playing 0:' + (elapsed < 10 ? '0' : '') + elapsed;
+        if (elapsed >= dur) {
+          clearInterval(playTimer);
+          playing = false;
+          row.classList.remove('is-playing');
+          if (status) status.textContent = 'Ready';
+          sound('tink');
+        }
+      }, 1000);
+    }
+
+    if (list) {
+      list.querySelectorAll('.vm-row').forEach(wireRow);
+    }
+
     if (rec) {
       rec.addEventListener('click', function () {
+        if (playing && playTimer) {
+          clearInterval(playTimer);
+          playing = false;
+        }
         recording = !recording;
         if (recording) {
           rec.textContent = '■ Stop';
+          rec.classList.add('is-recording');
           t0 = Date.now();
           sound('purr');
           timer = setInterval(function () {
@@ -3781,20 +4056,31 @@
           }, 250);
         } else {
           rec.textContent = '● Record';
+          rec.classList.remove('is-recording');
           if (timer) clearInterval(timer);
           var s = Math.floor((Date.now() - t0) / 1000);
           if (status) status.textContent = 'Saved';
+          recCount++;
           if (list) {
             var row = document.createElement('div');
-            row.className = 'vm-row';
+            row.className = 'vm-row is-selected';
+            list.querySelectorAll('.vm-row').forEach(function (r) {
+              r.classList.remove('is-selected');
+            });
             row.innerHTML =
-              '<strong>New Recording</strong><span class="muted">0:' +
+              '<strong>New Recording ' +
+              recCount +
+              '</strong><span class="muted">0:' +
               (s < 10 ? '0' : '') +
               s +
               '</span>';
             list.insertBefore(row, list.firstChild);
+            wireRow(row);
           }
           sound('hero');
+          if (global.MacShell && MacShell.notify) {
+            MacShell.notify('Voice Memos', 'Saved', 'New Recording ' + recCount, 'now');
+          }
         }
       });
     }

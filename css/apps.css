@@ -1736,6 +1736,39 @@
 .sticky.b {
   background: #90caf9;
 }
+.sticky.g {
+  background: #a5d6a7;
+}
+.sticky.o {
+  background: #ffcc80;
+}
+.sticky-toolbar {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 30;
+  display: flex;
+  gap: 8px;
+}
+.dict-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.dict-chip {
+  border: none;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  background: rgba(10, 132, 255, 0.14);
+  color: #0a84ff;
+}
+.dict-chip:hover {
+  background: rgba(10, 132, 255, 0.24);
+}
 
 /* Photo Booth */
 .photo-booth {
@@ -3175,6 +3208,22 @@ tr.is-selected {
   outline-offset: -2px;
 }
 
+.home-scenes {
+  display: flex;
+  gap: 8px;
+  padding: 8px 16px 0;
+}
+.home-scene-chip {
+  border: none;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  background: rgba(120, 120, 128, 0.18);
+  color: inherit;
+}
 .home-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
@@ -3191,7 +3240,7 @@ tr.is-selected {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  cursor: default;
+  cursor: pointer;
   transition: background 0.15s ease;
 }
 .home-tile.is-on {
@@ -3229,12 +3278,21 @@ tr.is-selected {
   font-size: 12px;
   min-height: 48px;
 }
-.vm-list { flex: 1; padding: 12px 16px; }
+.vm-list { flex: 1; padding: 12px 16px; overflow: auto; }
 .vm-row {
   display: flex;
   justify-content: space-between;
-  padding: 12px 0;
-  border-bottom: 0.5px solid rgba(255,255,255,0.08);
+  align-items: center;
+  padding: 12px 10px;
+  border-bottom: 0.5px solid rgba(128,128,128,0.2);
+  border-radius: 8px;
+  cursor: pointer;
+}
+.vm-row.is-selected {
+  background: rgba(10, 132, 255, 0.12);
+}
+.vm-row.is-playing {
+  outline: 1px solid #0a84ff;
 }
 .vm-record-bar {
   display: flex;
@@ -3242,6 +3300,9 @@ tr.is-selected {
   gap: 12px;
   padding: 16px;
   justify-content: center;
+}
+#vm-record.is-recording {
+  background: #ff3b30;
 }
 .ip-create {
   padding: 20px;
