@@ -3664,31 +3664,175 @@
       const lines = el.querySelector('#term-lines');
       const input = el.querySelector('#term-input');
       const prompt = 'user@macos-27 ~ %';
-      const print = (t) => {
+      let cwd = '~';
+      const history = [];
+      let histPos = -1;
+      const print = (t, cls) => {
         const d = document.createElement('div');
+        if (cls) d.className = cls;
         d.textContent = t;
         lines.appendChild(d);
         lines.scrollTop = lines.scrollHeight;
       };
-      input.addEventListener('keydown', (e) => {
-        if (e.key !== 'Enter') return;
-        const cmd = input.value.trim();
-        print(`${prompt} ${cmd}`);
-        input.value = '';
+      const printHTML = (html) => {
+        const d = document.createElement('div');
+        d.innerHTML = html;
+        lines.appendChild(d);
+        lines.scrollTop = lines.scrollHeight;
+      };
+      const promptStr = () => `user@macos-27 ${cwd} %`;
+      const run = (raw) => {
+        const cmd = (raw || '').trim();
+        print(`${promptStr()} ${cmd}`);
         if (!cmd) return;
-        if (cmd === 'help') print('Commands: help, date, whoami, clear, uname, ls, pwd, neofetch');
-        else if (cmd === 'date') print(new Date().toString());
-        else if (cmd === 'whoami') print('user');
-        else if (cmd === 'pwd') print('/Users/user');
-        else if (cmd === 'uname') print('Darwin macos-27 27.0.0 Darwin Kernel Version 27.0.0');
-        else if (cmd === 'ls') print('Applications  Desktop  Documents  Downloads  Library  Movies  Music  Pictures');
-        else if (cmd === 'clear') lines.innerHTML = '';
-        else if (cmd === 'neofetch')
+        history.unshift(cmd);
+        if (history.length > 50) history.pop();
+        histPos = -1;
+        const parts = cmd.split(/\s+/);
+        const base = parts[0];
+        const arg = parts.slice(1).join(' ');
+        if (base === 'help') {
           print(
-            'user@macos-27\n------------\nOS: macOS 27\nHost: Virtual Mac\nShell: zsh\nDE: Liquid Glass\nCPU: Apple silicon (sim)\nMemory: 24 GB'
+            'Built-in: help date whoami clear uname ls pwd cd echo cat open neofetch history fortune cowsay ping curl env hostname uptime cal'
           );
-        else print(`zsh: command not found: ${cmd}`);
+        } else if (base === 'date') print(new Date().toString());
+        else if (base === 'whoami') print('user');
+        else if (base === 'hostname') print('macos-27.local');
+        else if (base === 'pwd') print(cwd === '~' ? '/Users/user' : cwd.replace(/^~/, '/Users/user'));
+        else if (base === 'uname') {
+          if (parts[1] === '-a') print('Darwin macos-27 27.0.0 Darwin Kernel Version 27.0.0 root:xnu-10000/RELEASE_ARM64_T6000 arm64');
+          else print('Darwin');
+        } else if (base === 'ls') {
+          if (arg === '-la' || arg === '-l') {
+            print('drwxr-xr-x  user  staff  Applications');
+            print('drwxr-xr-x  user  staff  Desktop');
+            print('drwxr-xr-x  user  staff  Documents');
+            print('drwxr-xr-x  user  staff  Downloads');
+            print('drwxr-xr-x  user  staff  Library');
+            print('drwxr-xr-x  user  staff  Movies');
+            print('drwxr-xr-x  user  staff  Music');
+            print('drwxr-xr-x  user  staff  Pictures');
+          } else print('Applications  Desktop  Documents  Downloads  Library  Movies  Music  Pictures');
+        } else if (base === 'cd') {
+          if (!arg || arg === '~' || arg === '/') cwd = '~';
+          else if (arg === '..') cwd = '~';
+          else if (arg.startsWith('/')) cwd = arg;
+          else cwd = (cwd === '~' ? '~' : cwd) + '/' + arg.replace(/^\.\//, '');
+          print('');
+        } else if (base === 'echo') print(arg.replace(/^["']|["']$/g, ''));
+        else if (base === 'cat') {
+          if (arg === 'README' || arg === 'readme.md') print('# macOS 27 virtual desktop\nLiquid Glass demo. Type help for commands.');
+          else print(`cat: ${arg || 'file'}: No such file or directory`);
+        } else if (base === 'open') {
+          const map = {
+            safari: 'safari',
+            finder: 'finder',
+            '.': 'finder',
+            calculator: 'calculator',
+            terminal: 'terminal',
+            settings: 'system-settings',
+            photos: 'photos',
+            music: 'music',
+          };
+          const id = map[(arg || 'finder').toLowerCase()] || arg.toLowerCase().replace(/\s+/g, '-');
+          if (global.MacShell && MacShell.openApp) {
+            MacShell.openApp(id);
+            print(`Opening ${id}…`);
+          } else print(`open: can't open ${arg}`);
+        } else if (base === 'clear') lines.innerHTML = '';
+        else if (base === 'history') history.slice().reverse().forEach((h, i) => { const n = String(i + 1); print(' ' + ' '.repeat(Math.max(0, 4 - n.length)) + n + '  ' + h); });
+        else if (base === 'env') {
+          print('TERM=xterm-256color');
+          print('SHELL=/bin/zsh');
+          print('USER=user');
+          print('HOME=/Users/user');
+          print('LANG=en_US.UTF-8');
+        } else if (base === 'uptime') print('12:00  up 1 day,  4:12,  1 user,  load averages: 1.20 1.10 1.05');
+        else if (base === 'cal' || base === 'calendar') {
+          print('     July 2026');
+          print('Su Mo Tu We Th Fr Sa');
+          print('          1  2  3  4');
+          print(' 5  6  7  8  9 10 11');
+          print('12 13 14 15 16 17 18');
+          print('19 20 21 22 23 24 25');
+          print('26 27 28 29 30 31');
+        } else if (base === 'ping') {
+          const host = arg || 'example.com';
+          print(`PING ${host} (93.184.216.34): 56 data bytes`);
+          print(`64 bytes from 93.184.216.34: icmp_seq=0 ttl=54 time=12.3 ms`);
+          print(`64 bytes from 93.184.216.34: icmp_seq=1 ttl=54 time=11.8 ms`);
+          print(`--- ${host} ping statistics ---`);
+          print('2 packets transmitted, 2 packets received, 0.0% packet loss');
+        } else if (base === 'curl') {
+          print(`curl: (demo) fetched ${(arg || 'https://example.com').slice(0, 48)}`);
+          print('<!doctype html><title>Example</title>…');
+        } else if (base === 'fortune') {
+          const fortunes = [
+            'Your virtual Mac has excellent uptime.',
+            'Liquid Glass: more blur, same soul.',
+            'The cake is a file on the Desktop.',
+            'sudo make me a sandwich — permission denied (demo).',
+          ];
+          print(fortunes[Math.floor(Math.random() * fortunes.length)]);
+        } else if (base === 'cowsay') {
+          const msg = arg || 'moo';
+          print(' ' + '_'.repeat(msg.length + 2));
+          print('< ' + msg + ' >');
+          print(' ' + '-'.repeat(msg.length + 2));
+          print('        \\   ^__^');
+          print('         \\  (oo)\\_______');
+          print('            (__)\\       )\\/\\');
+          print('                ||----w |');
+          print('                ||     ||');
+        } else if (base === 'neofetch') {
+          print('user@macos-27');
+          print('------------');
+          print('OS: macOS 27 (Liquid Glass)');
+          print('Host: Virtual Mac');
+          print('Kernel: Darwin 27.0.0');
+          print('Shell: zsh');
+          print('DE: Aqua / Liquid Glass');
+          print('CPU: Apple silicon (sim)');
+          print('Memory: 24 GB');
+          print('Resolution: ' + (typeof screen !== 'undefined' ? screen.width + 'x' + screen.height : '1920x1080'));
+        } else if (base === 'say') {
+          print(`say: “${arg || 'hello'}”`);
+          if (window.speechSynthesis) {
+            window.speechSynthesis.speak(new SpeechSynthesisUtterance(arg || 'hello'));
+          }
+        } else {
+          print(`zsh: command not found: ${base}`);
+          if (global.MacSounds && MacSounds.play) MacSounds.play('sosumi');
+        }
+      };
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          run(input.value);
+          input.value = '';
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          if (histPos < history.length - 1) {
+            histPos++;
+            input.value = history[histPos] || '';
+          }
+        } else if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          if (histPos > 0) {
+            histPos--;
+            input.value = history[histPos] || '';
+          } else {
+            histPos = -1;
+            input.value = '';
+          }
+        }
       });
+      const addTab = el.querySelector('.term27-tab-add');
+      if (addTab) {
+        addTab.addEventListener('click', () => {
+          print('— new tab (demo) —');
+          if (global.MacSounds && MacSounds.play) MacSounds.play('pop');
+        });
+      }
       setTimeout(() => input.focus(), 100);
     },
   });

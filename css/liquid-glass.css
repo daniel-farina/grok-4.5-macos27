@@ -3790,3 +3790,24 @@ html.focus-mode #notification-center .nc-header h2::after {
   font-weight: 500;
   font-size: 12px;
 }
+
+/* Apple menu nested Recent Items */
+.menu-dropdown-item.has-submenu {
+  position: relative;
+}
+.menu-dropdown.menu-submenu {
+  display: none;
+  position: absolute;
+  left: calc(100% - 4px);
+  top: -6px;
+  min-width: 180px;
+  z-index: 20;
+}
+.menu-dropdown-item.has-submenu:hover > .menu-submenu,
+.menu-dropdown-item.has-submenu:focus-within > .menu-submenu {
+  display: block;
+}
+.menu-dropdown-item.is-disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}

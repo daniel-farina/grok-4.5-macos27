@@ -15,6 +15,7 @@
   var spotlightIndex = 0;
   var bootDone = false;
   var runningApps = Object.create(null);
+  var recentApps = [];
   var wallpaperIndex = 0;
   /** User preference: 'auto' | 'light' | 'dark' — default follows system */
   var appearancePref = 'auto';
@@ -95,12 +96,55 @@
     return FALLBACK_DOCK.slice();
   }
 
+  function pushRecentApp(appId) {
+    if (!appId || appId === 'launchpad' || appId === 'trash') return;
+    recentApps = recentApps.filter(function (id) {
+      return id !== appId;
+    });
+    recentApps.unshift(appId);
+    if (recentApps.length > 8) recentApps.length = 8;
+    try {
+      localStorage.setItem('macos-recent-apps', JSON.stringify(recentApps));
+    } catch (e) {}
+    renderRecentAppsMenu();
+  }
+
+  function loadRecentApps() {
+    try {
+      var raw = JSON.parse(localStorage.getItem('macos-recent-apps') || '[]');
+      if (Array.isArray(raw)) recentApps = raw.slice(0, 8);
+    } catch (e) {
+      recentApps = [];
+    }
+  }
+
+  function renderRecentAppsMenu() {
+    var host = document.getElementById('apple-recent-apps');
+    if (!host) return;
+    if (!recentApps.length) {
+      host.innerHTML = '<div class="menu-dropdown-item is-disabled" role="menuitem">No Recent Items</div>';
+      return;
+    }
+    host.innerHTML = recentApps
+      .map(function (id) {
+        return (
+          '<div class="menu-dropdown-item" data-action="open-app" data-app="' +
+          escapeHtml(id) +
+          '" role="menuitem">' +
+          escapeHtml(titleFor(id)) +
+          '</div>'
+        );
+      })
+      .join('');
+  }
+
   function openApp(appId) {
     if (appId === 'launchpad') {
       MacShell.openLaunchpad();
       return;
     }
     if (appId === 'settings') appId = 'system-settings';
+    pushRecentApp(appId);
     if (global.AppRegistry && typeof AppRegistry.open === 'function') {
       AppRegistry.open(appId);
     } else if (global.WindowManager) {
@@ -1709,11 +1753,20 @@
     ctx.closePath();
   }
 
-  function handleMenuAction(action) {
+  function handleMenuAction(action, appIdOrEl) {
     closeMenubarMenus();
+    var appFromMenu =
+      typeof appIdOrEl === 'string'
+        ? appIdOrEl
+        : appIdOrEl && appIdOrEl.getAttribute
+          ? appIdOrEl.getAttribute('data-app')
+          : null;
     switch (action) {
       case 'about':
         showAboutThisMac();
+        break;
+      case 'open-app':
+        if (appFromMenu) openApp(appFromMenu);
         break;
       case 'system-settings':
       case 'settings':
@@ -2305,7 +2358,13 @@
           toggleControlCenter();
           return;
         }
-        handleMenuAction(action);
+        if (action === 'open-app') {
+          e.stopPropagation();
+          handleMenuAction(action, actionEl);
+          hideContextMenu();
+          return;
+        }
+        handleMenuAction(action, actionEl);
         hideContextMenu();
         return;
       }
@@ -2749,8 +2808,10 @@
       loadAppearancePref();
       applyAppearance(appearancePref, { notify: false });
       wireSystemAppearanceListener();
+      loadRecentApps();
       renderDock();
       renderDesktopIcons();
+      renderRecentAppsMenu();
       wireEvents();
       updateClock();
       if (clockTimer) clearInterval(clockTimer);
