@@ -4587,6 +4587,11 @@
     get(id) {
       return APPS[id];
     },
+    register(app) {
+      if (!app || !app.id) return;
+      APPS[app.id] = Object.assign({ category: 'Utilities', open: () => '<div class="app-empty">Empty</div>' }, APPS[app.id] || {}, app);
+      return APPS[app.id];
+    },
     dockApps() {
       return DOCK_ORDER.map((id) => APPS[id]).filter(Boolean);
     },

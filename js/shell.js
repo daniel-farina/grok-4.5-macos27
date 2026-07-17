@@ -1235,6 +1235,11 @@
           setTimeout(function () {
             if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
             bootDone = true;
+            if (global.MacSounds && MacSounds.play) {
+              try {
+                MacSounds.play('boot');
+              } catch (e) {}
+            }
             if (cb) cb();
           }, 650);
         }, 180);
