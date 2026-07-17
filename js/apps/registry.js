@@ -2286,49 +2286,108 @@
           return;
         }
         if (id === 'desktop') {
+          let magOn = true;
+          try {
+            magOn = localStorage.getItem('macos-dock-mag') !== '0';
+          } catch (e) { /* ignore */ }
           pane.innerHTML = `<h2>Desktop &amp; Dock</h2>
             <div class="settings-card">
-              <div class="settings-row"><span>Dock magnification</span><label class="toggle on"><span></span></label></div>
-              <div class="settings-row"><span>Show recent apps in Dock</span><label class="toggle"><span></span></label></div>
-              <div class="settings-row"><span>Automatically hide and show the Dock</span><label class="toggle"><span></span></label></div>
+              <div class="settings-row"><span>Dock magnification</span><label class="toggle ${magOn ? 'on' : ''}" data-setting="dock-mag"><span></span></label></div>
+              <div class="settings-row"><span>Show recent apps in Dock</span><label class="toggle" data-setting="dock-recents"><span></span></label></div>
+              <div class="settings-row"><span>Automatically hide and show the Dock</span><label class="toggle" data-setting="dock-autohide"><span></span></label></div>
               <div class="settings-row"><span>Stage Manager</span><span class="muted">Control Center</span></div>
-            </div>`;
+            </div>
+            <p class="muted" style="margin:12px 4px 0;font-size:12px">Magnification scales icons on hover; the dock tray width stays fixed.</p>`;
+          wireDesktopToggles(pane);
           return;
         }
         if (id === 'wallpaper') {
           pane.innerHTML = `<h2>Wallpaper</h2>
+            <div class="settings-card" style="padding:16px">
+              <p class="muted" style="margin:0 0 12px">Choose a desktop picture</p>
+              <div class="wallpaper-pick-grid">
+                <button type="button" class="wallpaper-pick" data-wall="0" title="macOS 27 Default"><span class="wp-thumb wp-a"></span><span>Default</span></button>
+                <button type="button" class="wallpaper-pick" data-wall="1" title="Liquid Glass"><span class="wp-thumb wp-b"></span><span>Glass</span></button>
+                <button type="button" class="wallpaper-pick" data-wall="2" title="Crystal Mist"><span class="wp-thumb wp-c"></span><span>Crystal</span></button>
+              </div>
+            </div>
             <div class="settings-card">
-              <div class="settings-row"><span>Current</span><span class="muted">macOS 27 Default</span></div>
-              <div class="settings-row"><span>Tip</span><span class="muted">Right-click desktop to cycle</span></div>
+              <div class="settings-row"><span>Tip</span><span class="muted">Right-click desktop → Change Wallpaper</span></div>
+              <div class="settings-row"><button type="button" class="btn-glass" data-action-wall-cycle>Cycle wallpaper</button><span></span></div>
             </div>`;
+          wireWallpaperPane(pane);
           return;
         }
         if (id === 'notifications') {
           pane.innerHTML = `<h2>Notifications</h2>
             <div class="settings-card">
               <div class="settings-row"><span>Show previews</span><span class="muted">When Unlocked</span></div>
-              <div class="settings-row"><span>Allow notifications</span><label class="toggle on"><span></span></label></div>
+              <div class="settings-row"><span>Allow notifications</span><label class="toggle on" data-setting="allow-notifs"><span></span></label></div>
               <div class="settings-row"><span>Notification Center</span><span class="muted">On</span></div>
             </div>`;
+          wireGenericToggles(pane);
           return;
         }
         if (id === 'sound') {
+          let vol = 65;
+          try {
+            const v = localStorage.getItem('macos-cc-volume');
+            if (v != null) vol = Math.round(parseFloat(v) * 100) || 65;
+          } catch (e) { /* ignore */ }
+          const alerts = [
+            { id: 'blow', label: 'Blow' },
+            { id: 'glass', label: 'Glass' },
+            { id: 'hero', label: 'Hero' },
+            { id: 'sosumi', label: 'Sosumi' },
+            { id: 'funk', label: 'Funk' },
+            { id: 'purr', label: 'Purr' },
+            { id: 'submarine', label: 'Submarine' },
+            { id: 'tink', label: 'Tink' },
+          ];
+          let alertId = 'sosumi';
+          try {
+            alertId = localStorage.getItem('macos-alert-sound') || 'sosumi';
+          } catch (e) { /* ignore */ }
           pane.innerHTML = `<h2>Sound</h2>
             <div class="settings-card">
-              <div class="settings-row"><span>Output volume</span><span class="muted">65%</span></div>
-              <div class="settings-row"><span>Alert sound</span><span class="muted">Boop</span></div>
-              <div class="settings-row"><span>Play sound on startup</span><label class="toggle on"><span></span></label></div>
+              <div class="settings-row"><span>Output volume</span><span class="muted" id="ss-vol-label">${vol}%</span></div>
+              <div class="settings-row" style="display:block;padding:8px 14px 14px">
+                <input type="range" min="0" max="100" value="${vol}" id="ss-vol" aria-label="Output volume" style="width:100%" />
+              </div>
+              <div class="settings-row"><span>Play feedback when volume changes</span><label class="toggle on" data-setting="vol-feedback"><span></span></label></div>
+              <div class="settings-row"><span>Play sound on startup</span><label class="toggle on" data-setting="boot-sound"><span></span></label></div>
+            </div>
+            <div class="settings-card" style="margin-top:12px;padding:14px">
+              <p style="margin:0 0 10px;font-weight:600">Alert sound</p>
+              <p class="muted" style="margin:0 0 12px;font-size:12px">Synthesized classic Mac-style alerts (click to preview)</p>
+              <div class="sound-alert-grid">
+                ${alerts
+                  .map(
+                    (a) =>
+                      `<button type="button" class="sound-alert-btn ${a.id === alertId ? 'is-selected' : ''}" data-sound="${a.id}" data-alert="${a.id}">${a.label}</button>`
+                  )
+                  .join('')}
+              </div>
+              <div class="settings-row" style="margin-top:12px;border:0;padding:0">
+                <span class="muted">Selected</span><strong id="ss-alert-name">${(alerts.find((a) => a.id === alertId) || alerts[0]).label}</strong>
+              </div>
             </div>`;
+          wireSoundPane(pane);
           return;
         }
         if (id === 'focus') {
+          const shell = getShell();
+          const dnd =
+            (shell && typeof shell.isFocusModeOn === 'function' && shell.isFocusModeOn()) || false;
           pane.innerHTML = `<h2>Focus</h2>
             <div class="settings-card">
-              <div class="settings-row"><span>Do Not Disturb</span><label class="toggle"><span></span></label></div>
-              <div class="settings-row"><span>Work</span><label class="toggle"><span></span></label></div>
-              <div class="settings-row"><span>Personal</span><label class="toggle"><span></span></label></div>
-              <div class="settings-row"><span>Share across devices</span><label class="toggle on"><span></span></label></div>
-            </div>`;
+              <div class="settings-row"><span>Do Not Disturb</span><label class="toggle ${dnd ? 'on' : ''}" data-setting="dnd"><span></span></label></div>
+              <div class="settings-row"><span>Work</span><label class="toggle" data-setting="focus-work"><span></span></label></div>
+              <div class="settings-row"><span>Personal</span><label class="toggle" data-setting="focus-personal"><span></span></label></div>
+              <div class="settings-row"><span>Share across devices</span><label class="toggle on" data-setting="focus-share"><span></span></label></div>
+            </div>
+            <p class="muted" style="margin:12px 4px 0;font-size:12px">Do Not Disturb silences Notification Center banners (matches Control Center).</p>`;
+          wireFocusPane(pane);
           return;
         }
         if (id === 'displays') {
@@ -2390,6 +2449,127 @@
             renderPane('appearance');
           });
         });
+      };
+
+      const wireGenericToggles = (root) => {
+        root.querySelectorAll('.toggle[data-setting]').forEach((tog) => {
+          if (tog.dataset.wired) return;
+          tog.dataset.wired = '1';
+          tog.style.cursor = 'pointer';
+          tog.addEventListener('click', () => {
+            tog.classList.toggle('on');
+            if (global.MacSounds && MacSounds.play) MacSounds.play('pop');
+          });
+        });
+      };
+
+      const wireSoundPane = (root) => {
+        wireGenericToggles(root);
+        const slider = root.querySelector('#ss-vol');
+        const label = root.querySelector('#ss-vol-label');
+        if (slider) {
+          slider.addEventListener('input', () => {
+            const v = parseInt(slider.value, 10) || 0;
+            if (label) label.textContent = v + '%';
+            try {
+              localStorage.setItem('macos-cc-volume', String(v / 100));
+            } catch (e) { /* ignore */ }
+            const ccVol = document.querySelector('#control-center [data-cc-slider="volume"] input, #cc-volume, .cc-slider[data-kind="volume"] input');
+            if (ccVol) ccVol.value = String(v);
+            if (global.MacSounds && MacSounds.play) MacSounds.play('volume');
+          });
+        }
+        root.querySelectorAll('.sound-alert-btn[data-sound]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            root.querySelectorAll('.sound-alert-btn').forEach((b) => b.classList.remove('is-selected'));
+            btn.classList.add('is-selected');
+            const id = btn.getAttribute('data-sound');
+            try {
+              localStorage.setItem('macos-alert-sound', id);
+            } catch (e) { /* ignore */ }
+            const name = root.querySelector('#ss-alert-name');
+            if (name) name.textContent = btn.textContent;
+            if (global.MacSounds && MacSounds.play) MacSounds.play(id);
+          });
+        });
+      };
+
+      const wireFocusPane = (root) => {
+        root.querySelectorAll('.toggle[data-setting]').forEach((tog) => {
+          if (tog.dataset.wired) return;
+          tog.dataset.wired = '1';
+          tog.style.cursor = 'pointer';
+          tog.addEventListener('click', () => {
+            const key = tog.getAttribute('data-setting');
+            if (key === 'dnd') {
+              const on = !tog.classList.contains('on');
+              tog.classList.toggle('on', on);
+              const shell = getShell();
+              if (shell && typeof shell.setFocusMode === 'function') shell.setFocusMode(on);
+              if (shell && typeof shell.notify === 'function') {
+                shell.notify(
+                  'Focus',
+                  on ? 'Do Not Disturb On' : 'Do Not Disturb Off',
+                  on ? 'Notifications are silenced' : 'Notifications will appear again',
+                  'now',
+                  { force: true }
+                );
+              }
+            } else {
+              tog.classList.toggle('on');
+            }
+            if (global.MacSounds && MacSounds.play) MacSounds.play('pop');
+          });
+        });
+      };
+
+      const wireDesktopToggles = (root) => {
+        root.querySelectorAll('.toggle[data-setting]').forEach((tog) => {
+          if (tog.dataset.wired) return;
+          tog.dataset.wired = '1';
+          tog.style.cursor = 'pointer';
+          tog.addEventListener('click', () => {
+            tog.classList.toggle('on');
+            const key = tog.getAttribute('data-setting');
+            const on = tog.classList.contains('on');
+            if (key === 'dock-mag') {
+              try {
+                localStorage.setItem('macos-dock-mag', on ? '1' : '0');
+              } catch (e) { /* ignore */ }
+              document.documentElement.classList.toggle('dock-mag-off', !on);
+              const dock = document.getElementById('dock');
+              if (dock) dock.classList.toggle('no-magnify', !on);
+            }
+            if (key === 'dock-autohide') {
+              document.documentElement.classList.toggle('dock-autohide', on);
+            }
+            if (global.MacSounds && MacSounds.play) MacSounds.play('pop');
+          });
+        });
+      };
+
+      const wireWallpaperPane = (root) => {
+        root.querySelectorAll('.wallpaper-pick[data-wall]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const i = parseInt(btn.getAttribute('data-wall'), 10) || 0;
+            const shell = getShell();
+            if (shell && typeof shell.setWallpaperByIndex === 'function') {
+              shell.setWallpaperByIndex(i);
+              if (shell.notify) shell.notify('Desktop', 'Wallpaper', btn.getAttribute('title') || 'Changed', 'now');
+            }
+            root.querySelectorAll('.wallpaper-pick').forEach((b) => b.classList.remove('is-selected'));
+            btn.classList.add('is-selected');
+            if (global.MacSounds && MacSounds.play) MacSounds.play('hero');
+          });
+        });
+        const cycle = root.querySelector('[data-action-wall-cycle]');
+        if (cycle) {
+          cycle.addEventListener('click', () => {
+            const shell = getShell();
+            if (shell && shell.cycleWallpaper) shell.cycleWallpaper();
+            if (global.MacSounds && MacSounds.play) MacSounds.play('pop');
+          });
+        }
       };
 
       items.forEach((item) => {

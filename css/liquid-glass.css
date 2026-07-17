@@ -775,6 +775,15 @@ ol {
   --scale: 1;
 }
 
+#dock.no-magnify .dock-item,
+html.dock-mag-off .dock-item {
+  --scale: 1 !important;
+}
+#dock.no-magnify .dock-item[data-magnify],
+html.dock-mag-off .dock-item[data-magnify] {
+  transform: none;
+}
+
 .dock-item[data-magnify] {
   /* Raise stacking only — do not change width/height/margin */
   z-index: 5;

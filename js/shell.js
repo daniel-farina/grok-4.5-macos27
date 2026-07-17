@@ -866,8 +866,24 @@
   function wireDockInteractions(dock) {
     var items = $$('.dock-item', dock);
 
-    // Magnification via --scale + data-magnify
+    // Magnification via --scale + data-magnify (can be disabled in System Settings)
+    function magEnabled() {
+      if (dock.classList.contains('no-magnify')) return false;
+      if (document.documentElement.classList.contains('dock-mag-off')) return false;
+      try {
+        return localStorage.getItem('macos-dock-mag') !== '0';
+      } catch (e) {
+        return true;
+      }
+    }
     dock.addEventListener('mousemove', function (e) {
+      if (!magEnabled()) {
+        items.forEach(function (item) {
+          item.style.setProperty('--scale', '1');
+          item.removeAttribute('data-magnify');
+        });
+        return;
+      }
       items.forEach(function (item) {
         var rect = item.getBoundingClientRect();
         var mid = rect.left + rect.width / 2;
@@ -883,6 +899,13 @@
         item.removeAttribute('data-magnify');
       });
     });
+    /* restore mag preference */
+    try {
+      if (localStorage.getItem('macos-dock-mag') === '0') {
+        dock.classList.add('no-magnify');
+        document.documentElement.classList.add('dock-mag-off');
+      }
+    } catch (e) {}
 
     items.forEach(function (item) {
       function activate() {
@@ -2974,6 +2997,8 @@
     setAppearance: setAppearance,
     cycleAppearance: cycleAppearance,
     applyAppearance: applyAppearance,
+    setFocusMode: setFocusMode,
+    isFocusModeOn: isFocusModeOn,
     getAppearance: function () {
       return appearancePref;
     },

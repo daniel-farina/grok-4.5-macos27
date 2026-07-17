@@ -929,6 +929,21 @@
         if (sel) sel.textContent = title.textContent || 'New Note';
       });
     }
+
+    if (body) {
+      if (!body.getAttribute('contenteditable')) body.setAttribute('contenteditable', 'true');
+      body.addEventListener('input', function () {
+        var meta = el.querySelector('.notes27-item.selected .notes27-item-meta');
+        if (!meta) return;
+        var plain = (body.innerText || '').trim().replace(/\s+/g, ' ');
+        var preview = plain.length > 48 ? plain.slice(0, 48) + '…' : plain || 'Start typing…';
+        var timeSpan = meta.querySelector('span');
+        var time = timeSpan ? timeSpan.textContent : 'Just now';
+        meta.innerHTML = '<span></span> ';
+        meta.querySelector('span').textContent = time;
+        meta.appendChild(document.createTextNode(preview));
+      });
+    }
   }
 
   /* ── Calendar: month nav, views, events ─────────────── */
@@ -1706,7 +1721,7 @@
     });
   }
 
-  /* ── Stocks range chips sound ───────────────────────── */
+  /* ── Stocks range chips + mild live tick ────────────── */
   function wireStocks(el) {
     if (!el || el.dataset.wiredExtra) return;
     el.dataset.wiredExtra = '1';
@@ -1719,6 +1734,46 @@
         sound('pop');
       });
     });
+    el.querySelectorAll('.stock-row').forEach(function (row) {
+      row.addEventListener('click', function () {
+        sound('pop');
+      });
+    });
+    /* Demo tick: nudge selected price slightly every few seconds */
+    var iv = setInterval(function () {
+      if (!el.isConnected) {
+        clearInterval(iv);
+        return;
+      }
+      var sel = el.querySelector('.stock-row.is-selected');
+      if (!sel) return;
+      var priceEl = sel.querySelector('.stock-price');
+      var chartPrice = el.querySelector('#stock-chart-price');
+      if (!priceEl) return;
+      var p = parseFloat(priceEl.textContent);
+      if (!isFinite(p)) return;
+      var delta = (Math.random() - 0.5) * 0.4;
+      var next = Math.max(1, p + delta);
+      var txt = next.toFixed(2);
+      priceEl.textContent = txt;
+      sel.setAttribute('data-price', txt);
+      if (chartPrice) chartPrice.textContent = txt;
+      var up = delta >= 0;
+      var chg = sel.querySelector('.stock-change');
+      if (chg) {
+        var pct = ((delta / p) * 100).toFixed(2);
+        chg.textContent = (up ? '+' : '') + pct + '%';
+        chg.classList.toggle('up', up);
+        chg.classList.toggle('down', !up);
+        sel.setAttribute('data-up', up ? '1' : '0');
+        sel.setAttribute('data-change', chg.textContent);
+        var chartChg = el.querySelector('#stock-chart-chg');
+        if (chartChg) {
+          chartChg.textContent = chg.textContent;
+          chartChg.className = 'stock-change ' + (up ? 'up' : 'down');
+        }
+      }
+    }, 3200);
   }
 
   /* ── Phone dialer ───────────────────────────────────── */

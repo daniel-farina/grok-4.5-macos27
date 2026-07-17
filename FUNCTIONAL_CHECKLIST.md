@@ -3,10 +3,14 @@
 Job started: 2026-07-17T20:55:45Z · Cancel after ~3h · `scheduler_delete 019f71def611`
 
 ## This loop
-- [x] Reminders: inline New Reminder (Enter to commit), live sidebar counts, checkbox complete
-- [x] Freeform: click-to-place sticky / shape / text tools, share toast, swatch active state
-- [x] Docs: commit-as-you-go + >10 min Grok 4.5 loop demonstration note
+- [x] System Settings → Sound: volume slider + playable alert sounds (Blow, Glass, Hero, Sosumi…)
+- [x] System Settings → Focus: Do Not Disturb wires to shell / Control Center
+- [x] System Settings → Desktop & Dock: magnification on/off (persisted)
+- [x] System Settings → Wallpaper: pick Default / Glass / Crystal + cycle
+- [x] Notes: body edits update list preview
+- [x] Stocks: mild live price tick on selected symbol
+- [x] MacShell exports setFocusMode / isFocusModeOn
 - [x] Audit ALL PASS
 
 ## Process
-- Commit + push each loop (demonstrate multi-minute Grok 4.5 value)
+- Commit + push each loop (multi-minute Grok 4.5 demo)
