@@ -2818,6 +2818,48 @@ html[data-theme='light'] .msg-new-sheet {
   font-size: 12px;
   white-space: nowrap;
 }
+.pod-transport {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+.pod-progress {
+  flex: 1;
+  min-width: 80px;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(128, 128, 128, 0.28);
+  cursor: pointer;
+  overflow: hidden;
+}
+.pod-progress-fill {
+  height: 100%;
+  width: 0%;
+  background: #bf5af2;
+  border-radius: 3px;
+  transition: width 0.15s linear;
+}
+.tv-progress {
+  margin: 10px 16px 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+.tv-progress-fill {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: #0a84ff;
+  width: 0%;
+}
+.pw-row.is-selected {
+  background: rgba(10, 132, 255, 0.16);
+  border-radius: 10px;
+}
 .pod-now {
   display: flex;
   align-items: center;
@@ -2826,6 +2868,7 @@ html[data-theme='light'] .msg-new-sheet {
   border-top: 0.5px solid rgba(0, 0, 0, 0.08);
   background: rgba(255, 255, 255, 0.5);
   flex-shrink: 0;
+  flex-wrap: wrap;
 }
 html[data-theme='dark'] .pod-now {
   background: rgba(0, 0, 0, 0.25);

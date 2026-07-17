@@ -3055,12 +3055,52 @@
   function wireStocks(el) {
     if (!el || el.dataset.wiredExtra) return;
     el.dataset.wiredExtra = '1';
+    var tb = el.querySelector('.stocks-toolbar');
+    if (tb && !el.querySelector('#stock-search')) {
+      var search = document.createElement('input');
+      search.type = 'search';
+      search.id = 'stock-search';
+      search.className = 'search-field';
+      search.placeholder = 'Filter symbols';
+      search.style.cssText = 'margin-left:auto;max-width:140px;font-size:12px';
+      tb.appendChild(search);
+      search.addEventListener('input', function () {
+        var q = (search.value || '').toLowerCase().trim();
+        el.querySelectorAll('.stock-row').forEach(function (row) {
+          var text = (row.textContent || '').toLowerCase();
+          row.style.display = !q || text.indexOf(q) >= 0 ? '' : 'none';
+        });
+      });
+    }
     el.querySelectorAll('.stock-range span').forEach(function (s) {
       s.addEventListener('click', function () {
         el.querySelectorAll('.stock-range span').forEach(function (x) {
           x.classList.remove('active');
         });
         s.classList.add('active');
+        /* jiggle chart path for range feel */
+        var line = el.querySelector('#stock-line');
+        var area = el.querySelector('#stock-area');
+        var sel = el.querySelector('.stock-row.is-selected');
+        var up = !sel || sel.getAttribute('data-up') === '1';
+        var y = up ? 25 + Math.random() * 30 : 55 + Math.random() * 30;
+        var path =
+          'M0,' +
+          (up ? 80 : 20) +
+          ' C80,' +
+          (y + 10) +
+          ' 160,' +
+          (y - 10) +
+          ' 240,' +
+          y +
+          ' C320,' +
+          (y + 15) +
+          ' 360,' +
+          (y - 5) +
+          ' 400,' +
+          (up ? 15 : 90);
+        if (line) line.setAttribute('d', path);
+        if (area) area.setAttribute('d', path + ' L400,100 L0,100 Z');
         sound('pop');
       });
     });
@@ -4832,12 +4872,61 @@
         sound('pop');
       });
     });
+    var tvPlaying = false;
+    var tvPos = 0;
+    var tvTimer = null;
+    function ensureTvProgress() {
+      var hero = el.querySelector('.tv-hero');
+      if (!hero || hero.querySelector('.tv-progress')) return;
+      var bar = document.createElement('div');
+      bar.className = 'tv-progress';
+      bar.innerHTML = '<div class="tv-progress-fill"></div><span class="tv-progress-time muted">0:00</span>';
+      hero.appendChild(bar);
+      bar.addEventListener('click', function (e) {
+        var r = bar.getBoundingClientRect();
+        tvPos = Math.max(0, Math.min(100, ((e.clientX - r.left) / r.width) * 100));
+        updateTvProgress();
+        sound('volume');
+      });
+    }
+    function updateTvProgress() {
+      var fill = el.querySelector('.tv-progress-fill');
+      var time = el.querySelector('.tv-progress-time');
+      if (fill) fill.style.width = tvPos + '%';
+      if (time) {
+        var sec = Math.floor((tvPos / 100) * 48 * 60);
+        var m = Math.floor(sec / 60);
+        var s = sec % 60;
+        time.textContent = m + ':' + (s < 10 ? '0' : '') + s;
+      }
+    }
     el.querySelectorAll('.tv-hero-actions .btn-primary, .tv-hero .btn-primary').forEach(function (btn) {
       btn.addEventListener('click', function () {
-        sound('funk');
-        btn.textContent = btn.textContent === 'Play' ? '❚❚ Pause' : 'Play';
-        if (global.MacShell && MacShell.notify) {
-          MacShell.notify('TV', 'Now Playing', 'Featured title', 'now');
+        ensureTvProgress();
+        tvPlaying = !tvPlaying;
+        sound(tvPlaying ? 'funk' : 'tink');
+        btn.textContent = tvPlaying ? '❚❚ Pause' : 'Play';
+        if (tvTimer) {
+          clearInterval(tvTimer);
+          tvTimer = null;
+        }
+        if (tvPlaying) {
+          if (global.MacShell && MacShell.notify) {
+            MacShell.notify('TV', 'Now Playing', 'Featured title', 'now');
+          }
+          tvTimer = setInterval(function () {
+            if (!el.isConnected) {
+              clearInterval(tvTimer);
+              return;
+            }
+            tvPos = Math.min(100, tvPos + 0.5);
+            updateTvProgress();
+            if (tvPos >= 100) {
+              tvPlaying = false;
+              btn.textContent = 'Play';
+              clearInterval(tvTimer);
+            }
+          }, 400);
         }
       });
     });
@@ -4875,14 +4964,77 @@
     if (!el || el.dataset.wiredMedia) return;
     el.dataset.wiredMedia = '1';
     var playing = false;
+    var pos = 0;
+    var timer = null;
     var nowEl = el.querySelector('.pod-now, .media-now-playing');
+
+    function ensureTransport() {
+      if (!nowEl || nowEl.querySelector('.pod-progress')) return;
+      var bar = document.createElement('div');
+      bar.className = 'pod-transport';
+      bar.innerHTML =
+        '<button type="button" class="btn-glass pod-skip" data-dir="-15">−15s</button>' +
+        '<div class="pod-progress" title="Seek"><div class="pod-progress-fill"></div></div>' +
+        '<button type="button" class="btn-glass pod-skip" data-dir="30">+30s</button>' +
+        '<span class="muted pod-time">0:00</span>';
+      nowEl.appendChild(bar);
+      var progress = bar.querySelector('.pod-progress');
+      if (progress) {
+        progress.addEventListener('click', function (e) {
+          var r = progress.getBoundingClientRect();
+          pos = Math.max(0, Math.min(100, ((e.clientX - r.left) / r.width) * 100));
+          updateProgress();
+          sound('volume');
+        });
+      }
+      bar.querySelectorAll('.pod-skip').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          pos = Math.max(0, Math.min(100, pos + parseInt(btn.getAttribute('data-dir'), 10) / 3));
+          updateProgress();
+          sound('tink');
+        });
+      });
+    }
+
+    function updateProgress() {
+      if (!nowEl) return;
+      var fill = nowEl.querySelector('.pod-progress-fill');
+      var time = nowEl.querySelector('.pod-time');
+      if (fill) fill.style.width = pos + '%';
+      if (time) {
+        var sec = Math.floor((pos / 100) * 58 * 60);
+        var m = Math.floor(sec / 60);
+        var s = sec % 60;
+        time.textContent = m + ':' + (s < 10 ? '0' : '') + s;
+      }
+    }
+
+    function setPlaying(on) {
+      playing = on;
+      var pb = el.querySelector('.pod-play-btn');
+      if (pb) pb.textContent = playing ? 'Pause' : 'Play';
+      if (timer) {
+        clearInterval(timer);
+        timer = null;
+      }
+      if (playing) {
+        timer = setInterval(function () {
+          if (!el.isConnected) {
+            clearInterval(timer);
+            return;
+          }
+          pos = Math.min(100, pos + 0.4);
+          updateProgress();
+          if (pos >= 100) setPlaying(false);
+        }, 400);
+      }
+    }
 
     function wirePlayBtn(btn) {
       if (!btn || btn.dataset.podWired) return;
       btn.dataset.podWired = '1';
       btn.addEventListener('click', function () {
-        playing = !playing;
-        btn.textContent = playing ? 'Pause' : 'Play';
+        setPlaying(!playing);
         sound(playing ? 'funk' : 'tink');
       });
     }
@@ -4896,13 +5048,17 @@
           '<button type="button" class="btn-primary pod-play-btn">Play</button>';
         el.appendChild(nowEl);
       }
+      ensureTransport();
       wirePlayBtn(nowEl.querySelector('.pod-play-btn'));
       var s = nowEl.querySelector('strong');
-      var m = nowEl.querySelector('.pod-now-meta .muted, .muted');
+      var m = nowEl.querySelector('.pod-now-meta .muted');
       if (s) s.textContent = title || 'Episode';
       if (m) m.textContent = sub || appName;
+      pos = 0;
+      updateProgress();
     }
 
+    if (nowEl) ensureTransport();
     wirePlayBtn(el.querySelector('.pod-play-btn'));
 
     el.querySelectorAll('.app-list-row, .pod-episode').forEach(function (row) {
@@ -4925,9 +5081,7 @@
         var sub = row.querySelector('.pod-info .muted, .muted, .row-sub');
         if (appName !== 'News') {
           setNow(t ? t.textContent : 'Item', sub ? sub.textContent : '');
-          playing = true;
-          var pb = el.querySelector('.pod-play-btn');
-          if (pb) pb.textContent = 'Pause';
+          setPlaying(true);
         }
         if (global.MacShell && MacShell.notify) {
           MacShell.notify(
@@ -4939,6 +5093,17 @@
         }
       });
     });
+
+    var podSearch = el.querySelector('.search-field, input[type="search"]');
+    if (podSearch && appName === 'Podcasts') {
+      podSearch.addEventListener('input', function () {
+        var q = (podSearch.value || '').toLowerCase().trim();
+        el.querySelectorAll('.pod-episode, .app-list-row').forEach(function (row) {
+          var text = (row.textContent || '').toLowerCase();
+          row.style.display = !q || text.indexOf(q) >= 0 ? '' : 'none';
+        });
+      });
+    }
   }
 
   /* ── Disk Utility select ────────────────────────────── */
@@ -5399,10 +5564,29 @@
           if (global.MacShell && MacShell.notify) {
             MacShell.notify('Shortcuts', 'Finished', name, 'now');
           }
-          if (/Screenshot/i.test(name) && global.MacShell && MacShell.openApp) {
-            MacShell.openApp('screenshot');
-          }
+          if (!global.MacShell || !MacShell.openApp) return;
+          if (/Screenshot/i.test(name)) MacShell.openApp('screenshot');
+          else if (/Weather/i.test(name)) MacShell.openApp('weather');
+          else if (/Music|Shazam|Play/i.test(name)) MacShell.openApp('music');
+          else if (/Message|Text/i.test(name)) MacShell.openApp('messages');
+          else if (/Mail|Email/i.test(name)) MacShell.openApp('mail');
+          else if (/Focus|DND|Do Not Disturb/i.test(name)) {
+            if (MacShell.setFocus) MacShell.setFocus('dnd');
+            else if (MacShell.toggleFocus) MacShell.toggleFocus();
+          } else if (/Safari|Browse/i.test(name)) MacShell.openApp('safari');
+          else if (/Clock|Timer|Alarm/i.test(name)) MacShell.openApp('clock');
+          else if (/Note/i.test(name)) MacShell.openApp('notes');
+          else if (/Photo/i.test(name)) MacShell.openApp('photos');
         }, 700);
+      });
+    });
+    el.querySelectorAll('.sc-folder, .sc-side-item, [data-sc-folder]').forEach(function (f) {
+      f.addEventListener('click', function () {
+        el.querySelectorAll('.sc-folder, .sc-side-item, [data-sc-folder]').forEach(function (x) {
+          x.classList.remove('active', 'is-active');
+        });
+        f.classList.add('active');
+        sound('tink');
       });
     });
   }
@@ -6026,8 +6210,39 @@
   function wirePasswords(el) {
     if (!el || el.dataset.wired) return;
     el.dataset.wired = '1';
+    el.querySelectorAll('.pw-row').forEach(function (row) {
+      row.style.cursor = 'pointer';
+      row.addEventListener('click', function (e) {
+        if (e.target.closest('button')) return;
+        el.querySelectorAll('.pw-row').forEach(function (r) {
+          r.classList.remove('is-selected');
+        });
+        row.classList.add('is-selected');
+        sound('pop');
+      });
+      var actions = row.querySelector('.pw-actions');
+      if (actions && !actions.querySelector('.pw-reveal')) {
+        var reveal = document.createElement('button');
+        reveal.type = 'button';
+        reveal.className = 'btn-glass pw-reveal';
+        reveal.textContent = 'Show';
+        actions.insertBefore(reveal, actions.querySelector('.pw-copy'));
+        reveal.addEventListener('click', function (e) {
+          e.stopPropagation();
+          var pass = row.querySelector('.pw-pass');
+          var site = row.getAttribute('data-site') || 'site';
+          var demo = 'demo-password-' + site.replace(/\W/g, '');
+          var shown = reveal.getAttribute('data-shown') === '1';
+          if (pass) pass.textContent = shown ? '••••••••••••' : demo;
+          reveal.setAttribute('data-shown', shown ? '0' : '1');
+          reveal.textContent = shown ? 'Show' : 'Hide';
+          sound('tink');
+        });
+      }
+    });
     el.querySelectorAll('.pw-copy').forEach(function (btn) {
-      btn.addEventListener('click', function () {
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
         var site = btn.getAttribute('data-site') || 'site';
         var demo = 'demo-password-' + site.replace(/\W/g, '');
         if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -6048,8 +6263,9 @@
       search.addEventListener('input', function () {
         var q = search.value.toLowerCase();
         el.querySelectorAll('.pw-row').forEach(function (row) {
+          var text = (row.textContent || '').toLowerCase();
           var site = (row.getAttribute('data-site') || '').toLowerCase();
-          row.style.display = !q || site.indexOf(q) >= 0 ? '' : 'none';
+          row.style.display = !q || site.indexOf(q) >= 0 || text.indexOf(q) >= 0 ? '' : 'none';
         });
       });
     }
@@ -6455,6 +6671,33 @@
         sound('hero');
       });
     }
+    var del = el.querySelector('#journal-delete, [data-journal-delete]');
+    if (!del) {
+      var bar = el.querySelector('.journal-toolbar, .app-toolbar, .window-toolbar') || el;
+      del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'btn-glass';
+      del.id = 'journal-delete';
+      del.textContent = 'Delete';
+      if (neu && neu.parentNode) neu.parentNode.appendChild(del);
+      else bar.appendChild(del);
+    }
+    del.addEventListener('click', function () {
+      var active = el.querySelector('.journal-item.is-active');
+      if (!active || !list) return;
+      var idx = parseInt(active.getAttribute('data-j'), 10) || 0;
+      entries.splice(idx, 1);
+      active.remove();
+      list.querySelectorAll('.journal-item').forEach(function (item, i) {
+        item.setAttribute('data-j', String(i));
+      });
+      if (entries.length) show(0);
+      else {
+        if (title) title.value = '';
+        if (text) text.value = '';
+      }
+      sound('emptyTrash');
+    });
   }
 
   /* ── Games ──────────────────────────────────────────── */

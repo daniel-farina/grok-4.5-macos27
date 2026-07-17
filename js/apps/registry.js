@@ -4222,7 +4222,7 @@ Save stores a demo document name from the first line.</div>
         { title: 'Cortex', sub: 'Relay FM', meta: 'Jul 5 · 2h' },
       ];
       return `<div class="app-layout col podcasts-app">
-        ${toolbar(`<strong>Podcasts</strong><span class="muted">Listen Now</span>`)}
+        ${toolbar(`<strong>Podcasts</strong><span class="muted">Listen Now</span><input class="search-field" type="search" placeholder="Search shows" />`)}
         <div class="pod-body">
           <div class="pod-list">
             ${eps
