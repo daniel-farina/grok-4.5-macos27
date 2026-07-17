@@ -891,6 +891,10 @@
         { icon: '📅', name: 'Calendar', app: 'calendar' },
         { icon: '✅', name: 'Reminders', app: 'reminders' },
         { icon: '🔊', name: 'Sounds', app: 'sounds' },
+        { icon: '💳', name: 'Wallet', app: 'wallet' },
+        { icon: '❤️', name: 'Health', app: 'health' },
+        { icon: '🅰', name: 'App Store', app: 'appstore' },
+        { icon: '📁', name: 'Files', app: 'files' },
       ]
         .map(function (a) {
           return (
@@ -1299,6 +1303,72 @@
           btn.classList.add('is-active');
         });
       });
+      /* Wallet pay */
+      var pay = view.querySelector('#iphone-pay');
+      if (pay) {
+        pay.addEventListener('click', function () {
+          pay.textContent = 'Hold Near Reader…';
+          sound('purr');
+          setTimeout(function () {
+            pay.textContent = 'Done';
+            sound('hero');
+            if (global.MacShell && MacShell.notify) {
+              MacShell.notify('Wallet', 'Payment', 'Demo transaction complete', 'now');
+            }
+            setTimeout(function () {
+              pay.textContent = 'Double-click to Pay';
+            }, 1200);
+          }, 1400);
+        });
+      }
+      view.querySelectorAll('.iapp-card').forEach(function (card) {
+        card.addEventListener('click', function () {
+          view.querySelectorAll('.iapp-card').forEach(function (c) {
+            c.classList.remove('is-selected');
+          });
+          card.classList.add('is-selected');
+          sound('pop');
+        });
+      });
+      /* App Store GET on iPhone */
+      view.querySelectorAll('.iapp-get').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          if (btn.classList.contains('is-installed') || btn.textContent === 'OPEN') {
+            sound('pop');
+            return;
+          }
+          btn.textContent = '…';
+          sound('pop');
+          setTimeout(function () {
+            btn.textContent = 'OPEN';
+            btn.classList.add('is-installed');
+            sound('hero');
+          }, 900);
+        });
+      });
+      /* Files browse */
+      view.querySelectorAll('.iapp-file-row').forEach(function (row) {
+        row.addEventListener('click', function () {
+          view.querySelectorAll('.iapp-file-row').forEach(function (r) {
+            r.classList.remove('is-selected');
+          });
+          row.classList.add('is-selected');
+          sound('tink');
+          if (global.MacShell && MacShell.notify) {
+            MacShell.notify('Files', 'Browsing', row.textContent.trim(), 'now');
+          }
+        });
+      });
+      /* Health rows refresh */
+      view.querySelectorAll('.iapp-health .iapp-row').forEach(function (row) {
+        row.addEventListener('click', function () {
+          var val = row.querySelector('.iapp-row-val');
+          if (val && /bpm/i.test(val.textContent)) {
+            val.textContent = 68 + Math.floor(Math.random() * 12) + ' bpm';
+            sound('tink');
+          } else sound('pop');
+        });
+      });
       /* Control Center special tiles */
       view.querySelectorAll('.icc-tile[data-cc]').forEach(function (tile) {
         tile.addEventListener('click', function () {
@@ -1455,6 +1525,29 @@
             })
             .join('') +
           '</div>',
+        wallet:
+          '<div class="iapp-wallet"><div class="iapp-nav"><button type="button" class="iapp-back" data-back>‹</button><div class="iapp-title">Wallet</div></div>' +
+          '<div class="iapp-card iapp-card-transit"><strong>Transit Card</strong><span class="muted">$24.50</span></div>' +
+          '<div class="iapp-card iapp-card-pay"><strong>Apple Card</strong><span class="muted">•••• 4242</span></div>' +
+          '<div class="iapp-card iapp-card-pass"><strong>Boarding Pass</strong><span class="muted">SFO → SEA</span></div>' +
+          '<button type="button" class="btn-primary" id="iphone-pay">Double-click to Pay</button></div>',
+        health:
+          '<div class="iapp-health"><div class="iapp-nav"><button type="button" class="iapp-back" data-back>‹</button><div class="iapp-title">Health</div></div>' +
+          '<div class="iapp-health-ring"><div class="iapp-bigtime">8,420</div><div class="muted">Steps today</div></div>' +
+          '<div class="iapp-row"><span>Heart Rate</span><span class="iapp-row-val">72 bpm</span></div>' +
+          '<div class="iapp-row"><span>Sleep</span><span class="iapp-row-val">7h 12m</span></div>' +
+          '<div class="iapp-row"><span>Mindful</span><span class="iapp-row-val">10 min</span></div></div>',
+        appstore:
+          '<div class="iapp-store"><div class="iapp-nav"><button type="button" class="iapp-back" data-back>‹</button><div class="iapp-title">App Store</div></div>' +
+          '<div class="iapp-store-row" data-store-app="freeform"><strong>Freeform</strong><button type="button" class="btn-glass iapp-get">GET</button></div>' +
+          '<div class="iapp-store-row" data-store-app="pages"><strong>Pages</strong><button type="button" class="btn-glass iapp-get">GET</button></div>' +
+          '<div class="iapp-store-row" data-store-app="garageband"><strong>GarageBand</strong><button type="button" class="btn-glass iapp-get is-installed">OPEN</button></div></div>',
+        files:
+          '<div class="iapp-files"><div class="iapp-nav"><button type="button" class="iapp-back" data-back>‹</button><div class="iapp-title">Files</div></div>' +
+          '<div class="iapp-file-row" data-file="docs">📁 Documents</div>' +
+          '<div class="iapp-file-row" data-file="down">📁 Downloads</div>' +
+          '<div class="iapp-file-row" data-file="icloud">☁ iCloud Drive</div>' +
+          '<div class="iapp-file-row" data-file="recents">🕐 Recents</div></div>',
       };
       view.innerHTML =
         screens[id] ||
@@ -1758,6 +1851,11 @@
         }
       });
     }
+
+    /* Pencil pressure sim: shift = thicker stroke */
+    canvas.addEventListener('pointerdown', function (e) {
+      if (e.shiftKey) ctx.lineWidth = (tool === 'marker' ? 14 : 5);
+    });
 
     var clock = el.querySelector('.ipad-clock');
     if (clock) {
@@ -2670,12 +2768,33 @@
       }
     }
     if (playBtn) playBtn.addEventListener('click', toggle);
-    el.querySelectorAll('.np-btn[aria-label="Previous"], .np-btn[aria-label="Next"]').forEach(function (btn) {
+    var shuffleOn = false;
+    var repeatOn = false;
+    el.querySelectorAll(
+      '.np-btn[aria-label="Previous"], .np-btn[aria-label="Next"], .np-btn[aria-label="Shuffle"], .np-btn[aria-label="Repeat"], [title="Shuffle"], [title="Repeat"]'
+    ).forEach(function (btn) {
       btn.addEventListener('click', function () {
+        var lab = (btn.getAttribute('aria-label') || btn.getAttribute('title') || '').toLowerCase();
+        if (lab.indexOf('shuffle') >= 0) {
+          shuffleOn = !shuffleOn;
+          btn.classList.toggle('is-active', shuffleOn);
+          sound('tink');
+          return;
+        }
+        if (lab.indexOf('repeat') >= 0) {
+          repeatOn = !repeatOn;
+          btn.classList.toggle('is-active', repeatOn);
+          sound('tink');
+          return;
+        }
         sound('tink');
         var tracks = ['Liquid Glass', 'Neon Rain', 'Soft Static', 'Harbor Lights', 'Golden Hour'];
         var meta = el.querySelector('.np-meta strong, .mini-player strong');
-        if (meta) meta.textContent = tracks[Math.floor(Math.random() * tracks.length)];
+        var pick = shuffleOn
+          ? tracks[Math.floor(Math.random() * tracks.length)]
+          : tracks[(tracks.indexOf(meta ? meta.textContent : '') + 1 + tracks.length) % tracks.length] ||
+            tracks[0];
+        if (meta) meta.textContent = pick;
         pos = 0;
       });
     });
@@ -6330,10 +6449,47 @@
           }
           return;
         }
+        if (/mount/i.test(title) && !/unmount/i.test(title)) {
+          if (status) status.textContent = selected + ' mounted';
+          sound('hero');
+          return;
+        }
+        if (/unmount|eject/i.test(title)) {
+          if (status) status.textContent = selected + ' unmounted (demo)';
+          sound('emptyTrash');
+          return;
+        }
+        if (/info|get info/i.test(title)) {
+          if (status) {
+            status.textContent =
+              selected + ' · APFS · 1 TB · 530 GB used · GUID Partition Map';
+          }
+          sound('pop');
+          if (global.MacShell && MacShell.notify) {
+            MacShell.notify('Disk Utility', 'Get Info', selected, 'now');
+          }
+          return;
+        }
+        if (/partition/i.test(title)) {
+          sound('sosumi');
+          if (status) status.textContent = 'Partition · demo only (no changes)';
+          return;
+        }
         sound('tink');
         if (status) status.textContent = title + ' · simulated';
         if (global.MacShell && MacShell.notify) {
           MacShell.notify('Disk Utility', title, 'Operation simulated', 'now');
+        }
+      });
+    });
+    /* volume usage bar if present */
+    el.querySelectorAll('.du27-item, .du-volume, [data-volume]').forEach(function (item) {
+      item.addEventListener('dblclick', function () {
+        var status = el.querySelector('#du-status, .du-status, .du27-status');
+        if (status) status.textContent = selected + ' · double-click → First Aid';
+        var fa = el.querySelector('[title*="First"], button');
+        if (fa && /first|aid|verify/i.test(fa.getAttribute('title') || fa.textContent || '')) {
+          fa.click();
         }
       });
     });
@@ -7593,11 +7749,46 @@
     el.dataset.wired = '1';
     var idx = 0;
     var labels = ['Today, 9:00 AM', 'Yesterday, 9:00 AM', '2 days ago', '3 days ago', 'Last Week'];
+    var snapshots = [
+      ['Design Brief.pdf', 'Notes.txt', 'wallpaper.jpg'],
+      ['Invoice.pdf', 'Photos.zip', 'Draft.docx'],
+      ['Backup log', 'Projects/', 'Music/'],
+      ['Old Desktop/', 'Archive.zip'],
+      ['Full system snapshot'],
+    ];
     var label = el.querySelector('#tm-label');
     var stack = el.querySelector('#tm-stack');
+    var fileList = el.querySelector('#tm-files, .tm-files');
+    function renderFiles() {
+      if (!fileList) {
+        fileList = document.createElement('div');
+        fileList.id = 'tm-files';
+        fileList.className = 'tm-files';
+        fileList.style.cssText = 'padding:8px 16px;max-height:120px;overflow:auto';
+        var host = el.querySelector('.tm-main, .timemachine-app') || el;
+        host.appendChild(fileList);
+      }
+      var files = snapshots[idx] || snapshots[0];
+      fileList.innerHTML = files
+        .map(function (f) {
+          return '<button type="button" class="tm-file btn-glass" style="display:block;width:100%;margin:4px 0;text-align:left"></button>';
+        })
+        .join('');
+      Array.prototype.forEach.call(fileList.querySelectorAll('.tm-file'), function (btn, i) {
+        btn.textContent = '📄 ' + files[i];
+        btn.addEventListener('click', function () {
+          fileList.querySelectorAll('.tm-file').forEach(function (b) {
+            b.classList.remove('is-selected');
+          });
+          btn.classList.add('is-selected');
+          sound('tink');
+        });
+      });
+    }
     function update() {
       if (label) label.textContent = labels[idx] || labels[0];
       if (stack) stack.style.setProperty('--tm', idx);
+      renderFiles();
       sound('pop');
     }
     var back = el.querySelector('#tm-back');
@@ -7617,12 +7808,20 @@
     var restore = el.querySelector('#tm-restore');
     if (restore) {
       restore.addEventListener('click', function () {
+        var sel = el.querySelector('.tm-file.is-selected');
+        var name = sel ? sel.textContent.replace(/^📄\s*/, '') : 'sample files';
         sound('hero');
         if (global.MacShell && MacShell.notify) {
-          MacShell.notify('Time Machine', 'Restore', 'Restored sample files from ' + (labels[idx] || ''), 'now');
+          MacShell.notify(
+            'Time Machine',
+            'Restore',
+            'Restored ' + name + ' from ' + (labels[idx] || ''),
+            'now'
+          );
         }
       });
     }
+    renderFiles();
   }
 
   /* ── Passwords ──────────────────────────────────────── */
