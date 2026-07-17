@@ -2701,3 +2701,23 @@ html[data-theme='light'] .mail-compose-fields textarea {
   font-variant-numeric: tabular-nums;
 }
 .calc-hist-line { padding: 1px 0; }
+
+.ff27-canvas { position: relative; overflow: hidden; }
+.ff27-ink { touch-action: none; }
+.ff27-sticky { cursor: grab; user-select: none; }
+.ff27-sticky:active { cursor: grabbing; }
+.ff27-sticky p[contenteditable] { user-select: text; cursor: text; outline: none; }
+.wx-d.is-selected {
+  background: rgba(10, 132, 255, 0.15);
+  border-radius: 8px;
+}
+.wx-city:hover { text-decoration: underline; }
+.btn-get.is-installed {
+  background: rgba(120, 120, 128, 0.2);
+  min-width: 64px;
+}
+.am27-row.is-selected,
+.am-row.is-selected,
+tr.is-selected {
+  background: rgba(10, 132, 255, 0.2);
+}

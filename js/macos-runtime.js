@@ -1550,6 +1550,279 @@
     }
   }
 
+  /* ── Weather: city switch ───────────────────────────── */
+  var WX_CITIES = [
+    { city: 'City', temp: 72, cond: 'Partly Cloudy', hi: 78, lo: 58 },
+    { city: 'Cupertino', temp: 68, cond: 'Foggy', hi: 72, lo: 54 },
+    { city: 'Seattle', temp: 59, cond: 'Light Rain', hi: 62, lo: 50 },
+    { city: 'Miami', temp: 86, cond: 'Mostly Sunny', hi: 90, lo: 76 },
+    { city: 'Denver', temp: 64, cond: 'Clear', hi: 71, lo: 48 },
+  ];
+  function wireWeather(el) {
+    if (!el || el.dataset.wired) return;
+    el.dataset.wired = '1';
+    var idx = 0;
+    var cityEl = el.querySelector('.wx-city');
+    if (cityEl) {
+      cityEl.style.cursor = 'pointer';
+      cityEl.title = 'Click to change city';
+      cityEl.addEventListener('click', function () {
+        idx = (idx + 1) % WX_CITIES.length;
+        var c = WX_CITIES[idx];
+        cityEl.textContent = c.city;
+        var t = el.querySelector('.wx-temp');
+        var cond = el.querySelector('.wx-cond');
+        var hl = el.querySelector('.wx-hl');
+        if (t) t.textContent = c.temp + '°';
+        if (cond) cond.textContent = c.cond;
+        if (hl) hl.textContent = 'H:' + c.hi + '°  L:' + c.lo + '°';
+        sound('pop');
+      });
+    }
+    el.querySelectorAll('.wx-d').forEach(function (row) {
+      row.style.cursor = 'pointer';
+      row.addEventListener('click', function () {
+        el.querySelectorAll('.wx-d').forEach(function (r) {
+          r.classList.remove('is-selected');
+        });
+        row.classList.add('is-selected');
+        var day = row.querySelector('.wx-d-day');
+        var cond = el.querySelector('.wx-cond');
+        if (cond && day) cond.textContent = day.textContent + ' forecast';
+        sound('tink');
+      });
+    });
+  }
+
+  /* ── Freeform: tools, stickies, pen draw ────────────── */
+  function wireFreeform(el) {
+    if (!el || el.dataset.wired) return;
+    el.dataset.wired = '1';
+    var canvas = el.querySelector('.ff27-canvas');
+    var tool = 'select';
+    var color = 'y';
+    if (!canvas) return;
+
+    el.querySelectorAll('.ff27-tool').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        el.querySelectorAll('.ff27-tool').forEach(function (b) {
+          b.classList.remove('active');
+        });
+        btn.classList.add('active');
+        tool = (btn.getAttribute('title') || 'select').toLowerCase();
+        sound('tink');
+      });
+    });
+    el.querySelectorAll('.ff27-swatch').forEach(function (s) {
+      s.addEventListener('click', function () {
+        color = s.classList.contains('p')
+          ? 'p'
+          : s.classList.contains('b')
+            ? 'b'
+            : s.classList.contains('g')
+              ? 'g'
+              : 'y';
+        sound('pop');
+      });
+    });
+
+    function addSticky(x, y, text) {
+      var sticky = document.createElement('div');
+      sticky.className = 'ff27-sticky ' + color;
+      sticky.style.left = x + 'px';
+      sticky.style.top = y + 'px';
+      sticky.innerHTML =
+        '<div class="ff27-sticky-bar"></div><p contenteditable="true"></p><span class="ff27-sticky-meta">just now</span>';
+      sticky.querySelector('p').textContent = text || 'New idea';
+      canvas.appendChild(sticky);
+      makeDraggable(sticky);
+      sound('hero');
+    }
+
+    function makeDraggable(node) {
+      var ox, oy, sx, sy, drag = false;
+      node.addEventListener('pointerdown', function (e) {
+        if (tool.indexOf('pen') >= 0) return;
+        if (e.target.isContentEditable) return;
+        drag = true;
+        node.setPointerCapture(e.pointerId);
+        var r = node.getBoundingClientRect();
+        var cr = canvas.getBoundingClientRect();
+        ox = e.clientX;
+        oy = e.clientY;
+        sx = r.left - cr.left;
+        sy = r.top - cr.top;
+      });
+      node.addEventListener('pointermove', function (e) {
+        if (!drag) return;
+        node.style.left = sx + (e.clientX - ox) + 'px';
+        node.style.top = sy + (e.clientY - oy) + 'px';
+      });
+      node.addEventListener('pointerup', function () {
+        drag = false;
+      });
+    }
+
+    el.querySelectorAll('.ff27-sticky, .ff27-shape, .ff27-text-box').forEach(makeDraggable);
+
+    canvas.addEventListener('dblclick', function (e) {
+      if (e.target.closest('.ff27-sticky, .ff27-shape, .ff27-text-box, .ff27-note')) return;
+      var cr = canvas.getBoundingClientRect();
+      addSticky(e.clientX - cr.left - 40, e.clientY - cr.top - 20, 'Sticky note');
+    });
+
+    /* pen layer */
+    var ink = document.createElement('canvas');
+    ink.className = 'ff27-ink';
+    ink.width = 960;
+    ink.height = 560;
+    ink.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:5';
+    canvas.style.position = 'relative';
+    canvas.appendChild(ink);
+    var ctx = ink.getContext('2d');
+    ctx.strokeStyle = '#1d1d1f';
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+    var drawing = false;
+
+    canvas.addEventListener('pointerdown', function (e) {
+      if (tool.indexOf('pen') < 0) return;
+      drawing = true;
+      ink.style.pointerEvents = 'auto';
+      var r = ink.getBoundingClientRect();
+      ctx.beginPath();
+      ctx.moveTo(((e.clientX - r.left) / r.width) * ink.width, ((e.clientY - r.top) / r.height) * ink.height);
+    });
+    canvas.addEventListener('pointermove', function (e) {
+      if (!drawing) return;
+      var r = ink.getBoundingClientRect();
+      ctx.lineTo(((e.clientX - r.left) / r.width) * ink.width, ((e.clientY - r.top) / r.height) * ink.height);
+      ctx.stroke();
+    });
+    canvas.addEventListener('pointerup', function () {
+      drawing = false;
+      ink.style.pointerEvents = tool.indexOf('pen') >= 0 ? 'auto' : 'none';
+    });
+
+    el.querySelectorAll('.ff27-tool').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        ink.style.pointerEvents = (btn.getAttribute('title') || '').toLowerCase().indexOf('pen') >= 0 ? 'auto' : 'none';
+      });
+    });
+  }
+
+  /* ── App Store GET / install ────────────────────────── */
+  function wireAppStore(el) {
+    if (!el || el.dataset.wired) return;
+    el.dataset.wired = '1';
+    el.querySelectorAll('.btn-get').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        if (btn.dataset.busy) return;
+        btn.dataset.busy = '1';
+        var label = btn.textContent;
+        btn.textContent = '…';
+        sound('pop');
+        var n = 0;
+        var t = setInterval(function () {
+          n += 20;
+          btn.textContent = n + '%';
+          if (n >= 100) {
+            clearInterval(t);
+            btn.textContent = 'OPEN';
+            btn.classList.add('is-installed');
+            sound('hero');
+            if (global.MacShell && MacShell.notify) {
+              var name = btn.closest('.store-row');
+              var title = name && name.querySelector('strong');
+              MacShell.notify('App Store', 'Download Complete', title ? title.textContent : 'App', 'now');
+            }
+          }
+        }, 180);
+      });
+    });
+    el.querySelectorAll('.app-sidebar-item, [data-nav]').forEach(function (item) {
+      item.addEventListener('click', function () {
+        el.querySelectorAll('.app-sidebar-item, [data-nav]').forEach(function (i) {
+          i.classList.remove('active');
+        });
+        item.classList.add('active');
+        sound('tink');
+      });
+    });
+  }
+
+  /* ── Activity Monitor: select process + tabs ────────── */
+  function wireActivityMonitor(el) {
+    if (!el || el.dataset.wired) return;
+    el.dataset.wired = '1';
+    el.querySelectorAll('tr, .am27-row, .am-row').forEach(function (row) {
+      row.addEventListener('click', function () {
+        el.querySelectorAll('tr, .am27-row, .am-row').forEach(function (r) {
+          r.classList.remove('is-selected', 'selected');
+        });
+        row.classList.add('is-selected');
+        sound('pop');
+      });
+    });
+    el.querySelectorAll('.am27-tab, [data-am-tab], .am-tabs button').forEach(function (tab) {
+      tab.addEventListener('click', function () {
+        el.querySelectorAll('.am27-tab, [data-am-tab], .am-tabs button').forEach(function (t) {
+          t.classList.remove('is-active', 'active');
+        });
+        tab.classList.add('is-active');
+        sound('tink');
+      });
+    });
+  }
+
+  /* ── Generic list apps (bulk) ───────────────────────── */
+  function wireGenericList(el) {
+    if (!el || el.dataset.wiredGeneric) return;
+    el.dataset.wiredGeneric = '1';
+    el.querySelectorAll('.app-list-row, .app-sidebar-item').forEach(function (row) {
+      row.style.cursor = 'default';
+      row.addEventListener('click', function () {
+        var parent = row.parentElement;
+        if (parent) {
+          parent.querySelectorAll('.app-list-row, .app-sidebar-item').forEach(function (r) {
+            r.classList.remove('active', 'is-selected', 'selected');
+          });
+        }
+        row.classList.add('active');
+        sound('pop');
+      });
+    });
+    el.querySelectorAll('button, .btn-primary, .btn-glass').forEach(function (btn) {
+      if (btn.dataset.snd) return;
+      btn.dataset.snd = '1';
+      btn.addEventListener('click', function () {
+        sound('tink');
+      });
+    });
+  }
+
+  /* ── Stickies ───────────────────────────────────────── */
+  function wireStickies(el) {
+    if (!el || el.dataset.wired) return;
+    el.dataset.wired = '1';
+    el.querySelectorAll('.sticky').forEach(function (s) {
+      s.addEventListener('focus', function () {
+        sound('pop');
+      });
+    });
+  }
+
+  /* ── Clock tabs already have onMount; add sound ─────── */
+  function wireClock(el) {
+    if (!el || el.dataset.wiredExtra) return;
+    el.dataset.wiredExtra = '1';
+    el.querySelectorAll('button, .clock-tab, [data-clock-tab]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        sound('tink');
+      });
+    });
+  }
+
   /* ── Patch AppRegistry apps ─────────────────────────── */
   function patchApps() {
     if (!global.AppRegistry || !global.AppRegistry.get) return;
@@ -1636,12 +1909,38 @@
       };
     }
 
-    /* Finder: open folders on double-click */
+    /* Finder: open folders on double-click + empty trash */
     var finder = AppRegistry.get('finder');
     if (finder && finder.onMount) {
       var prevF = finder.onMount;
       finder.onMount = function (el) {
         prevF.call(finder, el);
+        /* Empty trash when navigating to trash location via sidebar */
+        el.querySelectorAll('.finder-sb-item[data-nav="trash"]').forEach(function (trashNav) {
+          trashNav.addEventListener('dblclick', function () {
+            sound('emptyTrash');
+            if (global.MacShell && MacShell.notify) {
+              MacShell.notify('Finder', 'Trash', 'Trash is empty', 'now');
+            }
+          });
+        });
+        /* Path bar / toolbar more menu empty trash hint */
+        var more = el.querySelector('.tb-glass-btn[title="More"]');
+        if (more && !more.dataset.trashWired) {
+          more.dataset.trashWired = '1';
+          more.addEventListener('click', function () {
+            if (el.getAttribute('data-view') || true) {
+              /* quick empty if on trash */
+              var title = el.querySelector('#finder-title');
+              if (title && /trash/i.test(title.textContent || '')) {
+                sound('emptyTrash');
+                if (global.MacShell && MacShell.notify) {
+                  MacShell.notify('Finder', 'Trash', 'Trash is empty', 'now');
+                }
+              }
+            }
+          });
+        }
         el.addEventListener('dblclick', function (e) {
           var item = e.target.closest('.finder-icon-item, .finder-list-row, .finder-col-item');
           if (!item) return;
@@ -1768,9 +2067,22 @@
         if (id === 'calculator') wireCalculator(body);
         if (id === 'contacts') wireContacts(body);
         if (id === 'stocks') wireStocks(body);
+        if (id === 'weather') wireWeather(body);
+        if (id === 'freeform') wireFreeform(body);
+        if (id === 'appstore') wireAppStore(body);
+        if (id === 'activity-monitor') wireActivityMonitor(body);
+        if (id === 'stickies') wireStickies(body);
+        if (id === 'clock') wireClock(body);
         if (id === 'system-settings') {
           wireSoundButtons(body);
           enhanceSoundPane(body);
+        }
+        /* bulk / simple list apps */
+        if (
+          body.querySelector('.app-list-row') ||
+          body.querySelector('.app-sidebar-item')
+        ) {
+          wireGenericList(body);
         }
       }, 30);
       return r;

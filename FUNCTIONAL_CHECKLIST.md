@@ -3,23 +3,22 @@
 Job started: 2026-07-17T20:55:45Z · Cancel after ~3h · `scheduler_delete 019f71def611`
 
 ## Done
-- [x] System sounds + boot chime
-- [x] Messages, Safari, Photos (20 funny), Finder folders
-- [x] iPhone Mirroring, Sidecar
-- [x] Mail compose/send, Notes, Calendar, Maps, Music, Terminal, Reminders, Phone
-- [x] Control Center persist + volume; menu actions
-- [x] **Preview:** zoom in/out, markup tools, sketch layer, text annotation
-- [x] **Photo Booth:** getUserMedia live camera, effects, shutter strip
-- [x] **FaceTime:** call UI, contacts, mute/end, self preview camera
-- [x] **TextEdit:** B/I/U, align, font/size, ruler toggle
-- [x] **Calculator:** history strip on equals
-- [x] **Contacts:** select, add, message/call/video/mail actions
-- [x] **Stocks:** range chips
+- [x] Core shell: sounds, boot, dock mag (fixed tray), menus, Control Center
+- [x] Messages, Safari, Mail, Notes, Calendar, Maps, Music, Terminal, Reminders
+- [x] Photos (20 funny), Finder folders, Phone dialer
+- [x] iPhone Mirroring, Sidecar, Photo Booth, FaceTime
+- [x] Preview, TextEdit, Calculator history, Contacts, Stocks
+- [x] **Weather:** click city to cycle locations, select day
+- [x] **Freeform:** tools, swatches, drag stickies, dblclick sticky, pen ink
+- [x] **App Store:** GET progress → OPEN + notification
+- [x] **Activity Monitor:** row select + tabs
+- [x] **Bulk list apps:** generic row/sidebar click + button sounds
+- [x] **Stickies / Clock:** focus/tab sounds
+- [x] **Mission Control / Stage Manager:** open/toggle sounds
+- [x] **Finder trash:** empty trash sound on trash dblclick / More when in Trash
 
-## Next loops
-- [ ] Mission Control / Stage Manager polish
-- [ ] Weather / Clock / Freeform deeper interaction
-- [ ] Bulk utility apps (Disk Utility already rich)
-- [ ] App Store browse/install sim
-- [ ] Stickies already editable
-- [ ] Empty trash from Finder toolbar
+## Stretch / later
+- [ ] Deeper bulk utility panes (AirPort, Grapher, etc.)
+- [ ] Pages/Numbers/Keynote edit interactions
+- [ ] TV/Podcasts/News play
+- [ ] Accessibility VoiceOver sim

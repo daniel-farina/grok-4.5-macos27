@@ -814,6 +814,11 @@
     closeAllOverlays();
     renderMissionControl();
     showOverlay($('#mission-control'));
+    if (global.MacSounds && MacSounds.play) {
+      try {
+        MacSounds.play('pop');
+      } catch (e) {}
+    }
   }
 
   function closeMissionControl() {
@@ -906,6 +911,11 @@
       applyStageManagerLayout();
     } else {
       clearStageManagerLayout();
+    }
+    if (global.MacSounds && MacSounds.play) {
+      try {
+        MacSounds.play(stageManagerOn ? 'hero' : 'pop');
+      } catch (e) {}
     }
   }
 
