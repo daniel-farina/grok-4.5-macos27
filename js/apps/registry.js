@@ -3444,7 +3444,10 @@
           </div>
         </div>
         <div class="te27-stage">
-          <div class="te27-page" contenteditable="true" spellcheck="true" data-placeholder=" "></div>
+          <div class="te27-page" contenteditable="true" spellcheck="true" data-placeholder=" ">Liquid Glass design notes
+
+Type here. Use the toolbar for Bold, lists, and colors.
+Save stores a demo document name from the first line.</div>
         </div>
       </div>`;
     },

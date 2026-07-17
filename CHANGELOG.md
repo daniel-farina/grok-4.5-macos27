@@ -13,10 +13,10 @@ Public commits track multi-minute interactive work on this virtual macOS 27 desk
 See `docs/LOOP_PRACTICE.md` for why we commit every loop.
 
 ### 2026-07-17 / 18 (loop demo)
-- Dictionary chips; Voice Memos play; Home scenes; Stickies colors
-- Preview opens funny photos; Photo Booth strip uses all 20
-- Sidecar sketch suite; Podcasts; Music; Maps; iPhone suite
-- System Settings, Calendar, Chess, Terminal, Notes, Stocks, Reminders, Freeform
+- TextEdit Save/word count; Activity Monitor Force Quit; Find My Lost Mode
+- Contacts inline add; Font Book sample edit/search
+- Dictionary, Voice Memos, Home scenes, Stickies, Preview, Photo Booth
+- Sidecar, Podcasts, Music, Maps, iPhone, System Settings, and more
 - Commit-as-you-go for multi-minute Grok 4.5 loops
 
 ### 2026-07-17

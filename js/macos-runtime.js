@@ -2155,20 +2155,59 @@
     if (!el || el.dataset.wired) return;
     el.dataset.wired = '1';
     var page = el.querySelector('.te27-page');
+    if (page && !page.getAttribute('contenteditable')) page.setAttribute('contenteditable', 'true');
+    var docname = el.querySelector('.te27-docname');
+    var dirty = false;
+    var colors = ['#1d1d1f', '#0a84ff', '#ff3b30', '#30d158', '#ff9f0a', '#bf5af2'];
+    var colorIdx = 0;
+
+    function wordCount() {
+      if (!page) return { words: 0, chars: 0 };
+      var text = (page.innerText || '').replace(/\s+/g, ' ').trim();
+      var words = text ? text.split(' ').length : 0;
+      return { words: words, chars: (page.innerText || '').length };
+    }
+
+    function updateStatus() {
+      var st = el.querySelector('.te27-status');
+      if (!st) {
+        st = document.createElement('div');
+        st.className = 'te27-status';
+        el.appendChild(st);
+      }
+      var w = wordCount();
+      st.textContent =
+        w.words +
+        ' word' +
+        (w.words === 1 ? '' : 's') +
+        ' · ' +
+        w.chars +
+        ' characters' +
+        (dirty ? ' · Edited' : '');
+    }
+
     el.querySelectorAll('.te27-btn').forEach(function (btn) {
       btn.addEventListener('click', function () {
         var t = btn.getAttribute('title') || '';
+        if (page) page.focus();
         if (t === 'Bold') document.execCommand('bold');
         else if (t === 'Italic') document.execCommand('italic');
         else if (t === 'Underline') document.execCommand('underline');
         else if (t === 'Align Left') document.execCommand('justifyLeft');
         else if (t === 'Align Center') document.execCommand('justifyCenter');
         else if (t === 'Align Right') document.execCommand('justifyRight');
-        else if (t === 'Show Ruler' || btn.hasAttribute('data-te-ruler')) {
+        else if (t === 'Lists') {
+          document.execCommand('insertUnorderedList');
+        } else if (t === 'Text Color') {
+          colorIdx = (colorIdx + 1) % colors.length;
+          document.execCommand('foreColor', false, colors[colorIdx]);
+        } else if (t === 'Show Ruler' || btn.hasAttribute('data-te-ruler')) {
           var ruler = el.querySelector('.te27-ruler');
           if (ruler) ruler.hidden = !ruler.hidden;
           btn.classList.toggle('is-active');
         }
+        dirty = true;
+        updateStatus();
         sound('tink');
       });
     });
@@ -2177,13 +2216,66 @@
     if (font && page) {
       font.addEventListener('change', function () {
         page.style.fontFamily = font.value;
+        dirty = true;
+        updateStatus();
       });
     }
     if (size && page) {
       size.addEventListener('change', function () {
         page.style.fontSize = size.value + 'px';
+        dirty = true;
+        updateStatus();
       });
     }
+    if (page) {
+      page.addEventListener('input', function () {
+        dirty = true;
+        if (docname && docname.textContent === 'Untitled') {
+          var first = (page.innerText || '').trim().split('\n')[0].slice(0, 24);
+          if (first) docname.textContent = first;
+        }
+        updateStatus();
+      });
+    }
+
+    /* Save / New controls */
+    var right = el.querySelector('.te27-tb-right');
+    if (right && !right.querySelector('.te27-save')) {
+      var save = document.createElement('button');
+      save.type = 'button';
+      save.className = 'te27-btn te27-save';
+      save.title = 'Save';
+      save.textContent = 'Save';
+      var neu = document.createElement('button');
+      neu.type = 'button';
+      neu.className = 'te27-btn te27-new';
+      neu.title = 'New';
+      neu.textContent = 'New';
+      right.insertBefore(neu, right.firstChild);
+      right.insertBefore(save, right.firstChild);
+      save.addEventListener('click', function () {
+        dirty = false;
+        updateStatus();
+        sound('hero');
+        if (global.MacShell && MacShell.notify) {
+          MacShell.notify(
+            'TextEdit',
+            'Saved',
+            (docname && docname.textContent) || 'Untitled',
+            'now'
+          );
+        }
+      });
+      neu.addEventListener('click', function () {
+        if (page) page.innerHTML = '';
+        if (docname) docname.textContent = 'Untitled';
+        dirty = false;
+        updateStatus();
+        if (page) page.focus();
+        sound('pop');
+      });
+    }
+    updateStatus();
   }
 
   /* ── Calculator history ─────────────────────────────── */
@@ -2251,27 +2343,72 @@
     var add = el.querySelector('.ct27-icon-btn[title="Add"]');
     if (add) {
       add.addEventListener('click', function () {
-        var n = prompt('Name', 'New Contact');
-        if (!n) return;
         var list = el.querySelector('.ct27-list');
         if (!list) return;
+        if (list.querySelector('.ct27-row.is-editing')) return;
         var row = document.createElement('div');
-        row.className = 'ct27-row';
+        row.className = 'ct27-row is-editing is-selected';
         row.innerHTML =
-          '<span class="ct27-row-av" style="--h:200">' +
-          n
-            .split(/\s+/)
-            .map(function (p) {
-              return p[0];
-            })
-            .join('')
-            .slice(0, 2)
-            .toUpperCase() +
-          '</span><span class="ct27-row-name"></span>';
-        row.querySelector('.ct27-row-name').textContent = n;
-        list.appendChild(row);
-        row.click();
-        sound('hero');
+          '<span class="ct27-row-av" style="--h:200">+</span>' +
+          '<input type="text" class="ct27-inline-name" placeholder="Full name" maxlength="40" />';
+        list.querySelectorAll('.ct27-row').forEach(function (r) {
+          r.classList.remove('is-selected', 'active');
+        });
+        list.insertBefore(row, list.firstChild);
+        var input = row.querySelector('.ct27-inline-name');
+        if (input) {
+          input.focus();
+          var done = false;
+          function commit() {
+            if (done) return;
+            done = true;
+            var n = (input.value || '').trim() || 'New Contact';
+            row.classList.remove('is-editing');
+            row.innerHTML =
+              '<span class="ct27-row-av" style="--h:' +
+              Math.floor(Math.random() * 360) +
+              '">' +
+              n
+                .split(/\s+/)
+                .map(function (p) {
+                  return p[0];
+                })
+                .join('')
+                .slice(0, 2)
+                .toUpperCase() +
+              '</span><span class="ct27-row-name"></span>';
+            row.querySelector('.ct27-row-name').textContent = n;
+            row.addEventListener('click', function () {
+              el.querySelectorAll('.ct27-row').forEach(function (r) {
+                r.classList.remove('active', 'is-selected');
+              });
+              row.classList.add('active');
+              var dName = el.querySelector('.ct27-name');
+              var dAv = el.querySelector('.ct27-avatar');
+              var av = row.querySelector('.ct27-row-av');
+              if (dName) dName.textContent = n;
+              if (dAv && av) {
+                dAv.textContent = av.textContent;
+                dAv.style.setProperty('--h', av.style.getPropertyValue('--h') || '200');
+              }
+              sound('pop');
+            });
+            row.click();
+            sound('hero');
+          }
+          input.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              commit();
+            } else if (e.key === 'Escape') {
+              done = true;
+              row.remove();
+            }
+          });
+          input.addEventListener('blur', function () {
+            setTimeout(commit, 80);
+          });
+        }
       });
     }
     el.querySelectorAll('.ct27-group').forEach(function (g) {
@@ -2640,9 +2777,9 @@
   function wireActivityMonitor(el) {
     if (!el || el.dataset.wired) return;
     el.dataset.wired = '1';
-    el.querySelectorAll('tr, .am27-row, .am-row').forEach(function (row) {
+    el.querySelectorAll('tbody tr, .am27-row, .am-row').forEach(function (row) {
       row.addEventListener('click', function () {
-        el.querySelectorAll('tr, .am27-row, .am-row').forEach(function (r) {
+        el.querySelectorAll('tbody tr, .am27-row, .am-row').forEach(function (r) {
           r.classList.remove('is-selected', 'selected');
         });
         row.classList.add('is-selected');
@@ -2655,9 +2792,62 @@
           t.classList.remove('is-active', 'active');
         });
         tab.classList.add('is-active');
+        var name = tab.getAttribute('data-am-tab') || tab.textContent;
+        var summary = el.querySelector('.am27-cpu-summary');
+        if (summary && !summary.dataset.base) {
+          summary.dataset.base = summary.innerHTML;
+        }
+        if (summary) {
+          summary.innerHTML =
+            (summary.dataset.base || summary.innerHTML) +
+            ' · <span class="muted">' +
+            name +
+            ' view</span>';
+        }
         sound('tink');
       });
     });
+    var search = el.querySelector('.am27-search');
+    if (search) {
+      search.addEventListener('input', function () {
+        var q = search.value.toLowerCase();
+        el.querySelectorAll('.am27-table tbody tr').forEach(function (row) {
+          var name = (row.querySelector('.am27-col-name') || row).textContent.toLowerCase();
+          row.style.display = !q || name.indexOf(q) >= 0 ? '' : 'none';
+        });
+      });
+    }
+    /* Force Quit selected process */
+    var tb = el.querySelector('.am27-tb-right, .am27-toolbar');
+    if (tb && !el.querySelector('#am-force-quit')) {
+      var fq = document.createElement('button');
+      fq.type = 'button';
+      fq.className = 'btn-glass';
+      fq.id = 'am-force-quit';
+      fq.textContent = 'Force Quit';
+      tb.appendChild(fq);
+      fq.addEventListener('click', function () {
+        var sel = el.querySelector('tbody tr.is-selected, .am27-row.is-selected');
+        if (!sel) {
+          sound('sosumi');
+          return;
+        }
+        var nameEl = sel.querySelector('.am27-col-name');
+        var name = nameEl ? nameEl.textContent.replace(/^\s*/, '').trim() : 'Process';
+        if (/kernel_task|launchd|WindowServer/i.test(name)) {
+          sound('sosumi');
+          if (global.MacShell && MacShell.notify) {
+            MacShell.notify('Activity Monitor', 'Cannot quit', name + ' is required by the system', 'now');
+          }
+          return;
+        }
+        sel.remove();
+        sound('emptyTrash');
+        if (global.MacShell && MacShell.notify) {
+          MacShell.notify('Activity Monitor', 'Force Quit', name + ' quit', 'now');
+        }
+      });
+    }
   }
 
   /* ── Generic list apps (bulk) ───────────────────────── */
@@ -4354,10 +4544,14 @@
   function wireFindMy(el) {
     if (!el || el.dataset.wired) return;
     el.dataset.wired = '1';
+    var selected = null;
     function select(name) {
+      selected = name;
       el.querySelectorAll('.fm-row, .fm-pin').forEach(function (n) {
         n.classList.toggle('is-selected', n.getAttribute('data-dev') === name);
       });
+      var detail = el.querySelector('.fm-detail-name, #fm-detail-name');
+      if (detail) detail.textContent = name || 'Device';
       sound('pop');
     }
     el.querySelectorAll('.fm-row, .fm-pin').forEach(function (n) {
@@ -4379,7 +4573,12 @@
       play.addEventListener('click', function () {
         sound('sosumi');
         if (global.MacShell && MacShell.notify) {
-          MacShell.notify('Find My', 'Playing Sound', 'Device is playing a sound', 'now');
+          MacShell.notify(
+            'Find My',
+            'Playing Sound',
+            (selected || 'Device') + ' is playing a sound',
+            'now'
+          );
         }
       });
     }
@@ -4390,6 +4589,41 @@
         if (global.MacShell && MacShell.openApp) MacShell.openApp('maps');
       });
     }
+    var actions = el.querySelector('.fm-actions, .device-actions, .findmy-app');
+    if (actions && !el.querySelector('#fm-lost')) {
+      var lost = document.createElement('button');
+      lost.type = 'button';
+      lost.className = 'btn-glass';
+      lost.id = 'fm-lost';
+      lost.textContent = 'Mark As Lost';
+      var host = el.querySelector('.fm-actions') || el.querySelector('.fm-detail') || actions;
+      if (host) host.appendChild(lost);
+      lost.addEventListener('click', function () {
+        sound('purr');
+        if (global.MacShell && MacShell.notify) {
+          MacShell.notify(
+            'Find My',
+            'Lost Mode',
+            (selected || 'Device') + ' marked as lost (demo)',
+            'now'
+          );
+        }
+        lost.textContent = 'Lost Mode On';
+        lost.classList.add('is-active');
+      });
+    }
+    var notifyBtn = el.querySelector('#fm-notify');
+    if (notifyBtn) {
+      notifyBtn.addEventListener('click', function () {
+        sound('messageReceived');
+        if (global.MacShell && MacShell.notify) {
+          MacShell.notify('Find My', 'Notify When Found', selected || 'Device', 'now');
+        }
+      });
+    }
+    /* select first device by default */
+    var first = el.querySelector('.fm-row[data-dev], .fm-pin[data-dev]');
+    if (first) select(first.getAttribute('data-dev'));
   }
 
   /* ── Time Machine ───────────────────────────────────── */
@@ -4662,6 +4896,7 @@
     el.dataset.wired = '1';
     var preview = el.querySelector('#fb-preview');
     var name = el.querySelector('#fb-name');
+    var customSample = '';
     el.querySelectorAll('.fb-font').forEach(function (btn) {
       btn.addEventListener('click', function () {
         el.querySelectorAll('.fb-font').forEach(function (b) {
@@ -4669,10 +4904,15 @@
         });
         btn.classList.add('active');
         var font = btn.getAttribute('data-font') || 'SF Pro';
-        var sample = btn.getAttribute('data-sample') || 'Sample';
+        var sample = customSample || btn.getAttribute('data-sample') || 'Sample';
         if (name) name.textContent = font;
         if (preview) {
-          preview.style.fontFamily = font === 'Menlo' ? 'Menlo, monospace' : font === 'Georgia' ? 'Georgia, serif' : font === 'New York' ? 'Georgia, serif' : '-apple-system, "' + font + '", system-ui, sans-serif';
+          preview.style.fontFamily =
+            font === 'Menlo'
+              ? 'Menlo, monospace'
+              : font === 'Georgia' || font === 'New York'
+                ? 'Georgia, serif'
+                : '-apple-system, "' + font + '", system-ui, sans-serif';
           preview.textContent = sample + ' — The quick brown fox jumps over the lazy dog 0123456789';
         }
         sound('pop');
@@ -4680,10 +4920,33 @@
     });
     el.querySelectorAll('.fb-size').forEach(function (btn) {
       btn.addEventListener('click', function () {
+        el.querySelectorAll('.fb-size').forEach(function (b) {
+          b.classList.remove('active', 'is-active');
+        });
+        btn.classList.add('is-active');
         if (preview) preview.style.fontSize = btn.getAttribute('data-size') + 'px';
         sound('tink');
       });
     });
+    /* editable sample line */
+    if (preview && !preview.dataset.edit) {
+      preview.dataset.edit = '1';
+      preview.contentEditable = 'true';
+      preview.title = 'Click to edit sample text';
+      preview.addEventListener('input', function () {
+        customSample = (preview.textContent || '').split('—')[0].trim() || 'Sample';
+      });
+    }
+    var search = el.querySelector('.fb-search, input[type="search"]');
+    if (search) {
+      search.addEventListener('input', function () {
+        var q = search.value.toLowerCase();
+        el.querySelectorAll('.fb-font').forEach(function (btn) {
+          var f = (btn.getAttribute('data-font') || btn.textContent || '').toLowerCase();
+          btn.style.display = !q || f.indexOf(q) >= 0 ? '' : 'none';
+        });
+      });
+    }
   }
 
   /* ── Journal ────────────────────────────────────────── */

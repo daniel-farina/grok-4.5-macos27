@@ -1188,6 +1188,23 @@ html[data-theme='light'] .te27-stage {
 .te27-page:empty::before {
   content: '';
 }
+.te27-status {
+  flex-shrink: 0;
+  padding: 6px 14px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.45);
+  border-top: 0.5px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.2);
+}
+html[data-theme='light'] .te27-status {
+  color: rgba(0, 0, 0, 0.45);
+  border-top-color: rgba(0, 0, 0, 0.08);
+  background: rgba(255, 255, 255, 0.6);
+}
+.te27-app {
+  display: flex;
+  flex-direction: column;
+}
 
 /* ---------- Activity Monitor ---------- */
 .window[data-app='activity-monitor'] {
@@ -1281,6 +1298,9 @@ html[data-theme='light'] .am27-tab.is-active {
 }
 .am27-tb-right {
   margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 .am27-search {
   width: 160px;
@@ -3325,6 +3345,19 @@ html[data-theme='dark'] .ct27-row.active {
   color: #fff;
   background: linear-gradient(145deg, hsl(var(--h, 12) 70% 58%), hsl(var(--h, 12) 70% 42%));
   flex-shrink: 0;
+}
+.ct27-inline-name {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+  outline: none;
+  padding: 0;
+  min-width: 0;
+}
+.ct27-row.is-editing {
+  background: rgba(10, 132, 255, 0.12);
 }
 .ct27-row-name {
   font-size: 13px;
