@@ -19,3 +19,7 @@ See `docs/LOOP_PRACTICE.md` for why we commit every loop.
 ### 2026-07-17
 - Finder sidebar: Pictures, Music, Movies; AirDrop empty state
 - Keyboard cheat sheet (⌘/)
+
+### 2026-07-17
+- Help opens cheat sheet + Tips; welcome tips for Continuity
+- Get Info for selected desktop icon

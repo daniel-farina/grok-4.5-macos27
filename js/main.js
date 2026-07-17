@@ -26,11 +26,23 @@
               MacShell.notify(
                 'macOS 27',
                 'Welcome to Liquid Glass',
-                'Desktop widgets are ready. Right-click the desktop to change wallpaper.',
-                'now'
+                'Press ⌘/ for keyboard shortcuts. Right-click the desktop to change wallpaper.',
+                'now',
+                { force: true }
               );
             }
           }, 1200);
+          setTimeout(function () {
+            if (typeof MacShell.notify === 'function') {
+              MacShell.notify(
+                'Tips',
+                'Try Continuity',
+                'Open iPhone Mirroring or Sidecar from Spotlight (⌘Space).',
+                'now',
+                { force: true }
+              );
+            }
+          }, 2800);
         }
       }
     });

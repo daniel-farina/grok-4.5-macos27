@@ -3925,3 +3925,22 @@ html[data-theme='light'] .kbd-panel {
   border: 0.5px solid rgba(128,128,128,0.25);
   white-space: nowrap;
 }
+
+.get-info-panel {
+  padding: 20px;
+  text-align: center;
+}
+.get-info-panel h2 {
+  margin: 8px 0 14px;
+  font-size: 16px;
+}
+.gi-icon {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+.gi-icon .desktop-icon-img {
+  width: 64px;
+  height: 56px;
+  margin: 0 auto;
+}

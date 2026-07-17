@@ -1939,8 +1939,10 @@
         break;
       case 'help-search':
       case 'help':
-        openApp('tips');
-        notify('Help', 'macOS Help', 'Open Tips for keyboard shortcuts and features', 'now');
+        showKeyboardCheatSheet();
+        setTimeout(function () {
+          openApp('tips');
+        }, 100);
         break;
       case 'wifi':
       case 'battery':
@@ -1982,9 +1984,25 @@
         break;
       case 'get-info':
         if (global.WindowManager) {
-          WindowManager.open('get-info', 'Desktop Info',
-            '<div style="padding:24px"><h2>Desktop</h2><p class="muted">Virtual macOS 27 desktop.</p></div>',
-            { width: 360, height: 240, resizable: false });
+          var selIcon = document.querySelector('.desktop-icon.is-selected');
+          var label = selIcon ? (selIcon.querySelector('.desktop-icon-label') || {}).textContent : 'Desktop';
+          var kind = selIcon ? (selIcon.querySelector('.desktop-icon-img') || {}).className : '';
+          var kindLabel = /trash/.test(kind) ? 'Trash' : /folder/.test(kind) ? 'Folder' : /drive/.test(kind) ? 'Volume' : /app/.test(kind) ? 'Application' : 'Desktop';
+          WindowManager.open(
+            'get-info',
+            'Info',
+            '<div class="get-info-panel">' +
+              '<div class="gi-icon">' + (selIcon && selIcon.querySelector('.desktop-icon-img') ? selIcon.querySelector('.desktop-icon-img').outerHTML : '🖥') + '</div>' +
+              '<h2>' + escapeHtml(label || 'Desktop') + '</h2>' +
+              '<div class="about-rows">' +
+              '<div class="about-row"><span>Kind</span><strong>' + kindLabel + '</strong></div>' +
+              '<div class="about-row"><span>Where</span><strong>/Users/user/Desktop</strong></div>' +
+              '<div class="about-row"><span>Created</span><strong>Today</strong></div>' +
+              '<div class="about-row"><span>Modified</span><strong>Today</strong></div>' +
+              '<div class="about-row"><span>Size</span><strong>—</strong></div>' +
+              '</div></div>',
+            { width: 320, height: 340, resizable: false }
+          );
         }
         break;
       case 'refresh':
