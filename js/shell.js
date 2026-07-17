@@ -2694,6 +2694,13 @@
         return;
       }
 
+      /* ⌃⌘Q Lock Screen */
+      if (meta && e.ctrlKey && (key === 'q' || key === 'Q')) {
+        e.preventDefault();
+        showLockScreen('Lock Screen');
+        return;
+      }
+
       if (!meta || !global.WindowManager) return;
 
       // Don't steal from inputs except known shortcuts

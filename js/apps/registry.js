@@ -3508,7 +3508,7 @@
         const cs = Math.floor((total % 1000) / 10);
         const sec = Math.floor(total / 1000) % 60;
         const min = Math.floor(total / 60000);
-        return `${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}.${String(cs).padStart(2, '0')}`;
+        return `${(min<10?'0':'')+min}:${(sec<10?'0':'')+sec}.${(cs<10?'0':'')+cs}`;
       };
       const swFrame = () => {
         const now = performance.now();
@@ -3567,7 +3567,7 @@
         const s = Math.max(0, Math.ceil(secs));
         const m = Math.floor(s / 60);
         const r = s % 60;
-        return `${String(m).padStart(2, '0')}:${String(r).padStart(2, '0')}`;
+        return `${(m<10?'0':'')+m}:${(r<10?'0':'')+r}`;
       };
       const stopTimer = () => {
         timerRunning = false;

@@ -2340,6 +2340,72 @@
     }
   }
 
+  /* ── Finder share + Quick Look ──────────────────────── */
+  function wireFinderExtras(el) {
+    if (!el || el.dataset.wiredExtras) return;
+    el.dataset.wiredExtras = '1';
+    var share = el.querySelector('.tb-glass-btn[title="Share"]');
+    if (share) {
+      share.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var sel =
+          el.querySelector('.finder-icon-item.is-selected .finder-label') ||
+          el.querySelector('.finder-list-row.is-selected .fl-title') ||
+          el.querySelector('.finder-col-item.is-selected .fc-title');
+        var name = sel ? sel.textContent.trim() : 'Item';
+        sound('pop');
+        if (global.MacShell && MacShell.notify) {
+          MacShell.notify('Share', name, 'AirDrop · Messages · Mail (demo)', 'now');
+        }
+      });
+    }
+    el.addEventListener('keydown', function (e) {
+      if (e.key !== ' ' && e.code !== 'Space') return;
+      if (e.target.tagName === 'INPUT') return;
+      var sel =
+        el.querySelector('.finder-icon-item.is-selected .finder-label') ||
+        el.querySelector('.finder-list-row.is-selected .fl-title');
+      if (!sel) return;
+      e.preventDefault();
+      var name = sel.textContent.trim();
+      showQuickLook(name);
+      sound('tink');
+    });
+  }
+
+  function showQuickLook(name) {
+    var existing = document.getElementById('quick-look');
+    if (existing) existing.remove();
+    var ov = document.createElement('div');
+    ov.id = 'quick-look';
+    ov.className = 'quick-look-overlay';
+    var isImg = /\.(png|jpe?g|gif|webp)$/i.test(name);
+    var body = isImg
+      ? '<img class="ql-img" src="assets/photos/funny/funny-01.jpg" alt="" />'
+      : '<div class="ql-doc"><div class="ql-doc-icon">📄</div><p class="muted">Preview</p></div>';
+    ov.innerHTML =
+      '<div class="quick-look-panel glass">' +
+      '<div class="ql-titlebar"><strong></strong><button type="button" class="ql-close" aria-label="Close">✕</button></div>' +
+      '<div class="ql-body">' +
+      body +
+      '</div></div>';
+    ov.querySelector('.ql-titlebar strong').textContent = name;
+    document.body.appendChild(ov);
+    function close() {
+      ov.remove();
+    }
+    ov.querySelector('.ql-close').addEventListener('click', close);
+    ov.addEventListener('click', function (e) {
+      if (e.target === ov) close();
+    });
+    document.addEventListener('keydown', function onEsc(e) {
+      if (e.key === 'Escape') {
+        close();
+        document.removeEventListener('keydown', onEsc);
+      }
+    });
+  }
+
   /* ── Tips: open related demos ───────────────────────── */
   function wireTips(el) {
     if (!el || el.dataset.wired) return;
@@ -3932,6 +3998,7 @@
       var prevF = finder.onMount;
       finder.onMount = function (el) {
         prevF.call(finder, el);
+        wireFinderExtras(el);
         /* Empty trash when navigating to trash location via sidebar */
         el.querySelectorAll('.finder-sb-item[data-nav="trash"]').forEach(function (trashNav) {
           trashNav.addEventListener('dblclick', function () {
@@ -4069,6 +4136,7 @@
         if (id === 'photos') wirePhotos(body);
         if (id === 'iphone-mirroring') wireIphone(body);
         if (id === 'sidecar') wireSidecar(body);
+        if (id === 'finder') wireFinderExtras(body);
         if (id === 'mail') wireMail(body);
         if (id === 'notes') wireNotes(body);
         if (id === 'calendar') wireCalendar(body);
