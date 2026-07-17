@@ -24,3 +24,5 @@ Scheduler fires every 2 minutes, but each execution may do substantial work. Pre
 
 ## Cancel
 `scheduler_delete` id `019f71def611` after ~3 hours total from job start (2026-07-17T20:55:45Z).
+
+**Done:** Job cancelled at ~2026-07-17T23:55:45Z (~3.0h elapsed). Public `main` history on `daniel-farina/grok-4.5-macos27` holds the commit-as-you-go trail for multi-minute Grok 4.5 loop demos.
