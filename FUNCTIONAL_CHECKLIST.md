@@ -3,11 +3,9 @@
 Job started: 2026-07-17T20:55:45Z · Cancel after ~3h · `scheduler_delete 019f71def611`
 
 ## This loop
-- [x] Finder Back/Forward history
-- [x] Double-click folders navigate (Documents, Downloads, Pictures, …)
-- [x] Double-click apps/files open related apps (Safari, Preview, Photos, QuickTime, TextEdit)
-- [x] Trash sample items + Empty Trash clears them
-- [x] AirDrop / Network / Public / Library locations populated
+- [x] Finder path bar crumbs clickable (navigate up)
+- [x] Finder toolbar search filters current folder
+- [x] README updated for interactive demo features
 
 ## Process
 - Commit + push each loop (`docs/LOOP_PRACTICE.md`)

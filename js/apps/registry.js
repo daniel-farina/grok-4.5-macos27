@@ -376,12 +376,31 @@
 
   function finderCrumbs(crumbs) {
     const parts = crumbs || [];
+    const crumbNav = {
+      'Macintosh HD': 'drive',
+      Users: 'home',
+      User: 'home',
+      Desktop: 'desktop',
+      Documents: 'docs',
+      Downloads: 'down',
+      Applications: 'apps',
+      Movies: 'movies',
+      Music: 'music',
+      Pictures: 'pictures',
+      'iCloud Drive': 'icloud',
+      AirDrop: 'airdrop',
+      Network: 'network',
+      Trash: 'trash',
+      Public: 'public',
+      Library: 'library',
+    };
     return parts
       .map((c, i) => {
         const last = i === parts.length - 1;
-        return `<span class="crumb${last ? ' is-current' : ''}"><span class="crumb-folder" aria-hidden="true"></span>${c}</span>${
-          last ? '' : '<span class="crumb-sep">›</span>'
-        }`;
+        const nav = crumbNav[c] || '';
+        return `<button type="button" class="crumb${last ? ' is-current' : ''}" data-crumb-nav="${nav}" ${last ? 'disabled' : ''}>
+          <span class="crumb-folder" aria-hidden="true"></span>${c}
+        </button>${last ? '' : '<span class="crumb-sep">›</span>'}`;
       })
       .join('');
   }
@@ -472,7 +491,10 @@
           <button type="button" class="tb-glass-btn" title="Share" aria-label="Share">${TB_SVG.share}</button>
           <button type="button" class="tb-glass-btn" title="Tags" aria-label="Tags">${TB_SVG.tag}</button>
           <button type="button" class="tb-glass-btn" title="More" aria-label="More">${TB_SVG.more}</button>
-          <button type="button" class="tb-glass-btn search" title="Search" aria-label="Search">${TB_SVG.search}</button>
+          <label class="finder-search-wrap">
+            <span class="finder-search-ico" aria-hidden="true">${TB_SVG.search}</span>
+            <input type="search" class="finder-search" id="finder-search" placeholder="Search" autocomplete="off" />
+          </label>
         </div>
       </div>
       <div class="finder-content" id="finder-content">${content}</div>
@@ -531,12 +553,18 @@
         });
       };
 
+      let searchQuery = '';
+
       const renderContent = () => {
         const loc = FINDER_LOCATIONS[currentNav];
         if (!loc) return;
         const content = el.querySelector('#finder-content');
         const main = el.querySelector('.finder-main');
-        const files = loc.files || [];
+        let files = loc.files || [];
+        if (searchQuery) {
+          const q = searchQuery.toLowerCase();
+          files = files.filter((f) => (f.title || '').toLowerCase().indexOf(q) !== -1);
+        }
         if (content) {
           content.innerHTML = finderContentHTML(files, currentView);
           content.classList.add('is-ready');
@@ -545,7 +573,11 @@
         if (main) main.setAttribute('data-finder-view', currentView);
         el.setAttribute('data-view', currentView);
         const status = el.querySelector('#finder-statusbar .finder-status-count');
-        if (status) status.textContent = `${files.length} item${files.length === 1 ? '' : 's'}`;
+        if (status) {
+          status.textContent =
+            `${files.length} item${files.length === 1 ? '' : 's'}` +
+            (searchQuery ? ' found' : '');
+        }
         el.querySelectorAll('.tb-view-btn').forEach((b) => {
           const on = b.getAttribute('data-view') === currentView;
           b.classList.toggle('is-active', on);
@@ -571,7 +603,16 @@
         const title = el.querySelector('#finder-title');
         if (title) title.textContent = loc.title;
         const pathbar = el.querySelector('#finder-pathbar');
-        if (pathbar) pathbar.innerHTML = finderCrumbs(loc.crumbs);
+        if (pathbar) {
+          pathbar.innerHTML = finderCrumbs(loc.crumbs);
+          pathbar.querySelectorAll('[data-crumb-nav]').forEach((crumb) => {
+            crumb.addEventListener('click', (e) => {
+              e.stopPropagation();
+              const nav = crumb.getAttribute('data-crumb-nav');
+              if (nav && FINDER_LOCATIONS[nav]) show(nav);
+            });
+          });
+        }
         const status = el.querySelector('#finder-statusbar .finder-status-count');
         if (status) {
           const n = (loc.files || []).length;
@@ -725,6 +766,16 @@
         if (FINDER_LOCATIONS.trash) FINDER_LOCATIONS.trash.files = [];
         if (currentNav === 'trash') show('trash', false);
       });
+      const searchInput = el.querySelector('#finder-search');
+      if (searchInput) {
+        searchInput.addEventListener('input', () => {
+          searchQuery = searchInput.value.trim();
+          renderContent();
+        });
+        searchInput.addEventListener('keydown', (e) => {
+          e.stopPropagation();
+        });
+      }
       wireSelection(el);
     },
   });

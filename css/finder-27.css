@@ -962,3 +962,69 @@ html[data-theme='light'] .finder-statusbar {
   flex: 1;
   min-height: 0;
 }
+
+/* Path bar crumbs as buttons */
+.finder-pathbar .crumb {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  cursor: default;
+}
+.finder-pathbar .crumb:not(:disabled):hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+.finder-pathbar .crumb:disabled {
+  opacity: 0.9;
+  font-weight: 600;
+}
+.finder-pathbar .crumb-sep {
+  opacity: 0.4;
+  margin: 0 2px;
+}
+
+/* Finder search field */
+.finder-search-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 28px;
+  padding: 0 10px 0 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 0.5px solid rgba(255, 255, 255, 0.12);
+  min-width: 120px;
+}
+html[data-theme='light'] .finder-search-wrap {
+  background: rgba(0, 0, 0, 0.05);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+.finder-search-ico {
+  display: grid;
+  place-items: center;
+  opacity: 0.55;
+  line-height: 0;
+}
+.finder-search-ico svg {
+  width: 12px;
+  height: 12px;
+}
+.finder-search {
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  width: 100px;
+  outline: none;
+  min-width: 0;
+}
+.finder-search::placeholder {
+  opacity: 0.45;
+}
