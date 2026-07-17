@@ -1779,23 +1779,473 @@
   function wireGenericList(el) {
     if (!el || el.dataset.wiredGeneric) return;
     el.dataset.wiredGeneric = '1';
-    el.querySelectorAll('.app-list-row, .app-sidebar-item').forEach(function (row) {
+    el.querySelectorAll('.app-list-row, .simple-row, .app-sidebar-item').forEach(function (row) {
       row.style.cursor = 'default';
       row.addEventListener('click', function () {
         var parent = row.parentElement;
         if (parent) {
-          parent.querySelectorAll('.app-list-row, .app-sidebar-item').forEach(function (r) {
+          parent.querySelectorAll('.app-list-row, .simple-row, .app-sidebar-item').forEach(function (r) {
             r.classList.remove('active', 'is-selected', 'selected');
           });
         }
+        row.classList.add(row.classList.contains('app-sidebar-item') ? 'active' : 'is-selected');
         row.classList.add('active');
+        var title = row.getAttribute('data-title') || (row.querySelector('strong') && row.querySelector('strong').textContent);
+        var sub = row.getAttribute('data-sub') || '';
+        var meta = row.getAttribute('data-meta') || '';
+        var dt = el.querySelector('.simple-detail-title');
+        var ds = el.querySelector('.simple-detail-sub');
+        var dm = el.querySelector('.simple-detail-meta');
+        if (dt && title) dt.textContent = title;
+        if (ds) ds.textContent = sub || 'Selected';
+        if (dm) dm.textContent = meta;
         sound('pop');
       });
     });
+    var search = el.querySelector('.simple-search, .search-field');
+    if (search && !search.dataset.wiredSearch) {
+      search.dataset.wiredSearch = '1';
+      search.addEventListener('input', function () {
+        var q = search.value.toLowerCase();
+        el.querySelectorAll('.simple-row, .app-list-row').forEach(function (row) {
+          var t = (row.getAttribute('data-title') || row.textContent || '').toLowerCase();
+          row.style.display = !q || t.indexOf(q) >= 0 ? '' : 'none';
+        });
+      });
+    }
+    el.querySelectorAll('.simple-action').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var act = btn.getAttribute('data-action');
+        var sel = el.querySelector('.simple-row.is-selected, .app-list-row.is-selected');
+        var name = sel && (sel.getAttribute('data-title') || sel.textContent);
+        sound(act === 'primary' ? 'hero' : 'tink');
+        if (global.MacShell && MacShell.notify) {
+          MacShell.notify(
+            el.getAttribute('data-simple-app') || 'App',
+            act === 'primary' ? 'Open' : 'Refresh',
+            name || 'Done',
+            'now'
+          );
+        }
+      });
+    });
     el.querySelectorAll('button, .btn-primary, .btn-glass').forEach(function (btn) {
-      if (btn.dataset.snd) return;
+      if (btn.dataset.snd || btn.classList.contains('simple-action') || btn.classList.contains('simple-row')) return;
       btn.dataset.snd = '1';
       btn.addEventListener('click', function () {
+        sound('tink');
+      });
+    });
+  }
+
+  /* ── Image Capture ──────────────────────────────────── */
+  function wireImageCapture(el) {
+    if (!el || el.dataset.wired) return;
+    el.dataset.wired = '1';
+    el.querySelectorAll('.ic-dev').forEach(function (d) {
+      d.addEventListener('click', function () {
+        el.querySelectorAll('.ic-dev').forEach(function (x) {
+          x.classList.remove('is-selected');
+        });
+        d.classList.add('is-selected');
+        sound('pop');
+      });
+    });
+    el.querySelectorAll('.ic-thumb').forEach(function (t) {
+      t.addEventListener('click', function () {
+        t.classList.toggle('is-selected');
+        sound('tink');
+      });
+    });
+    var imp = el.querySelector('#ic-import');
+    if (imp) {
+      imp.addEventListener('click', function () {
+        var n = el.querySelectorAll('.ic-thumb.is-selected').length || el.querySelectorAll('.ic-thumb').length;
+        sound('hero');
+        if (global.MacShell && MacShell.notify) {
+          MacShell.notify('Image Capture', 'Import', n + ' item(s) imported to Photos (demo)', 'now');
+        }
+      });
+    }
+    var del = el.querySelector('#ic-delete');
+    if (del) {
+      del.addEventListener('click', function () {
+        el.querySelectorAll('.ic-thumb.is-selected').forEach(function (t) {
+          t.remove();
+        });
+        sound('emptyTrash');
+      });
+    }
+  }
+
+  /* ── Automator ──────────────────────────────────────── */
+  function wireAutomator(el) {
+    if (!el || el.dataset.wired) return;
+    el.dataset.wired = '1';
+    var workflow = el.querySelector('#am-workflow');
+    var log = el.querySelector('#am-log');
+    var step = 1;
+    el.querySelectorAll('.am-action').forEach(function (a) {
+      a.addEventListener('click', function () {
+        el.querySelectorAll('.am-action').forEach(function (x) {
+          x.classList.remove('active');
+        });
+        a.classList.add('active');
+        sound('pop');
+      });
+    });
+    var add = el.querySelector('#am-add');
+    if (add && workflow) {
+      add.addEventListener('click', function () {
+        var active = el.querySelector('.am-action.active');
+        var name = active ? active.getAttribute('data-action') : 'Action';
+        step++;
+        var div = document.createElement('div');
+        div.className = 'am-step';
+        div.textContent = step + '. ' + name;
+        workflow.appendChild(div);
+        if (log) log.textContent = 'Ready · Workflow has ' + step + ' action(s)';
+        sound('tink');
+      });
+    }
+    var run = el.querySelector('#am-run');
+    if (run) {
+      run.addEventListener('click', function () {
+        if (log) log.textContent = 'Running…';
+        sound('pop');
+        setTimeout(function () {
+          if (log) log.textContent = 'Workflow completed successfully';
+          sound('hero');
+          if (global.MacShell && MacShell.notify) {
+            MacShell.notify('Automator', 'Workflow', 'Finished running', 'now');
+          }
+        }, 800);
+      });
+    }
+  }
+
+  /* ── Keychain ───────────────────────────────────────── */
+  function wireKeychain(el) {
+    if (!el || el.dataset.wired) return;
+    el.dataset.wired = '1';
+    var shown = false;
+    el.querySelectorAll('.kc-row').forEach(function (row) {
+      row.addEventListener('click', function () {
+        el.querySelectorAll('.kc-row').forEach(function (r) {
+          r.classList.remove('is-selected');
+        });
+        row.classList.add('is-selected');
+        var n = el.querySelector('#kc-name');
+        var k = el.querySelector('#kc-kind');
+        var p = el.querySelector('#kc-pass');
+        if (n) n.textContent = row.getAttribute('data-name') || '';
+        if (k) k.textContent = row.querySelector('.muted') ? row.querySelector('.muted').textContent : '';
+        if (p) p.textContent = '••••••••••••';
+        shown = false;
+        sound('pop');
+      });
+    });
+    var show = el.querySelector('#kc-show');
+    if (show) {
+      show.addEventListener('click', function () {
+        var p = el.querySelector('#kc-pass');
+        shown = !shown;
+        if (p) p.textContent = shown ? 'demo-keychain-secret' : '••••••••••••';
+        sound('tink');
+      });
+    }
+    var copy = el.querySelector('#kc-copy');
+    if (copy) {
+      copy.addEventListener('click', function () {
+        var p = el.querySelector('#kc-pass');
+        var val = p && shown ? p.textContent : 'demo-keychain-secret';
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(val).catch(function () {});
+        }
+        sound('hero');
+        if (global.MacShell && MacShell.notify) {
+          MacShell.notify('Keychain Access', 'Copied', 'Password copied (demo)', 'now');
+        }
+      });
+    }
+  }
+
+  /* ── Audio MIDI Setup ───────────────────────────────── */
+  function wireAudioMidi(el) {
+    if (!el || el.dataset.wired) return;
+    el.dataset.wired = '1';
+    el.querySelectorAll('.ams-row').forEach(function (row) {
+      row.addEventListener('click', function () {
+        el.querySelectorAll('.ams-row').forEach(function (r) {
+          r.classList.remove('is-selected');
+        });
+        row.classList.add('is-selected');
+        var n = el.querySelector('#ams-name');
+        var c = el.querySelector('#ams-ch');
+        var rate = el.querySelector('#ams-rate');
+        if (n) n.textContent = row.getAttribute('data-dev') || '';
+        if (c) c.textContent = row.getAttribute('data-ch') || '';
+        if (rate) rate.value = row.getAttribute('data-rate') || '48000';
+        sound('pop');
+      });
+    });
+    var vol = el.querySelector('#ams-vol');
+    if (vol) {
+      vol.addEventListener('input', function () {
+        sound('volume');
+      });
+    }
+  }
+
+  /* ── DVD Player ─────────────────────────────────────── */
+  function wireDvdPlayer(el) {
+    if (!el || el.dataset.wired) return;
+    el.dataset.wired = '1';
+    var hasDisc = false;
+    var playing = false;
+    var status = el.querySelector('#dvd-status');
+    var disc = el.querySelector('#dvd-disc');
+    var play = el.querySelector('#dvd-play');
+    function setStatus(t) {
+      if (status) status.textContent = t;
+    }
+    var eject = el.querySelector('#dvd-eject');
+    if (eject) {
+      eject.addEventListener('click', function () {
+        hasDisc = !hasDisc;
+        playing = false;
+        if (disc) disc.style.animation = hasDisc ? 'dvd-spin 3s linear infinite' : '';
+        setStatus(hasDisc ? 'DVD inserted · Ready' : 'No disc · Insert a DVD to begin');
+        if (play) play.textContent = '▶';
+        sound(hasDisc ? 'hero' : 'emptyTrash');
+      });
+    }
+    if (play) {
+      play.addEventListener('click', function () {
+        if (!hasDisc) {
+          hasDisc = true;
+          if (disc) disc.style.animation = 'dvd-spin 3s linear infinite';
+        }
+        playing = !playing;
+        play.textContent = playing ? '❚❚' : '▶';
+        setStatus(playing ? 'Playing · Title 1 Chapter 1' : 'Paused');
+        sound(playing ? 'funk' : 'pop');
+      });
+    }
+    ['dvd-prev', 'dvd-next', 'dvd-menu'].forEach(function (id) {
+      var b = el.querySelector('#' + id);
+      if (b) {
+        b.addEventListener('click', function () {
+          sound('tink');
+          setStatus(id === 'dvd-menu' ? 'Disc Menu' : 'Chapter change');
+        });
+      }
+    });
+  }
+
+  /* ── Migration Assistant ────────────────────────────── */
+  function wireMigration(el) {
+    if (!el || el.dataset.wired) return;
+    el.dataset.wired = '1';
+    var step = 1;
+    var status = el.querySelector('#mig-status');
+    el.querySelectorAll('.mig-opt').forEach(function (opt) {
+      opt.addEventListener('click', function () {
+        el.querySelectorAll('.mig-opt').forEach(function (o) {
+          o.classList.remove('is-selected');
+        });
+        opt.classList.add('is-selected');
+        var input = opt.querySelector('input');
+        if (input) input.checked = true;
+        sound('pop');
+      });
+    });
+    var cont = el.querySelector('#mig-continue');
+    if (cont) {
+      cont.addEventListener('click', function () {
+        step = Math.min(3, step + 1);
+        if (status) status.textContent = 'Step ' + step + ' of 3';
+        sound(step === 3 ? 'hero' : 'tink');
+        if (step === 3 && global.MacShell && MacShell.notify) {
+          MacShell.notify('Migration Assistant', 'Complete', 'Demo migration finished', 'now');
+        }
+      });
+    }
+    var back = el.querySelector('#mig-back');
+    if (back) {
+      back.addEventListener('click', function () {
+        step = Math.max(1, step - 1);
+        if (status) status.textContent = 'Step ' + step + ' of 3';
+        sound('pop');
+      });
+    }
+  }
+
+  /* ── VoiceOver Utility ──────────────────────────────── */
+  function wireVoiceOver(el) {
+    if (!el || el.dataset.wired) return;
+    el.dataset.wired = '1';
+    el.querySelectorAll('.vo-nav').forEach(function (nav) {
+      nav.addEventListener('click', function () {
+        el.querySelectorAll('.vo-nav').forEach(function (n) {
+          n.classList.remove('active');
+        });
+        nav.classList.add('active');
+        var t = el.querySelector('#vo-title');
+        if (t) t.textContent = nav.getAttribute('data-vo') || 'General';
+        sound('pop');
+      });
+    });
+    var en = el.querySelector('#vo-enable');
+    if (en) {
+      en.addEventListener('change', function () {
+        sound(en.checked ? 'hero' : 'pop');
+        if (global.MacShell && MacShell.notify) {
+          MacShell.notify('VoiceOver', en.checked ? 'On' : 'Off', 'VoiceOver ' + (en.checked ? 'enabled' : 'disabled') + ' (demo)', 'now');
+        }
+      });
+    }
+    var test = el.querySelector('#vo-test');
+    if (test) {
+      test.addEventListener('click', function () {
+        sound('submarine');
+        if (window.speechSynthesis) {
+          var u = new SpeechSynthesisUtterance('Welcome to macOS 27 Liquid Glass');
+          var rate = el.querySelector('#vo-rate');
+          if (rate) u.rate = 0.5 + (Number(rate.value) / 100) * 1.2;
+          window.speechSynthesis.speak(u);
+        }
+      });
+    }
+  }
+
+  /* ── Bluetooth File Exchange ────────────────────────── */
+  function wireBtFile(el) {
+    if (!el || el.dataset.wired) return;
+    el.dataset.wired = '1';
+    var list = el.querySelector('#bt-devices');
+    var status = el.querySelector('#bt-status');
+    var browse = el.querySelector('#bt-browse');
+    if (browse) {
+      browse.addEventListener('click', function () {
+        if (list) {
+          list.innerHTML =
+            '<button type="button" class="btn-glass bt-dev">iPhone</button> ' +
+            '<button type="button" class="btn-glass bt-dev">Magic Keyboard</button> ' +
+            '<button type="button" class="btn-glass bt-dev">Headphones</button>';
+        }
+        if (status) status.textContent = '3 devices found';
+        sound('tink');
+      });
+    }
+    var send = el.querySelector('#bt-send');
+    if (send) {
+      send.addEventListener('click', function () {
+        sound('hero');
+        if (status) status.textContent = 'Sending sample file… Done';
+        if (global.MacShell && MacShell.notify) {
+          MacShell.notify('Bluetooth File Exchange', 'Sent', 'Document.pdf', 'now');
+        }
+      });
+    }
+  }
+
+  /* ── Boot Camp ──────────────────────────────────────── */
+  function wireBootCamp(el) {
+    if (!el || el.dataset.wired) return;
+    el.dataset.wired = '1';
+    var ok = el.querySelector('#bc-ok');
+    if (ok) {
+      ok.addEventListener('click', function () {
+        sound('pop');
+        if (global.WindowManager && WindowManager.closeApp) {
+          WindowManager.closeApp('boot-camp');
+        }
+      });
+    }
+  }
+
+  /* ── AirPort Utility ────────────────────────────────── */
+  function wireAirport(el) {
+    if (!el || el.dataset.wired) return;
+    el.dataset.wired = '1';
+    var scan = el.querySelector('#ap-scan');
+    var list = el.querySelector('#ap-list');
+    if (scan) {
+      scan.addEventListener('click', function () {
+        if (list) {
+          list.innerHTML =
+            '<p class="muted">Scanning…</p>';
+          sound('pop');
+          setTimeout(function () {
+            list.innerHTML =
+              '<div class="settings-card glass" style="padding:14px;text-align:left;max-width:360px;margin:0 auto">' +
+              '<strong>No base stations</strong><p class="muted" style="margin:6px 0 0">Still no AirPort devices on this network (demo).</p></div>';
+            sound('sosumi');
+          }, 900);
+        }
+      });
+    }
+  }
+
+  /* ── ColorSync ──────────────────────────────────────── */
+  function wireColorSync(el) {
+    if (!el || el.dataset.wired) return;
+    el.dataset.wired = '1';
+    el.querySelectorAll('.cs-row').forEach(function (row) {
+      row.addEventListener('click', function () {
+        el.querySelectorAll('.cs-row').forEach(function (r) {
+          r.classList.remove('is-selected');
+        });
+        row.classList.add('is-selected');
+        var n = el.querySelector('#cs-name');
+        if (n) n.textContent = row.getAttribute('data-profile') || '';
+        sound('pop');
+      });
+    });
+    var fa = el.querySelector('#cs-firstaid');
+    if (fa) {
+      fa.addEventListener('click', function () {
+        var st = el.querySelector('#cs-status');
+        if (st) st.textContent = 'Repairing…';
+        sound('pop');
+        setTimeout(function () {
+          if (st) st.textContent = 'Repaired · OK';
+          sound('hero');
+        }, 700);
+      });
+    }
+  }
+
+  /* ── Directory Utility ──────────────────────────────── */
+  function wireDirectoryUtility(el) {
+    if (!el || el.dataset.wired) return;
+    el.dataset.wired = '1';
+    var locked = true;
+    var lock = el.querySelector('#du-lock');
+    var status = el.querySelector('#du-status');
+    var boxes = el.querySelectorAll('#du-ad, #du-ldap, #du-nis');
+    function setLocked(on) {
+      locked = on;
+      boxes.forEach(function (b) {
+        b.disabled = on;
+      });
+      if (lock) lock.textContent = on ? '🔒 Click the lock to make changes' : '🔓 Unlocked';
+      if (status) status.textContent = on ? 'Locked · Services cannot be changed' : 'Unlocked · Authenticated (demo)';
+    }
+    setLocked(true);
+    if (lock) {
+      lock.addEventListener('click', function () {
+        setLocked(!locked);
+        sound(locked ? 'pop' : 'hero');
+      });
+    }
+    boxes.forEach(function (b) {
+      b.addEventListener('change', function () {
+        var lab = b.parentElement;
+        if (lab && lab.childNodes[1]) {
+          /* update label text node roughly */
+        }
         sound('tink');
       });
     });
@@ -3437,6 +3887,18 @@
         if (id === 'games') wireGames(body);
         if (id === 'system-information') wireSystemInfo(body);
         if (id === 'print-center') wirePrintCenter(body);
+        if (id === 'image-capture') wireImageCapture(body);
+        if (id === 'automator') wireAutomator(body);
+        if (id === 'keychain-access') wireKeychain(body);
+        if (id === 'audio-midi-setup') wireAudioMidi(body);
+        if (id === 'dvd-player') wireDvdPlayer(body);
+        if (id === 'migration-assistant') wireMigration(body);
+        if (id === 'voiceover-utility') wireVoiceOver(body);
+        if (id === 'bluetooth-file-exchange') wireBtFile(body);
+        if (id === 'boot-camp') wireBootCamp(body);
+        if (id === 'airport-utility') wireAirport(body);
+        if (id === 'colorsync') wireColorSync(body);
+        if (id === 'directory-utility') wireDirectoryUtility(body);
         if (id === 'system-settings') {
           wireSoundButtons(body);
           enhanceSoundPane(body);
@@ -3444,9 +3906,12 @@
         /* bulk / simple list apps */
         if (
           body.querySelector('.app-list-row') ||
-          body.querySelector('.app-sidebar-item')
+          body.querySelector('.simple-row') ||
+          body.querySelector('.app-sidebar-item') ||
+          body.classList.contains('simple-app') ||
+          body.querySelector('.simple-app')
         ) {
-          wireGenericList(body);
+          wireGenericList(body.querySelector('.simple-app') || body);
         }
       }, 30);
       return r;

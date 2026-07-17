@@ -2207,19 +2207,27 @@
         const nav = navItems || [{ id: 'main', label: name, icon: '•' }];
         const active = nav[0].id;
         const first = rows[0];
-        return `<div class="app-layout">
+        const rowsHtml = (rows || [])
+          .map(
+            (r, i) =>
+              `<button type="button" class="app-list-row simple-row ${i === 0 ? 'is-selected' : ''}" data-title="${(r.title || '').replace(/"/g, '&quot;')}" data-sub="${(r.sub || '').replace(/"/g, '&quot;')}" data-meta="${(r.meta || '').replace(/"/g, '&quot;')}">
+                <div class="row-main"><strong>${r.title || ''}</strong><span class="muted">${r.sub || ''}</span></div>
+                <span class="row-meta">${r.meta || ''}</span>
+              </button>`
+          )
+          .join('');
+        return `<div class="app-layout simple-app" data-simple-app="${id}">
           ${sidebar(nav, active)}
           <div class="app-main">
-            ${toolbar(`<strong>${name}</strong><input class="search-field" placeholder="Search" />`)}
-            ${listRows(rows)}
-            ${
-              first
-                ? `<div class="settings-card glass" style="margin:12px 16px;padding:14px 16px">
-                    <strong>${first.title}</strong>
-                    <p class="muted" style="margin:6px 0 0">${first.sub || ''}</p>
-                  </div>`
-                : emptyState(name, 'No items')
-            }
+            ${toolbar(`<strong>${name}</strong><input class="search-field simple-search" placeholder="Search" />
+              <button type="button" class="btn-glass simple-action" data-action="refresh">Refresh</button>
+              <button type="button" class="btn-primary simple-action" data-action="primary">Open</button>`)}
+            <div class="app-list simple-list">${rowsHtml || ''}</div>
+            <div class="settings-card glass simple-detail" style="margin:12px 16px;padding:14px 16px">
+              <strong class="simple-detail-title">${first ? first.title : name}</strong>
+              <p class="muted simple-detail-sub" style="margin:6px 0 0">${first ? first.sub || 'Select an item' : 'No items'}</p>
+              <p class="muted simple-detail-meta" style="margin:8px 0 0;font-size:12px">${first && first.meta ? first.meta : ''}</p>
+            </div>
           </div>
         </div>`;
       },
@@ -5054,6 +5062,260 @@ return theGreeting</textarea>
         <div style="padding:12px;text-align:center">
           <button type="button" class="btn-primary" id="pc-add">+ Add Sample Job</button>
         </div>
+      </div>`;
+    };
+  }
+
+  if (APPS['image-capture']) {
+    APPS['image-capture'].width = 720;
+    APPS['image-capture'].height = 520;
+    APPS['image-capture'].open = function () {
+      return `<div class="app-layout col" id="image-capture-app">
+        ${toolbar(`<strong>Image Capture</strong>
+          <button type="button" class="btn-primary" id="ic-import">Import</button>
+          <button type="button" class="btn-glass" id="ic-delete">Delete</button>`)}
+        <div class="ic-body">
+          <aside class="ic-devices">
+            <div class="muted" style="padding:8px 10px;font-size:11px">DEVICES</div>
+            <button type="button" class="ic-dev is-selected">Virtual Camera</button>
+            <button type="button" class="ic-dev">No scanner</button>
+          </aside>
+          <div class="ic-grid" id="ic-grid">
+            ${[1, 2, 3, 4, 5, 6]
+              .map(
+                (i) =>
+                  `<button type="button" class="ic-thumb" data-i="${i}"><img src="assets/photos/funny/funny-0${i}.jpg" alt="" /></button>`
+              )
+              .join('')}
+          </div>
+        </div>
+      </div>`;
+    };
+  }
+
+  if (APPS.automator) {
+    APPS.automator.width = 800;
+    APPS.automator.height = 520;
+    APPS.automator.open = function () {
+      const actions = ['Ask for Finder Items', 'Copy Finder Items', 'Rename Finder Items', 'Run Shell Script', 'Display Notification'];
+      return `<div class="app-layout automator-app" id="automator-app">
+        <aside class="app-sidebar">
+          <div class="muted" style="padding:8px;font-size:11px">LIBRARY</div>
+          ${actions
+            .map(
+              (a, i) =>
+                `<button type="button" class="app-sidebar-item am-action ${i === 0 ? 'active' : ''}" data-action="${a}">${a}</button>`
+            )
+            .join('')}
+        </aside>
+        <div class="app-main">
+          ${toolbar(`<strong>Automator</strong>
+            <button type="button" class="btn-primary" id="am-run">Run</button>
+            <button type="button" class="btn-glass" id="am-add">Add Action</button>`)}
+          <div class="am-workflow" id="am-workflow">
+            <div class="am-step">1. Ask for Finder Items</div>
+          </div>
+          <div class="am-log muted" id="am-log">Ready · Workflow has 1 action</div>
+        </div>
+      </div>`;
+    };
+  }
+
+  if (APPS['keychain-access']) {
+    APPS['keychain-access'].open = function () {
+      const items = [
+        { n: 'com.apple.safari', k: 'Internet Password' },
+        { n: 'iCloud', k: 'Application Password' },
+        { n: 'login.keychain', k: 'Keychain' },
+      ];
+      return `<div class="app-layout col" id="keychain-app">
+        ${toolbar(`<strong>Keychain Access</strong>
+          <button type="button" class="btn-glass" id="kc-show">Show Password</button>
+          <button type="button" class="btn-primary" id="kc-copy">Copy</button>`)}
+        <div class="kc-list">
+          ${items
+            .map(
+              (it, i) =>
+                `<button type="button" class="kc-row ${i === 0 ? 'is-selected' : ''}" data-name="${it.n}"><strong>${it.n}</strong><span class="muted">${it.k}</span></button>`
+            )
+            .join('')}
+        </div>
+        <div class="settings-card glass" style="margin:12px 16px;padding:14px">
+          <div class="settings-row"><span>Name</span><strong id="kc-name">com.apple.safari</strong></div>
+          <div class="settings-row"><span>Kind</span><span class="muted" id="kc-kind">Internet Password</span></div>
+          <div class="settings-row"><span>Password</span><span class="muted" id="kc-pass">••••••••••••</span></div>
+        </div>
+      </div>`;
+    };
+  }
+
+  if (APPS['audio-midi-setup']) {
+    APPS['audio-midi-setup'].open = function () {
+      return `<div class="app-layout col" id="audio-midi-app">
+        ${toolbar(`<strong>Audio MIDI Setup</strong>`)}
+        <div class="ams-list">
+          <button type="button" class="ams-row is-selected" data-dev="MacBook Speakers" data-ch="2" data-rate="48000">
+            <strong>MacBook Speakers</strong><span class="muted">Output · Default</span>
+          </button>
+          <button type="button" class="ams-row" data-dev="MacBook Microphone" data-ch="1" data-rate="48000">
+            <strong>MacBook Microphone</strong><span class="muted">Input · Default</span>
+          </button>
+          <button type="button" class="ams-row" data-dev="Virtual Aggregate" data-ch="4" data-rate="96000">
+            <strong>Virtual Aggregate</strong><span class="muted">Aggregate Device</span>
+          </button>
+        </div>
+        <div class="settings-card glass" style="margin:12px 16px;padding:14px">
+          <div class="settings-row"><span>Device</span><strong id="ams-name">MacBook Speakers</strong></div>
+          <div class="settings-row"><span>Channels</span><span id="ams-ch">2</span></div>
+          <label class="settings-row">Sample Rate
+            <select id="ams-rate" class="te27-select"><option>44100</option><option selected>48000</option><option>96000</option></select>
+          </label>
+          <label class="settings-row">Output Volume <input type="range" id="ams-vol" min="0" max="100" value="75" /></label>
+        </div>
+      </div>`;
+    };
+  }
+
+  if (APPS['dvd-player']) {
+    APPS['dvd-player'].width = 640;
+    APPS['dvd-player'].height = 420;
+    APPS['dvd-player'].open = function () {
+      return `<div class="app-layout col dvd-app" id="dvd-player-app">
+        ${toolbar(`<strong>DVD Player</strong>`)}
+        <div class="dvd-screen" id="dvd-screen">
+          <div class="dvd-disc" id="dvd-disc">💿</div>
+          <p class="muted" id="dvd-status">No disc · Insert a DVD to begin</p>
+        </div>
+        <div class="dvd-controls">
+          <button type="button" class="btn-glass" id="dvd-eject">⏏</button>
+          <button type="button" class="btn-glass" id="dvd-prev">⏮</button>
+          <button type="button" class="btn-primary" id="dvd-play">▶</button>
+          <button type="button" class="btn-glass" id="dvd-next">⏭</button>
+          <button type="button" class="btn-glass" id="dvd-menu">Menu</button>
+        </div>
+      </div>`;
+    };
+  }
+
+  if (APPS['migration-assistant']) {
+    APPS['migration-assistant'].width = 560;
+    APPS['migration-assistant'].height = 420;
+    APPS['migration-assistant'].open = function () {
+      return `<div class="app-layout col" id="migration-app">
+        ${toolbar(`<strong>Migration Assistant</strong>`)}
+        <div class="mig-steps" id="mig-steps">
+          <p style="padding:8px 20px" class="muted">Transfer information to this Mac</p>
+          <label class="mig-opt is-selected"><input type="radio" name="mig" value="mac" checked /> From a Mac, Time Machine backup, or Startup Disk</label>
+          <label class="mig-opt"><input type="radio" name="mig" value="pc" /> From a Windows PC</label>
+          <label class="mig-opt"><input type="radio" name="mig" value="none" /> Not now</label>
+        </div>
+        <div style="padding:16px;display:flex;justify-content:flex-end;gap:8px">
+          <button type="button" class="btn-glass" id="mig-back">Back</button>
+          <button type="button" class="btn-primary" id="mig-continue">Continue</button>
+        </div>
+        <p class="muted center" id="mig-status" style="padding-bottom:12px">Step 1 of 3</p>
+      </div>`;
+    };
+  }
+
+  if (APPS['voiceover-utility']) {
+    APPS['voiceover-utility'].open = function () {
+      return `<div class="app-layout" id="voiceover-app">
+        <aside class="app-sidebar">
+          ${['General', 'Verbosity', 'Speech', 'Navigation', 'Visuals']
+            .map(
+              (p, i) =>
+                `<button type="button" class="app-sidebar-item vo-nav ${i === 0 ? 'active' : ''}" data-vo="${p}">${p}</button>`
+            )
+            .join('')}
+        </aside>
+        <div class="app-main">
+          ${toolbar(`<strong id="vo-title">General</strong>
+            <label class="vo-toggle"><input type="checkbox" id="vo-enable" /> Enable VoiceOver</label>`)}
+          <div class="si-rows" id="vo-rows">
+            <div class="settings-row"><span>Greeting</span><strong>On</strong></div>
+            <div class="settings-row"><span>Portable preferences</span><strong>Off</strong></div>
+            <label class="settings-row">Speech rate <input type="range" id="vo-rate" min="1" max="100" value="50" /></label>
+            <button type="button" class="btn-primary" id="vo-test" style="margin:12px 0">Speak Sample</button>
+          </div>
+        </div>
+      </div>`;
+    };
+  }
+
+  if (APPS['bluetooth-file-exchange']) {
+    APPS['bluetooth-file-exchange'].open = function () {
+      return `<div class="app-layout col" id="bt-file-app">
+        ${toolbar(`<strong>Bluetooth File Exchange</strong>`)}
+        <div style="padding:24px;text-align:center;display:flex;flex-direction:column;gap:12px;align-items:center">
+          <p class="muted">Send files to a nearby Bluetooth device</p>
+          <button type="button" class="btn-primary" id="bt-send">Send File…</button>
+          <button type="button" class="btn-glass" id="bt-browse">Browse Device…</button>
+          <div class="bt-devices" id="bt-devices"></div>
+          <p class="muted" id="bt-status">No devices yet · Click Browse</p>
+        </div>
+      </div>`;
+    };
+  }
+
+  if (APPS['boot-camp']) {
+    APPS['boot-camp'].open = function () {
+      return `<div class="app-layout col" id="bootcamp-app">
+        ${toolbar(`<strong>Boot Camp Assistant</strong>`)}
+        <div style="padding:32px;text-align:center">
+          <div style="font-size:48px;margin-bottom:12px">💻</div>
+          <h2>Boot Camp is not available</h2>
+          <p class="muted">This virtual Mac uses Apple silicon. Boot Camp requires an Intel-based Mac.</p>
+          <button type="button" class="btn-primary" id="bc-ok" style="margin-top:16px">OK</button>
+        </div>
+      </div>`;
+    };
+  }
+
+  if (APPS['airport-utility']) {
+    APPS['airport-utility'].open = function () {
+      return `<div class="app-layout col" id="airport-app">
+        ${toolbar(`<strong>AirPort Utility</strong>
+          <button type="button" class="btn-primary" id="ap-scan">Scan</button>`)}
+        <div id="ap-list" style="padding:20px;text-align:center">
+          <p class="muted">No AirPort base stations found</p>
+        </div>
+      </div>`;
+    };
+  }
+
+  if (APPS.colorsync) {
+    APPS.colorsync.open = function () {
+      return `<div class="app-layout col" id="colorsync-app">
+        ${toolbar(`<strong>ColorSync Utility</strong>
+          <button type="button" class="btn-primary" id="cs-firstaid">Profile First Aid</button>`)}
+        <div class="cs-list">
+          <button type="button" class="cs-row is-selected" data-profile="Display"><strong>Display</strong><span class="muted">Color LCD</span></button>
+          <button type="button" class="cs-row" data-profile="Generic RGB"><strong>Generic RGB</strong><span class="muted">Profile</span></button>
+          <button type="button" class="cs-row" data-profile="sRGB IEC61966"><strong>sRGB IEC61966</strong><span class="muted">Profile</span></button>
+        </div>
+        <div class="settings-card glass" style="margin:12px 16px;padding:14px">
+          <div class="settings-row"><span>Profile</span><strong id="cs-name">Display</strong></div>
+          <div class="settings-row"><span>Status</span><span class="muted" id="cs-status">OK</span></div>
+        </div>
+      </div>`;
+    };
+  }
+
+  if (APPS['directory-utility']) {
+    APPS['directory-utility'].open = function () {
+      return `<div class="app-layout col" id="directory-utility-app">
+        ${toolbar(`<strong>Directory Utility</strong>
+          <button type="button" class="btn-glass" id="du-lock">🔒 Click the lock to make changes</button>`)}
+        <div class="si-rows" style="padding:16px">
+          <div class="settings-row"><span>Active Directory</span>
+            <label><input type="checkbox" id="du-ad" /> Off</label></div>
+          <div class="settings-row"><span>LDAP</span>
+            <label><input type="checkbox" id="du-ldap" /> Off</label></div>
+          <div class="settings-row"><span>NIS</span>
+            <label><input type="checkbox" id="du-nis" /> Off</label></div>
+        </div>
+        <p class="muted center" id="du-status" style="padding:12px">Locked · Services cannot be changed</p>
       </div>`;
     };
   }
