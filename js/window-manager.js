@@ -283,10 +283,31 @@
       }
     }
 
-    function onUp() {
+    function onUp(e) {
       if (dragging) {
         dragging = false;
         el.classList.remove('is-dragging');
+        /* Edge snap (half-screen) when released near left/right edge */
+        if (!state.maximized && e) {
+          var bounds = desktopBounds();
+          var edge = 28;
+          if (e.clientX <= bounds.left + edge) {
+            state.x = bounds.left;
+            state.y = bounds.top;
+            state.width = Math.floor(bounds.width / 2) - 6;
+            state.height = bounds.height;
+            applyGeometry(state);
+          } else if (e.clientX >= bounds.left + bounds.width - edge) {
+            state.width = Math.floor(bounds.width / 2) - 6;
+            state.x = bounds.left + bounds.width - state.width;
+            state.y = bounds.top;
+            state.height = bounds.height;
+            applyGeometry(state);
+          } else if (e.clientY <= bounds.top + edge) {
+            /* top edge → maximize */
+            WindowManager.maximize(state.id);
+          }
+        }
       }
       if (resizing) {
         resizing = false;

@@ -4512,3 +4512,11 @@ html[data-theme='dark'] .num27-tab.active {
 .window[data-app='maps'] .window-titlebar {
   background: transparent !important;
 }
+
+.cal27-cell.is-selected {
+  background: rgba(10, 132, 255, 0.12) !important;
+  box-shadow: inset 0 0 0 1.5px rgba(10, 132, 255, 0.45);
+}
+.cal27-cell.is-selected .cal27-num {
+  font-weight: 700;
+}

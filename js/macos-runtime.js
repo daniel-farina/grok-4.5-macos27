@@ -915,10 +915,88 @@
     }
   }
 
-  /* ── Calendar: view switch, today, add event ────────── */
+  /* ── Calendar: month nav, views, events ─────────────── */
   function wireCalendar(el) {
     if (!el || el.dataset.wired) return;
     el.dataset.wired = '1';
+    var monthNames = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
+    ];
+    var year = 2026;
+    var month = 3; /* April 0-based */
+    var titleEl = el.querySelector('.cal27-month-title');
+    var gridEl = el.querySelector('.cal27-grid');
+
+    function daysInMonth(y, m) {
+      return new Date(y, m + 1, 0).getDate();
+    }
+    function startPad(y, m) {
+      return new Date(y, m, 1).getDay();
+    }
+    function renderMonth() {
+      if (!gridEl) return;
+      var dim = daysInMonth(year, month);
+      var pad = startPad(year, month);
+      var prevDim = daysInMonth(year, month === 0 ? 11 : month - 1);
+      var html = '';
+      var i;
+      for (i = 0; i < pad; i++) {
+        var dn = prevDim - pad + i + 1;
+        html +=
+          '<div class="cal27-cell muted"><div class="cal27-num">' +
+          dn +
+          '</div><div class="cal27-evs"></div></div>';
+      }
+      var today = new Date();
+      for (var d = 1; d <= dim; d++) {
+        var isToday =
+          today.getFullYear() === year && today.getMonth() === month && today.getDate() === d;
+        /* demo highlight: day 17 in April 2026 sample */
+        if (year === 2026 && month === 3 && d === 17) isToday = true;
+        html +=
+          '<div class="cal27-cell' +
+          (isToday ? ' today' : '') +
+          '"><div class="cal27-num">' +
+          d +
+          '</div><div class="cal27-evs"></div></div>';
+      }
+      var total = pad + dim;
+      var next = 1;
+      while (total % 7 !== 0) {
+        html +=
+          '<div class="cal27-cell muted next-m"><div class="cal27-num"><span class="cal27-month-tag">' +
+          monthNames[(month + 1) % 12].slice(0, 3) +
+          '</span> ' +
+          next +
+          '</div><div class="cal27-evs"></div></div>';
+        next++;
+        total++;
+      }
+      gridEl.innerHTML = html;
+      if (titleEl) titleEl.textContent = monthNames[month] + ' ' + year;
+      /* click day to select */
+      gridEl.querySelectorAll('.cal27-cell:not(.muted)').forEach(function (cell) {
+        cell.addEventListener('click', function () {
+          gridEl.querySelectorAll('.cal27-cell').forEach(function (c) {
+            c.classList.remove('is-selected');
+          });
+          cell.classList.add('is-selected');
+          sound('tink');
+        });
+      });
+    }
+
     el.querySelectorAll('.cal27-seg-btn').forEach(function (btn) {
       btn.addEventListener('click', function () {
         el.querySelectorAll('.cal27-seg-btn').forEach(function (b) {
@@ -926,24 +1004,23 @@
         });
         btn.classList.add('is-active');
         sound('pop');
-        if (global.MacShell && MacShell.notify) {
-          MacShell.notify('Calendar', btn.textContent + ' view', 'Showing ' + btn.textContent + ' layout', 'now');
+        var view = (btn.textContent || '').trim();
+        if (view === 'Month') {
+          var wrap = el.querySelector('.cal27-grid-wrap');
+          if (wrap) wrap.style.display = '';
+          if (titleEl) titleEl.textContent = monthNames[month] + ' ' + year;
+        } else if (global.MacShell && MacShell.notify) {
+          MacShell.notify('Calendar', view + ' view', 'Showing ' + view + ' layout (demo)', 'now');
         }
       });
     });
-    var today = el.querySelector('.cal27-today');
-    if (today) {
-      today.addEventListener('click', function () {
-        el.querySelectorAll('.cal27-cell').forEach(function (c) {
-          c.classList.remove('today');
-        });
-        var cell = el.querySelector('.cal27-cell:not(.muted)');
-        /* highlight day 17 in sample month or first available */
-        el.querySelectorAll('.cal27-cell:not(.muted) .cal27-num').forEach(function (n) {
-          if (n.textContent.trim() === '17') {
-            n.closest('.cal27-cell').classList.add('today');
-          }
-        });
+    var todayBtn = el.querySelector('.cal27-today');
+    if (todayBtn) {
+      todayBtn.addEventListener('click', function () {
+        var now = new Date();
+        year = now.getFullYear();
+        month = now.getMonth();
+        renderMonth();
         sound('tink');
       });
     }
@@ -952,7 +1029,10 @@
       add.addEventListener('click', function () {
         var name = prompt('Event title', 'New Event');
         if (!name) return;
-        var cell = el.querySelector('.cal27-cell.today .cal27-evs') || el.querySelector('.cal27-cell:not(.muted) .cal27-evs');
+        var cell =
+          el.querySelector('.cal27-cell.is-selected .cal27-evs') ||
+          el.querySelector('.cal27-cell.today .cal27-evs') ||
+          el.querySelector('.cal27-cell:not(.muted) .cal27-evs');
         if (cell) {
           var ev = document.createElement('div');
           ev.className = 'cal27-ev timed blue';
@@ -964,9 +1044,36 @@
         }
       });
     }
-    el.querySelectorAll('.cal27-nav').forEach(function (btn) {
-      btn.addEventListener('click', function () {
+    var navs = el.querySelectorAll('.cal27-nav');
+    if (navs[0]) {
+      navs[0].addEventListener('click', function () {
+        month--;
+        if (month < 0) {
+          month = 11;
+          year--;
+        }
+        renderMonth();
         sound('pop');
+      });
+    }
+    if (navs[1]) {
+      navs[1].addEventListener('click', function () {
+        month++;
+        if (month > 11) {
+          month = 0;
+          year++;
+        }
+        renderMonth();
+        sound('pop');
+      });
+    }
+    /* initial: keep dense April sample until first nav */
+    el.querySelectorAll('.cal27-cell:not(.muted)').forEach(function (cell) {
+      cell.addEventListener('click', function () {
+        el.querySelectorAll('.cal27-cell').forEach(function (c) {
+          c.classList.remove('is-selected');
+        });
+        cell.classList.add('is-selected');
       });
     });
   }
