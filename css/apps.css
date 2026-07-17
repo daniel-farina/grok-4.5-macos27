@@ -3151,3 +3151,17 @@ tr.is-selected {
 }
 .mig-opt.is-selected { outline: 2px solid #0a84ff; }
 .vo-toggle { font-size: 12px; display: flex; align-items: center; gap: 6px; }
+
+.iphone-dock-icon {
+  border: none;
+  background: transparent;
+  font-size: 22px;
+  padding: 4px;
+  cursor: default;
+  line-height: 1;
+  border-radius: 10px;
+}
+.iphone-dock-icon:active {
+  transform: scale(0.92);
+  background: rgba(255,255,255,0.15);
+}

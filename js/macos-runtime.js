@@ -415,7 +415,10 @@
       '</div></div>' +
       '<div class="iphone-app-view" id="iphone-app-view" hidden></div>' +
       '<div class="iphone-dock-bar">' +
-      '<span>📞</span><span>🧭</span><span>💬</span><span>🎵</span>' +
+      '<button type="button" class="iphone-dock-icon" data-iapp="phone" title="Phone">📞</button>' +
+      '<button type="button" class="iphone-dock-icon" data-iapp="safari" title="Safari">🧭</button>' +
+      '<button type="button" class="iphone-dock-icon" data-iapp="messages" title="Messages">💬</button>' +
+      '<button type="button" class="iphone-dock-icon" data-iapp="music" title="Music">🎵</button>' +
       '</div>' +
       '<div class="iphone-home-indicator"></div>' +
       '</div></div>' +
@@ -436,6 +439,19 @@
     var home = el.querySelector('#iphone-home');
     var view = el.querySelector('#iphone-app-view');
     var dock = el.querySelector('.iphone-dock-bar');
+
+    /* live status clock */
+    var clockEl = el.querySelector('.iphone-clock');
+    if (clockEl) {
+      var tick = function () {
+        var n = new Date();
+        var h = n.getHours() % 12 || 12;
+        var m = n.getMinutes();
+        clockEl.textContent = h + ':' + (m < 10 ? '0' : '') + m;
+      };
+      tick();
+      setInterval(tick, 15000);
+    }
 
     function goHome() {
       if (home) home.hidden = false;
@@ -522,7 +538,7 @@
       }
     }
 
-    el.querySelectorAll('.iphone-icon').forEach(function (btn) {
+    el.querySelectorAll('.iphone-icon, .iphone-dock-icon').forEach(function (btn) {
       btn.addEventListener('click', function () {
         openIApp(btn.getAttribute('data-iapp'));
       });

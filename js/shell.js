@@ -2533,30 +2533,46 @@
       }
     });
 
-    // Brightness
+    // Brightness (persist)
     var brightness = $('#cc-brightness');
     if (brightness) {
-      brightness.addEventListener('input', function () {
+      try {
+        var bs = localStorage.getItem('macos-cc-brightness');
+        if (bs != null) brightness.value = bs;
+      } catch (e) {}
+      function applyBrightness() {
         var v = 0.45 + (Number(brightness.value) / 100) * 0.55;
         var wall = $('#wallpaper') || document.documentElement;
         wall.style.filter = 'brightness(' + v + ')';
-      });
+        try {
+          localStorage.setItem('macos-cc-brightness', brightness.value);
+        } catch (err) {}
+      }
+      applyBrightness();
+      brightness.addEventListener('input', applyBrightness);
     }
 
-    // Sound volume tick
+    // Sound volume tick (persist)
     var volume = $('#cc-volume') || document.querySelector('#control-center input[type="range"][data-cc="sound"], #control-center .cc-sound input, #cc-sound');
     if (!volume) {
       volume = document.querySelector('#control-center input[type="range"]:not(#cc-brightness)');
     }
     if (volume) {
+      try {
+        var vs = localStorage.getItem('macos-cc-volume');
+        if (vs != null) volume.value = vs;
+      } catch (e) {}
       var lastVolSound = 0;
       volume.addEventListener('input', function () {
+        try {
+          localStorage.setItem('macos-cc-volume', volume.value);
+        } catch (err) {}
         var now = Date.now();
         if (now - lastVolSound > 90 && global.MacSounds && MacSounds.play) {
           lastVolSound = now;
           try {
             MacSounds.play('volume');
-          } catch (e) {}
+          } catch (e2) {}
         }
       });
     }
