@@ -18,3 +18,7 @@ Job started: 2026-07-17T20:55:45Z · Cancel after ~3h · `scheduler_delete 019f7
 
 ## Notes
 Most demo apps now have interactive behavior. Remaining bulk utilities use generic list selection + button sounds.
+
+## Process
+- Commit + push each loop: see `docs/LOOP_PRACTICE.md`
+- Continuous updates show value of **>10 min loops in Grok 4.5**
