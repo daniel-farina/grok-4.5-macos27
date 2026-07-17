@@ -5648,6 +5648,32 @@
       Settings: function () {
         if (global.MacShell && MacShell.openApp) MacShell.openApp('system-settings');
       },
+      Terminal: function () {
+        if (global.MacShell && MacShell.openApp) MacShell.openApp('terminal');
+      },
+      Calendar: function () {
+        if (global.MacShell && MacShell.openApp) MacShell.openApp('calendar');
+      },
+      Chess: function () {
+        if (global.MacShell && MacShell.openApp) MacShell.openApp('chess');
+      },
+      Photos: function () {
+        if (global.MacShell && MacShell.openApp) MacShell.openApp('photos');
+      },
+      Safari: function () {
+        if (global.MacShell && MacShell.openApp) MacShell.openApp('safari');
+      },
+      Siri: function () {
+        if (global.MacShell && MacShell.openApp) MacShell.openApp('siri');
+      },
+      Dock: function () {
+        if (global.MacShell && MacShell.openApp) MacShell.openApp('system-settings');
+      },
+      Notification: function () {
+        var nc = document.getElementById('notification-center');
+        if (nc && global.MacShell && MacShell.toggleNotificationCenter) MacShell.toggleNotificationCenter();
+        else if (nc) nc.classList.toggle('is-open');
+      },
     };
     function runTip(t, body) {
       var text = (t + ' ' + (body || '')).toLowerCase();
@@ -7481,6 +7507,13 @@
   function wireNews(el) {
     if (!el || el.dataset.wired) return;
     el.dataset.wired = '1';
+    var currentIdx = 0;
+    var saved = {};
+    try {
+      saved = JSON.parse(localStorage.getItem('macos-news-saved') || '{}') || {};
+    } catch (e) {
+      saved = {};
+    }
     var articles = [
       {
         t: 'macOS 27 redefines the desktop with Liquid Glass',
@@ -7502,8 +7535,19 @@
         b: 'Lifestyle · 8h',
         body: 'Soft gradients and crystal textures show off menu bar translucency and dock glass in macOS 27.',
       },
+      {
+        t: 'Continuity features bring devices together',
+        b: 'How-To · 10h',
+        body: 'iPhone Mirroring, Sidecar, and Handoff make the virtual desktop feel like a multi-device workspace.',
+      },
+      {
+        t: 'A quick guide to Stage Manager',
+        b: 'Productivity · 12h',
+        body: 'Group windows into sets and keep the desktop calm while switching focus between projects.',
+      },
     ];
     function showArticle(idx, item) {
+      currentIdx = idx;
       el.querySelectorAll('.news-item').forEach(function (i) {
         i.classList.remove('is-active');
       });
@@ -7512,9 +7556,11 @@
       var title = el.querySelector('#news-title');
       var by = el.querySelector('#news-byline');
       var body = el.querySelector('#news-body');
-      if (title) title.textContent = a.t;
+      if (title) title.textContent = a.t + (saved[a.t] ? ' ★' : '');
       if (by) by.textContent = a.b;
       if (body) body.textContent = a.body;
+      var saveBtn = el.querySelector('#news-save');
+      if (saveBtn) saveBtn.textContent = saved[a.t] ? 'Saved ★' : 'Save';
       sound('pop');
     }
     el.querySelectorAll('.news-item').forEach(function (item, i) {
@@ -7525,6 +7571,25 @@
         showArticle(idx, item);
       });
     });
+    /* inject extra articles into list if short */
+    var listHost = el.querySelector('.news-list, .app-list, #news-list');
+    if (listHost && el.querySelectorAll('.news-item').length < articles.length) {
+      for (var i = el.querySelectorAll('.news-item').length; i < articles.length; i++) {
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'news-item app-list-row';
+        btn.setAttribute('data-news', String(i));
+        btn.innerHTML = '<strong></strong><span class="muted"></span>';
+        btn.querySelector('strong').textContent = articles[i].t;
+        btn.querySelector('.muted').textContent = articles[i].b;
+        listHost.appendChild(btn);
+        (function (item, idx) {
+          item.addEventListener('click', function () {
+            showArticle(idx, item);
+          });
+        })(btn, i);
+      }
+    }
     el.querySelectorAll('.news-topic, .news-sb-item, .news-channel').forEach(function (topic) {
       topic.addEventListener('click', function () {
         el.querySelectorAll('.news-topic, .news-sb-item, .news-channel').forEach(function (t) {
@@ -7546,6 +7611,42 @@
           var text = (item.textContent || '').toLowerCase();
           item.style.display = !q || text.indexOf(q) >= 0 ? '' : 'none';
         });
+      });
+    }
+    if (!el.querySelector('#news-save')) {
+      var bar = el.querySelector('.news-toolbar, .app-toolbar, #news-title') || el;
+      var host = bar.parentNode || el;
+      var actions = document.createElement('div');
+      actions.style.cssText = 'display:flex;gap:8px;padding:8px 16px;flex-wrap:wrap';
+      actions.innerHTML =
+        '<button type="button" class="btn-glass" id="news-save">Save</button>' +
+        '<button type="button" class="btn-glass" id="news-share">Share</button>' +
+        '<button type="button" class="btn-primary" id="news-next">Next Story</button>';
+      host.appendChild(actions);
+      actions.querySelector('#news-save').addEventListener('click', function () {
+        var a = articles[currentIdx] || articles[0];
+        if (saved[a.t]) delete saved[a.t];
+        else saved[a.t] = 1;
+        try {
+          localStorage.setItem('macos-news-saved', JSON.stringify(saved));
+        } catch (e) {}
+        showArticle(currentIdx, el.querySelector('.news-item.is-active'));
+        sound(saved[a.t] ? 'hero' : 'tink');
+      });
+      actions.querySelector('#news-share').addEventListener('click', function () {
+        var a = articles[currentIdx] || articles[0];
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(a.t + ' — ' + a.body.slice(0, 120)).catch(function () {});
+        }
+        sound('tink');
+        if (global.MacShell && MacShell.notify) {
+          MacShell.notify('News', 'Shared', a.t, 'now');
+        }
+      });
+      actions.querySelector('#news-next').addEventListener('click', function () {
+        currentIdx = (currentIdx + 1) % articles.length;
+        var items = el.querySelectorAll('.news-item');
+        showArticle(currentIdx, items[currentIdx] || null);
       });
     }
   }
@@ -7579,12 +7680,23 @@
       cover.addEventListener('click', function () {
         title = cover.getAttribute('data-book') || 'Book';
         page = 1;
+        try {
+          var saved = JSON.parse(localStorage.getItem('macos-books-progress') || '{}') || {};
+          if (saved[title]) page = saved[title];
+        } catch (e) {}
         if (grid) grid.hidden = true;
         if (reader) reader.hidden = false;
         renderPage();
         sound('pop');
       });
     });
+    function persistBook() {
+      try {
+        var saved = JSON.parse(localStorage.getItem('macos-books-progress') || '{}') || {};
+        saved[title] = page;
+        localStorage.setItem('macos-books-progress', JSON.stringify(saved));
+      } catch (e) {}
+    }
     var back = el.querySelector('#book-back');
     if (back) {
       back.addEventListener('click', function () {
@@ -7599,6 +7711,7 @@
       prev.addEventListener('click', function () {
         page = Math.max(1, page - 1);
         renderPage();
+        persistBook();
         sound('volume');
       });
     }
@@ -7606,6 +7719,7 @@
       next.addEventListener('click', function () {
         page = Math.min(12, page + 1);
         renderPage();
+        persistBook();
         sound('volume');
       });
     }
@@ -7616,11 +7730,13 @@
         e.preventDefault();
         page = Math.min(12, page + 1);
         renderPage();
+        persistBook();
         sound('volume');
       } else if (e.key === 'ArrowLeft') {
         e.preventDefault();
         page = Math.max(1, page - 1);
         renderPage();
+        persistBook();
         sound('volume');
       } else if (e.key === 'Escape' && back) {
         back.click();
@@ -8171,6 +8287,48 @@
         }
       });
     }
+    /* click timeline clips to select / backspace to remove */
+    if (track) {
+      track.addEventListener('click', function (e) {
+        var clip = e.target.closest('.im-tl-clip');
+        if (!clip) return;
+        track.querySelectorAll('.im-tl-clip').forEach(function (c) {
+          c.classList.remove('is-selected');
+        });
+        clip.classList.add('is-selected');
+        if (preview && clip.style.backgroundImage) {
+          preview.style.backgroundImage = clip.style.backgroundImage;
+          preview.style.backgroundSize = 'cover';
+        }
+        sound('tink');
+      });
+    }
+    el.tabIndex = 0;
+    el.addEventListener('keydown', function (e) {
+      if (e.key !== 'Backspace' && e.key !== 'Delete') return;
+      if (e.target.tagName === 'INPUT') return;
+      var sel = track && track.querySelector('.im-tl-clip.is-selected');
+      if (sel) {
+        e.preventDefault();
+        sel.remove();
+        sound('emptyTrash');
+      }
+    });
+    if (!el.querySelector('#im-clear') && track) {
+      var bar = el.querySelector('.im-toolbar, .app-toolbar') || el;
+      var clear = document.createElement('button');
+      clear.type = 'button';
+      clear.className = 'btn-glass';
+      clear.id = 'im-clear';
+      clear.textContent = 'Clear Timeline';
+      bar.appendChild(clear);
+      clear.addEventListener('click', function () {
+        track.innerHTML = '';
+        if (playhead) track.appendChild(playhead);
+        pos = 0;
+        sound('emptyTrash');
+      });
+    }
   }
 
   /* ── Font Book ──────────────────────────────────────── */
@@ -8396,7 +8554,18 @@
   function wireGames(el) {
     if (!el || el.dataset.wired) return;
     el.dataset.wired = '1';
+    var highs = {};
+    try {
+      highs = JSON.parse(localStorage.getItem('macos-game-highs') || '{}') || {};
+    } catch (e) {
+      highs = {};
+    }
     el.querySelectorAll('.game-card').forEach(function (card) {
+      var gname = card.getAttribute('data-game') || 'Game';
+      var hi = card.querySelector('.game-high, .muted');
+      if (hi && highs[gname]) {
+        hi.textContent = 'Best · ' + highs[gname];
+      }
       function launch() {
         var name = card.getAttribute('data-game') || 'Game';
         sound('funk');
@@ -8404,25 +8573,37 @@
           MacShell.openApp('chess');
           return;
         }
-        /* Mini arcade overlay for other titles */
         var ov = document.createElement('div');
         ov.className = 'game-play-overlay';
         ov.innerHTML =
           '<div class="game-play-panel glass">' +
-          '<h2></h2><p class="muted">Demo session · click to score</p>' +
+          '<h2></h2><p class="muted">Demo session · click to score · Best: <span id="gs-best">0</span></p>' +
           '<div class="game-score">Score: <strong id="gs">0</strong></div>' +
           '<button type="button" class="btn-primary" id="gs-tap">Tap!</button>' +
           '<button type="button" class="btn-glass" id="gs-quit">Quit</button></div>';
         ov.querySelector('h2').textContent = name;
+        var best = highs[name] || 0;
+        ov.querySelector('#gs-best').textContent = String(best);
         el.appendChild(ov);
         var score = 0;
         var scoreEl = ov.querySelector('#gs');
         ov.querySelector('#gs-tap').addEventListener('click', function () {
           score += 1 + Math.floor(Math.random() * 5);
           if (scoreEl) scoreEl.textContent = String(score);
+          if (score > best) {
+            best = score;
+            ov.querySelector('#gs-best').textContent = String(best);
+          }
           sound('tink');
         });
         ov.querySelector('#gs-quit').addEventListener('click', function () {
+          if (score > (highs[name] || 0)) {
+            highs[name] = score;
+            try {
+              localStorage.setItem('macos-game-highs', JSON.stringify(highs));
+            } catch (e) {}
+            if (hi) hi.textContent = 'Best · ' + score;
+          }
           ov.remove();
           sound('pop');
           if (global.MacShell && MacShell.notify) {

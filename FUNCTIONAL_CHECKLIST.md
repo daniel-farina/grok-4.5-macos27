@@ -3,9 +3,9 @@
 Job started: 2026-07-17T20:55:45Z · Cancel after ~3h · `scheduler_delete 019f71def611`
 
 ## This loop
-- [x] iPhone: Wallet pay, Health, App Store GET, Files browse
-- [x] Disk Utility mount/unmount/info; Time Machine file list restore
-- [x] Music shuffle/repeat; Sidecar shift = thicker pencil
+- [x] News: save/share/next, more stories; Games high scores persist
+- [x] Tips more open-app actions; iMovie timeline select/delete/clear
+- [x] Books reading progress in localStorage
 - [x] Audit ALL PASS
 
 ## Process
