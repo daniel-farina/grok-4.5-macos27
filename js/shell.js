@@ -1145,34 +1145,140 @@
     }).slice(0, limit != null ? limit : 24);
   }
 
+  function spotlightCommands(query) {
+    var q = (query || '').trim().toLowerCase();
+    var cmds = [
+      { id: 'cmd:lock', name: 'Lock Screen', sub: 'System', action: function () { showLockScreen('Lock Screen'); } },
+      { id: 'cmd:sleep', name: 'Sleep', sub: 'System', action: function () { handleMenuAction('sleep'); } },
+      { id: 'cmd:screenshot', name: 'Take Screenshot', sub: 'Capture entire screen', action: function () { captureScreenshot('full'); } },
+      { id: 'cmd:mission', name: 'Mission Control', sub: 'Show all windows', action: function () { openMissionControl(); } },
+      { id: 'cmd:launchpad', name: 'Launchpad', sub: 'Show all apps', action: function () { openLaunchpad(); } },
+      { id: 'cmd:settings', name: 'System Settings', sub: 'Application', action: function () { openApp('system-settings'); } },
+      { id: 'cmd:trash', name: 'Empty Trash', sub: 'Finder', action: function () { handleMenuAction('empty-trash'); } },
+      { id: 'cmd:wallpaper', name: 'Change Wallpaper', sub: 'Desktop', action: function () { cycleWallpaper(); } },
+      { id: 'cmd:dark', name: 'Toggle Dark Mode', sub: 'Appearance', action: function () { cycleAppearance(); } },
+      { id: 'cmd:forcequit', name: 'Force Quit…', sub: '⌥⌘Esc', action: function () { showForceQuit(); } },
+    ];
+    if (!q) return [];
+    return cmds.filter(function (c) {
+      return c.name.toLowerCase().indexOf(q) !== -1 || c.sub.toLowerCase().indexOf(q) !== -1;
+    });
+  }
+
+  function spotlightCalc(query) {
+    var q = (query || '').trim();
+    if (!/^[\d\s+\-*/().%]+$/.test(q) || q.length < 2) return null;
+    try {
+      var expr = q.replace(/%/g, '/100');
+      // eslint-disable-next-line no-new-func
+      var val = Function('"use strict"; return (' + expr + ')')();
+      if (typeof val === 'number' && isFinite(val)) {
+        return { id: 'calc:' + val, name: '= ' + val, sub: 'Calculator', value: val };
+      }
+    } catch (e) {}
+    return null;
+  }
+
   function renderSpotlightResults(query) {
     var list = $('#spotlight-results');
     if (!list) return;
-    var results = filterApps(query, 16);
+    var q = (query || '').trim();
+    var rows = [];
+    var calc = spotlightCalc(q);
+    if (calc) {
+      rows.push({
+        kind: 'calc',
+        id: calc.id,
+        name: calc.name,
+        sub: calc.sub,
+        icon: iconHtml('calculator'),
+        run: function () {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(String(calc.value)).catch(function () {});
+          }
+          notify('Spotlight', 'Copied', String(calc.value), 'now');
+          if (global.MacSounds && MacSounds.play) MacSounds.play('tink');
+        },
+      });
+    }
+    spotlightCommands(q).forEach(function (c) {
+      rows.push({
+        kind: 'cmd',
+        id: c.id,
+        name: c.name,
+        sub: c.sub,
+        icon: '⚙️',
+        run: c.action,
+      });
+    });
+    var apps;
+    if (!q) {
+      apps = recentApps.length
+        ? recentApps.map(function (id) {
+            return { id: id, name: titleFor(id), category: 'Recent' };
+          })
+        : filterApps('', 10);
+    } else {
+      apps = filterApps(q, 12);
+    }
+    apps.forEach(function (a) {
+      rows.push({
+        kind: 'app',
+        id: a.id,
+        name: a.name,
+        sub: a.category === 'Recent' ? 'Recent' : 'Application',
+        icon: iconHtml(a.id),
+        run: function () {
+          openApp(a.id);
+        },
+      });
+    });
+    /* unique by id */
+    var seen = {};
+    rows = rows.filter(function (r) {
+      if (seen[r.id]) return false;
+      seen[r.id] = true;
+      return true;
+    }).slice(0, 16);
+
     spotlightIndex = 0;
-    if (!results.length) {
+    if (!rows.length) {
       list.innerHTML = '<div class="spotlight-empty">No Results</div>';
       return;
     }
-    list.innerHTML = results.map(function (a, i) {
-      return (
-        '<div class="spotlight-result' + (i === 0 ? ' is-selected' : '') +
-        '" role="option" data-app="' + escapeHtml(a.id) + '" tabindex="-1">' +
-        '<div class="spotlight-result-icon">' + iconHtml(a.id) + '</div>' +
-        '<div class="spotlight-result-text">' +
-        '<div class="spotlight-result-title">' + escapeHtml(a.name) + '</div>' +
-        '<div class="spotlight-result-sub">Application</div>' +
-        '</div></div>'
-      );
-    }).join('');
+    list.innerHTML = rows
+      .map(function (r, i) {
+        return (
+          '<div class="spotlight-result' +
+          (i === 0 ? ' is-selected' : '') +
+          '" role="option" data-idx="' +
+          i +
+          '" tabindex="-1">' +
+          '<div class="spotlight-result-icon">' +
+          (typeof r.icon === 'string' && r.icon.indexOf('<') === 0 ? r.icon : '<span>' + r.icon + '</span>') +
+          '</div>' +
+          '<div class="spotlight-result-text">' +
+          '<div class="spotlight-result-title">' +
+          escapeHtml(r.name) +
+          '</div>' +
+          '<div class="spotlight-result-sub">' +
+          escapeHtml(r.sub) +
+          '</div>' +
+          '</div></div>'
+        );
+      })
+      .join('');
+    list._spotlightRows = rows;
 
     $$('.spotlight-result', list).forEach(function (row, idx) {
       row.addEventListener('click', function () {
         hideSpotlight();
-        openApp(row.getAttribute('data-app'));
+        if (rows[idx] && rows[idx].run) rows[idx].run();
       });
       row.addEventListener('mouseenter', function () {
-        $$('.spotlight-result', list).forEach(function (r) { r.classList.remove('is-selected'); });
+        $$('.spotlight-result', list).forEach(function (r) {
+          r.classList.remove('is-selected');
+        });
         row.classList.add('is-selected');
         spotlightIndex = idx;
       });
@@ -1189,11 +1295,15 @@
   }
 
   function activateSpotlight() {
-    var sel = $('.spotlight-result.is-selected');
-    if (sel) {
+    var list = $('#spotlight-results');
+    var rows = list && list._spotlightRows;
+    if (rows && rows[spotlightIndex] && rows[spotlightIndex].run) {
       hideSpotlight();
-      openApp(sel.getAttribute('data-app'));
+      rows[spotlightIndex].run();
+      return;
     }
+    var sel = $('.spotlight-result.is-selected');
+    if (sel) sel.click();
   }
 
   /* ── Applications drawer (centered glass panel) ─────── */
@@ -1334,8 +1444,11 @@
 
   /* ── Mission Control ───────────────────────────────── */
 
+  var mcFocusIdx = 0;
+
   function openMissionControl() {
     closeAllOverlays();
+    mcFocusIdx = 0;
     renderMissionControl();
     showOverlay($('#mission-control'));
     if (global.MacSounds && MacSounds.play) {
@@ -1377,13 +1490,16 @@
       return;
     }
     if (empty) empty.hidden = true;
+    if (mcFocusIdx >= wins.length) mcFocusIdx = 0;
 
-    grid.innerHTML = wins.map(function (w) {
+    grid.innerHTML = wins.map(function (w, i) {
       var name = w.title || titleFor(w.appId);
       return (
-        '<button type="button" class="mc-thumb' + (w.focused ? ' is-focused' : '') +
+        '<button type="button" class="mc-thumb' +
+        (i === mcFocusIdx || w.focused ? ' is-focused' : '') +
         '" role="listitem" data-window-id="' + escapeHtml(w.id) +
-        '" data-app="' + escapeHtml(w.appId) + '" aria-label="' + escapeHtml(name) + '">' +
+        '" data-app="' + escapeHtml(w.appId) + '" data-mc-idx="' + i +
+        '" aria-label="' + escapeHtml(name) + '">' +
         '<div class="mc-thumb-frame">' +
         '<div class="mc-thumb-titlebar">' +
         '<span class="mc-thumb-dot close"></span>' +
@@ -1399,16 +1515,51 @@
       );
     }).join('');
 
+    function activate(id) {
+      closeMissionControl();
+      if (global.WindowManager && id) {
+        WindowManager.focus(id);
+        if (stageManagerOn) applyStageManagerLayout();
+        if (global.MacSounds && MacSounds.play) MacSounds.play('tink');
+      }
+    }
+
     $$('.mc-thumb', grid).forEach(function (thumb) {
       thumb.addEventListener('click', function () {
-        var id = thumb.getAttribute('data-window-id');
-        closeMissionControl();
-        if (global.WindowManager && id) {
-          WindowManager.focus(id);
-          if (stageManagerOn) applyStageManagerLayout();
-        }
+        activate(thumb.getAttribute('data-window-id'));
+      });
+      thumb.addEventListener('mouseenter', function () {
+        mcFocusIdx = parseInt(thumb.getAttribute('data-mc-idx'), 10) || 0;
+        $$('.mc-thumb', grid).forEach(function (t) {
+          t.classList.toggle('is-focused', t === thumb);
+        });
       });
     });
+    grid._mcWins = wins;
+  }
+
+  function missionControlKey(key) {
+    var grid = $('#mc-windows');
+    if (!grid || !grid._mcWins || !grid._mcWins.length) return false;
+    var n = grid._mcWins.length;
+    if (key === 'ArrowRight' || key === 'ArrowDown') {
+      mcFocusIdx = (mcFocusIdx + 1) % n;
+    } else if (key === 'ArrowLeft' || key === 'ArrowUp') {
+      mcFocusIdx = (mcFocusIdx + n - 1) % n;
+    } else if (key === 'Enter') {
+      var w = grid._mcWins[mcFocusIdx];
+      if (w) {
+        closeMissionControl();
+        if (WindowManager.focus) WindowManager.focus(w.id);
+      }
+      return true;
+    } else return false;
+    $$('.mc-thumb', grid).forEach(function (t, i) {
+      t.classList.toggle('is-focused', i === mcFocusIdx);
+    });
+    var el = grid.querySelector('.mc-thumb.is-focused');
+    if (el) el.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    return true;
   }
 
   /* ── Stage Manager ─────────────────────────────────── */
@@ -2264,12 +2415,14 @@
     ov.innerHTML =
       '<div class="force-quit-panel glass">' +
       '<h2>Force Quit Applications</h2>' +
-      '<p class="muted">If an app is not responding, select it and click Force Quit.</p>' +
+      '<p class="muted">If an app is not responding, select it and click Force Quit. Double-click to quit.</p>' +
       '<div class="force-quit-list" id="fq-list">' +
       apps
-        .map(function (a) {
+        .map(function (a, i) {
           return (
-            '<button type="button" class="fq-row" data-app="' +
+            '<button type="button" class="fq-row' +
+            (i === 0 ? ' is-selected' : '') +
+            '" data-app="' +
             escapeHtml(a.id) +
             '">' +
             '<span class="fq-icon">' +
@@ -2283,10 +2436,26 @@
       '</div>' +
       '<div class="force-quit-actions">' +
       '<button type="button" class="btn-glass" id="fq-cancel">Cancel</button>' +
-      '<button type="button" class="btn-primary" id="fq-quit" disabled>Force Quit</button>' +
+      '<button type="button" class="btn-primary" id="fq-quit"' +
+      (apps.length ? '' : ' disabled') +
+      '>Force Quit</button>' +
       '</div></div>';
     document.body.appendChild(ov);
-    var selected = null;
+    var selected = apps[0] ? apps[0].id : null;
+    function doQuit() {
+      if (selected && global.WindowManager) {
+        if (selected === 'finder') {
+          notify('Force Quit', 'Finder', 'Finder cannot be force quit (demo)', 'now');
+          if (global.MacSounds && MacSounds.play) MacSounds.play('sosumi');
+          return;
+        }
+        WindowManager.closeApp(selected);
+        syncRunningFromWindows();
+        if (global.MacSounds && MacSounds.play) MacSounds.play('emptyTrash');
+        notify('Force Quit', titleFor(selected), 'Application forced to quit', 'now');
+      }
+      ov.remove();
+    }
     $$('.fq-row', ov).forEach(function (row) {
       row.addEventListener('click', function () {
         $$('.fq-row', ov).forEach(function (r) {
@@ -2298,6 +2467,10 @@
         if (btn) btn.disabled = !selected;
         if (global.MacSounds && MacSounds.play) MacSounds.play('pop');
       });
+      row.addEventListener('dblclick', function () {
+        selected = row.getAttribute('data-app');
+        doQuit();
+      });
     });
     var cancel = ov.querySelector('#fq-cancel');
     if (cancel) {
@@ -2307,19 +2480,103 @@
     }
     var quit = ov.querySelector('#fq-quit');
     if (quit) {
-      quit.addEventListener('click', function () {
-        if (selected && global.WindowManager) {
-          WindowManager.closeApp(selected);
-          syncRunningFromWindows();
-          if (global.MacSounds && MacSounds.play) MacSounds.play('emptyTrash');
-          notify('Force Quit', titleFor(selected), 'Application forced to quit', 'now');
-        }
-        ov.remove();
-      });
+      quit.addEventListener('click', doQuit);
     }
     ov.addEventListener('click', function (e) {
       if (e.target === ov) ov.remove();
     });
+    ov.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        doQuit();
+      } else if (e.key === 'Escape') {
+        ov.remove();
+      }
+    });
+    setTimeout(function () {
+      ov.focus();
+    }, 30);
+    ov.tabIndex = -1;
+  }
+
+  /* Visual ⌘Tab app switcher HUD */
+  var appSwitcher = { open: false, idx: 0, apps: [], holdTimer: null };
+
+  function getSwitcherApps() {
+    var list = [];
+    var seen = {};
+    if (global.WindowManager && WindowManager.getOpenWindows) {
+      WindowManager.getOpenWindows().forEach(function (w) {
+        if (w.minimized) return;
+        if (!seen[w.appId]) {
+          seen[w.appId] = true;
+          list.push({ id: w.appId, name: titleFor(w.appId), windowId: w.id });
+        }
+      });
+    }
+    if (!list.length) list.push({ id: 'finder', name: 'Finder', windowId: null });
+    return list;
+  }
+
+  function showAppSwitcher(forward) {
+    appSwitcher.apps = getSwitcherApps();
+    if (!appSwitcher.open) {
+      appSwitcher.open = true;
+      appSwitcher.idx = 0;
+      if (appSwitcher.apps.length > 1) appSwitcher.idx = forward ? 1 : appSwitcher.apps.length - 1;
+    } else {
+      var n = appSwitcher.apps.length;
+      appSwitcher.idx = (appSwitcher.idx + (forward ? 1 : n - 1)) % n;
+    }
+    var existing = document.getElementById('app-switcher');
+    if (!existing) {
+      existing = document.createElement('div');
+      existing.id = 'app-switcher';
+      existing.className = 'app-switcher-hud';
+      document.body.appendChild(existing);
+    }
+    existing.innerHTML =
+      '<div class="app-switcher-panel glass">' +
+      appSwitcher.apps
+        .map(function (a, i) {
+          return (
+            '<div class="app-switcher-item' +
+            (i === appSwitcher.idx ? ' is-active' : '') +
+            '" data-i="' +
+            i +
+            '">' +
+            '<div class="app-switcher-icon">' +
+            iconHtml(a.id) +
+            '</div>' +
+            '<div class="app-switcher-name">' +
+            escapeHtml(a.name) +
+            '</div></div>'
+          );
+        })
+        .join('') +
+      '</div>';
+    existing.hidden = false;
+    if (global.MacSounds && MacSounds.play) MacSounds.play('tink');
+  }
+
+  function commitAppSwitcher() {
+    if (!appSwitcher.open) return;
+    var a = appSwitcher.apps[appSwitcher.idx];
+    var el = document.getElementById('app-switcher');
+    if (el) el.remove();
+    appSwitcher.open = false;
+    if (!a) return;
+    if (a.windowId && global.WindowManager && WindowManager.focus) {
+      WindowManager.focus(a.windowId);
+    } else {
+      openApp(a.id);
+    }
+  }
+
+  function cancelAppSwitcher() {
+    var el = document.getElementById('app-switcher');
+    if (el) el.remove();
+    appSwitcher.open = false;
   }
 
   function showContextMenu(x, y) {
@@ -2907,28 +3164,24 @@
           finderSetView(views[key]);
         }
       } else if (key === 'Tab') {
-        /* ⌘Tab — simple app switcher among open windows */
+        /* ⌘Tab — visual app switcher HUD */
         if (typing) return;
         e.preventDefault();
-        if (global.WindowManager && WindowManager.getOpenWindows) {
-          var wins = WindowManager.getOpenWindows().filter(function (w) {
-            return !w.minimized;
-          });
-          if (!wins.length) return;
-          var focused = WindowManager.getFocused && WindowManager.getFocused();
-          var idx = 0;
-          if (focused) {
-            for (var wi = 0; wi < wins.length; wi++) {
-              if (wins[wi].id === focused.id) {
-                idx = wi;
-                break;
-              }
-            }
-          }
-          var next = wins[(idx + (e.shiftKey ? wins.length - 1 : 1)) % wins.length];
-          if (next && WindowManager.focus) {
-            WindowManager.focus(next.id);
-            if (global.MacSounds && MacSounds.play) MacSounds.play('tink');
+        showAppSwitcher(!e.shiftKey);
+      }
+    });
+
+    document.addEventListener('keyup', function (e) {
+      if (e.key === 'Meta' || e.key === 'Control' || e.code === 'MetaLeft' || e.code === 'MetaRight') {
+        if (appSwitcher.open) commitAppSwitcher();
+      }
+    });
+
+    document.addEventListener('keydown', function (e) {
+      if (isOpen($('#mission-control'))) {
+        if (e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'Enter') {
+          if (missionControlKey(e.key)) {
+            e.preventDefault();
           }
         }
       }

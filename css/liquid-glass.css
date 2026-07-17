@@ -3958,3 +3958,65 @@ html[data-theme='light'] .kbd-panel {
   height: 56px;
   margin: 0 auto;
 }
+
+/* ⌘Tab app switcher HUD */
+.app-switcher-hud {
+  position: fixed;
+  inset: 0;
+  z-index: 12000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+.app-switcher-panel {
+  display: flex;
+  gap: 10px;
+  padding: 18px 20px 14px;
+  border-radius: 18px;
+  background: rgba(40, 40, 42, 0.82);
+  backdrop-filter: blur(40px) saturate(160%);
+  -webkit-backdrop-filter: blur(40px) saturate(160%);
+  border: 0.5px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.45);
+  max-width: min(92vw, 720px);
+  overflow-x: auto;
+}
+.app-switcher-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-width: 72px;
+  padding: 10px 8px;
+  border-radius: 14px;
+  color: #fff;
+}
+.app-switcher-item.is-active {
+  background: rgba(255, 255, 255, 0.14);
+  outline: 2px solid rgba(10, 132, 255, 0.85);
+  outline-offset: 0;
+}
+.app-switcher-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+}
+.app-switcher-icon svg,
+.app-switcher-icon img {
+  width: 56px;
+  height: 56px;
+}
+.app-switcher-name {
+  font-size: 11px;
+  font-weight: 500;
+  text-align: center;
+  max-width: 80px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0.9;
+}
