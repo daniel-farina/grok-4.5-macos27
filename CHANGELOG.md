@@ -13,8 +13,8 @@ Public commits track multi-minute interactive work on this virtual macOS 27 desk
 See `docs/LOOP_PRACTICE.md` for why we commit every loop.
 
 ### 2026-07-17 / 18 (loop demo)
-- App Store OPEN launches apps; iWork edit/Insert/Play; Continuity menu
-- Bulk apps; Wallpaper; Control Center; hot corners; Dock; Spotlight
+- Phone dialer tabs; Games mini-session; Safari Reading List
+- Continuity handoff toasts; App Store OPEN; iWork; Continuity menu
 - Commit-as-you-go for multi-minute Grok 4.5 loops
 
 ### 2026-07-17

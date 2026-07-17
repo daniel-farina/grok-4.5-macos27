@@ -369,21 +369,38 @@
           Apple: 'https://www.apple.com',
           Wikipedia: 'https://en.wikipedia.org/wiki/Main_Page',
           GitHub: 'https://example.com',
-          Weather: 'https://example.com',
-          News: 'https://example.com',
-          Google: 'https://example.com',
-          YouTube: 'https://example.com',
-          Maps: 'https://example.com',
-          Bing: 'https://example.com',
-          X: 'https://example.com',
-          LinkedIn: 'https://example.com',
-          Reddit: 'https://example.com',
-          NYT: 'https://example.com',
-          BBC: 'https://example.com',
-          'App Store': 'https://www.apple.com',
+          Weather: 'https://en.wikipedia.org/wiki/Weather',
+          News: 'https://en.wikipedia.org/wiki/News',
+          Google: 'https://duckduckgo.com',
+          YouTube: 'https://en.wikipedia.org/wiki/YouTube',
+          Maps: 'https://en.wikipedia.org/wiki/Map',
+          Bing: 'https://duckduckgo.com',
+          X: 'https://en.wikipedia.org/wiki/Twitter',
+          LinkedIn: 'https://en.wikipedia.org/wiki/LinkedIn',
+          Reddit: 'https://en.wikipedia.org/wiki/Reddit',
+          NYT: 'https://en.wikipedia.org/wiki/The_New_York_Times',
+          BBC: 'https://en.wikipedia.org/wiki/BBC',
+          'App Store': 'https://www.apple.com/app-store/',
           iCloud: 'https://www.apple.com/icloud/',
         };
         navigate(map[n] || 'https://en.wikipedia.org/wiki/' + encodeURIComponent(n || 'Apple_Inc.'));
+      });
+    });
+    el.querySelectorAll('.safari-read-item').forEach(function (item) {
+      item.addEventListener('click', function () {
+        var t = item.querySelector('.safari-read-title');
+        var s = item.querySelector('.safari-read-site');
+        var site = s ? s.textContent : 'apple.com';
+        navigate('https://' + site.replace(/^https?:\/\//, ''));
+        if (t && global.MacShell && MacShell.notify) {
+          MacShell.notify('Safari', 'Reading List', t.textContent, 'now');
+        }
+      });
+    });
+    el.querySelectorAll('.safari-closed-item').forEach(function (item) {
+      item.addEventListener('click', function () {
+        var n = item.querySelector('.safari-closed-name');
+        navigate((n && n.textContent) || 'example.com');
       });
     });
     var close = el.querySelector('.safari-banner-close');
@@ -2771,9 +2788,16 @@
   function wirePhone(el) {
     if (!el || el.dataset.wired) return;
     el.dataset.wired = '1';
-    /* if stub, inject dialer */
-    if (!el.querySelector('.phone-dialer')) {
+    /* Full demo dialer if stub/list only */
+    if (!el.querySelector('.phone-dialer') && !el.querySelector('.phone-app')) {
       el.innerHTML =
+        '<div class="phone-app">' +
+        '<div class="phone-tabs">' +
+        '<button type="button" class="phone-tab active" data-ptab="keypad">Keypad</button>' +
+        '<button type="button" class="phone-tab" data-ptab="recents">Recents</button>' +
+        '<button type="button" class="phone-tab" data-ptab="contacts">Contacts</button>' +
+        '</div>' +
+        '<div class="phone-pane" data-ppane="keypad">' +
         '<div class="phone-dialer">' +
         '<div class="phone-display" id="phone-display"></div>' +
         '<div class="phone-keys">' +
@@ -2781,28 +2805,125 @@
           return '<button type="button" class="phone-key" data-k="' + k + '">' + k + '</button>';
         }).join('') +
         '</div>' +
+        '<div class="phone-actions">' +
+        '<button type="button" class="btn-glass phone-del" aria-label="Delete">⌫</button>' +
         '<button type="button" class="btn-primary phone-call">Call</button>' +
-        '<p class="muted center phone-status">Phone · Ready</p></div>';
+        '</div>' +
+        '<p class="muted center phone-status">Phone · Ready</p></div></div>' +
+        '<div class="phone-pane" data-ppane="recents" hidden>' +
+        '<div class="phone-recent" data-num="5550100"><strong>Alex Chen</strong><span class="muted">Mobile · 2m · ↗</span></div>' +
+        '<div class="phone-recent" data-num="5550199"><strong>Unknown</strong><span class="muted">555-0199 · ↙</span></div>' +
+        '<div class="phone-recent" data-num="5550142"><strong>Blake Morgan</strong><span class="muted">Work · Yesterday</span></div>' +
+        '</div>' +
+        '<div class="phone-pane" data-ppane="contacts" hidden>' +
+        '<div class="phone-recent" data-num="5550100"><strong>Alex Chen</strong><span class="muted">Mobile</span></div>' +
+        '<div class="phone-recent" data-num="5550110"><strong>Casey Quinn</strong><span class="muted">Mobile</span></div>' +
+        '<div class="phone-recent" data-num="5550166"><strong>Jordan Lee</strong><span class="muted">Mobile</span></div>' +
+        '</div></div>';
     }
     var disp = el.querySelector('#phone-display, .phone-display');
+    var st = el.querySelector('.phone-status');
+    var calling = false;
+
+    function appendDigit(d) {
+      if (!disp || calling) return;
+      if ((disp.textContent || '').length > 16) return;
+      disp.textContent = (disp.textContent || '') + d;
+    }
+
     el.querySelectorAll('.phone-key, .iapp-key').forEach(function (k) {
       k.addEventListener('click', function () {
-        if (disp) disp.textContent = (disp.textContent || '') + (k.getAttribute('data-k') || k.textContent);
+        appendDigit(k.getAttribute('data-k') || k.textContent);
         sound('volume');
       });
     });
+    var del = el.querySelector('.phone-del');
+    if (del) {
+      del.addEventListener('click', function () {
+        if (disp) disp.textContent = (disp.textContent || '').slice(0, -1);
+        sound('pop');
+      });
+    }
+    function placeCall(num) {
+      if (calling) return;
+      calling = true;
+      var n = num || (disp && disp.textContent) || '555-0100';
+      if (disp && !disp.textContent) disp.textContent = n;
+      if (st) st.textContent = 'Calling ' + n + '…';
+      var callBtn = el.querySelector('.phone-call');
+      if (callBtn) {
+        callBtn.textContent = 'End';
+        callBtn.classList.add('is-on-call');
+      }
+      sound('submarine');
+      if (global.MacShell && MacShell.notify) {
+        MacShell.notify('Phone', 'Calling…', n, 'now');
+      }
+      setTimeout(function () {
+        calling = false;
+        if (st) st.textContent = 'Call ended · ' + n;
+        if (callBtn) {
+          callBtn.textContent = 'Call';
+          callBtn.classList.remove('is-on-call');
+        }
+        sound('pop');
+      }, 2800);
+    }
     var call = el.querySelector('.phone-call, .iapp-call');
     if (call) {
       call.addEventListener('click', function () {
-        var st = el.querySelector('.phone-status');
-        if (st) st.textContent = 'Calling ' + (disp && disp.textContent ? disp.textContent : '…') + '…';
-        sound('submarine');
-        setTimeout(function () {
+        if (calling) {
+          calling = false;
           if (st) st.textContent = 'Call ended';
+          call.textContent = 'Call';
+          call.classList.remove('is-on-call');
           sound('pop');
-        }, 2500);
+          return;
+        }
+        placeCall();
       });
     }
+    el.querySelectorAll('.phone-tab').forEach(function (tab) {
+      tab.addEventListener('click', function () {
+        el.querySelectorAll('.phone-tab').forEach(function (t) {
+          t.classList.remove('active');
+        });
+        tab.classList.add('active');
+        var id = tab.getAttribute('data-ptab');
+        el.querySelectorAll('.phone-pane').forEach(function (p) {
+          p.hidden = p.getAttribute('data-ppane') !== id;
+        });
+        sound('tink');
+      });
+    });
+    el.querySelectorAll('.phone-recent').forEach(function (row) {
+      row.addEventListener('click', function () {
+        var num = row.getAttribute('data-num') || '';
+        var name = row.querySelector('strong');
+        if (disp) disp.textContent = num;
+        el.querySelectorAll('.phone-tab').forEach(function (t) {
+          t.classList.toggle('active', t.getAttribute('data-ptab') === 'keypad');
+        });
+        el.querySelectorAll('.phone-pane').forEach(function (p) {
+          p.hidden = p.getAttribute('data-ppane') !== 'keypad';
+        });
+        placeCall(num || (name && name.textContent));
+      });
+    });
+    el.tabIndex = 0;
+    el.addEventListener('keydown', function (e) {
+      if (e.key >= '0' && e.key <= '9') {
+        e.preventDefault();
+        appendDigit(e.key);
+        sound('volume');
+      } else if (e.key === 'Backspace') {
+        e.preventDefault();
+        if (disp) disp.textContent = (disp.textContent || '').slice(0, -1);
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        placeCall();
+      }
+    });
   }
 
   /* ── Weather: city switch ───────────────────────────── */
@@ -5924,16 +6045,56 @@
     if (!el || el.dataset.wired) return;
     el.dataset.wired = '1';
     el.querySelectorAll('.game-card').forEach(function (card) {
-      card.addEventListener('click', function () {
+      function launch() {
         var name = card.getAttribute('data-game') || 'Game';
         sound('funk');
-        if (name === 'Chess' && global.MacShell && MacShell.openApp) {
+        if (/chess/i.test(name) && global.MacShell && MacShell.openApp) {
           MacShell.openApp('chess');
           return;
         }
-        if (global.MacShell && MacShell.notify) {
-          MacShell.notify('Games', 'Launching', name + ' (demo)', 'now');
-        }
+        /* Mini arcade overlay for other titles */
+        var ov = document.createElement('div');
+        ov.className = 'game-play-overlay';
+        ov.innerHTML =
+          '<div class="game-play-panel glass">' +
+          '<h2></h2><p class="muted">Demo session · click to score</p>' +
+          '<div class="game-score">Score: <strong id="gs">0</strong></div>' +
+          '<button type="button" class="btn-primary" id="gs-tap">Tap!</button>' +
+          '<button type="button" class="btn-glass" id="gs-quit">Quit</button></div>';
+        ov.querySelector('h2').textContent = name;
+        el.appendChild(ov);
+        var score = 0;
+        var scoreEl = ov.querySelector('#gs');
+        ov.querySelector('#gs-tap').addEventListener('click', function () {
+          score += 1 + Math.floor(Math.random() * 5);
+          if (scoreEl) scoreEl.textContent = String(score);
+          sound('tink');
+        });
+        ov.querySelector('#gs-quit').addEventListener('click', function () {
+          ov.remove();
+          sound('pop');
+          if (global.MacShell && MacShell.notify) {
+            MacShell.notify('Games', 'Session over', name + ' · ' + score + ' pts', 'now');
+          }
+        });
+        ov.addEventListener('click', function (e) {
+          if (e.target === ov) ov.remove();
+        });
+      }
+      var play = card.querySelector('.game-play, .btn-get');
+      if (play) {
+        play.addEventListener('click', function (e) {
+          e.stopPropagation();
+          launch();
+        });
+      }
+      card.addEventListener('dblclick', launch);
+      card.addEventListener('click', function () {
+        el.querySelectorAll('.game-card').forEach(function (c) {
+          c.classList.remove('is-selected');
+        });
+        card.classList.add('is-selected');
+        sound('pop');
       });
     });
   }

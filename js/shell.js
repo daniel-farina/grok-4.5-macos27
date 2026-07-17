@@ -145,6 +145,19 @@
     }
     if (appId === 'settings') appId = 'system-settings';
     pushRecentApp(appId);
+    /* Continuity handoff toast for device apps */
+    if (appId === 'iphone-mirroring' || appId === 'sidecar' || appId === 'phone') {
+      setTimeout(function () {
+        notify(
+          'Continuity',
+          appId === 'sidecar' ? 'Sidecar' : appId === 'phone' ? 'Phone' : 'iPhone Mirroring',
+          appId === 'sidecar'
+            ? 'Using iPad as second display'
+            : 'Connected · Continuity session active',
+          'now'
+        );
+      }, 400);
+    }
     if (global.AppRegistry && typeof AppRegistry.open === 'function') {
       AppRegistry.open(appId);
     } else if (global.WindowManager) {
