@@ -13,9 +13,10 @@ Public commits track multi-minute interactive work on this virtual macOS 27 desk
 See `docs/LOOP_PRACTICE.md` for why we commit every loop.
 
 ### 2026-07-17 / 18 (loop demo)
+- Mail search + Flag/Archive/Trash folders; Notes folder filter + search
 - FaceTime timer/mute/camera; Siri open-app intents; Continuity handoff pill
 - QuickTime seek + record; Phone; Games; Safari Reading List
-- Commit-as-you-go for multi-minute Grok 4.5 loops
+- Commit-as-you-go: started frequent public updates to demonstrate what else can be done if we spend more than ~10 minutes in a loop in Grok 4.5
 
 ### 2026-07-17
 - iPhone dock apps open Phone/Safari/Messages/Music; live status clock

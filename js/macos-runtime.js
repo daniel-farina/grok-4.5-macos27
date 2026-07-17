@@ -1442,6 +1442,40 @@
       });
     });
 
+    function applyMailFilters() {
+      var q = ((el.querySelector('.mail27-search') || {}).value || '').toLowerCase().trim();
+      var folderItem = el.querySelector('.mail27-side-item.active');
+      var folder = (folderItem && folderItem.getAttribute('data-folder')) || 'Inbox';
+      var visible = 0;
+      el.querySelectorAll('.mail27-row').forEach(function (row) {
+        var text = (row.textContent || '').toLowerCase();
+        var matchQ = !q || text.indexOf(q) >= 0;
+        var f = row.getAttribute('data-folder') || 'Inbox';
+        var matchF = true;
+        if (folder === 'Sent') matchF = f === 'Sent' || text.indexOf('me →') >= 0 || text.indexOf('me ->') >= 0;
+        else if (folder === 'Flagged') matchF = row.classList.contains('flagged');
+        else if (folder === 'Drafts' || folder === 'Junk' || folder === 'Trash' || folder === 'Archive')
+          matchF = f === folder;
+        else if (folder === 'Inbox' || folder === 'VIP' || folder === 'All Mailboxes')
+          matchF = f === 'Inbox' || !row.getAttribute('data-folder');
+        else matchF = f === folder || f === 'Inbox';
+        var show = matchQ && matchF;
+        row.style.display = show ? '' : 'none';
+        if (show) visible++;
+      });
+      var meta = el.querySelector('.mail27-list-meta');
+      if (meta) {
+        if (q) meta.textContent = visible + ' Match' + (visible === 1 ? '' : 'es');
+        else {
+          var n = 0;
+          el.querySelectorAll('.mail27-row.unread').forEach(function (r) {
+            if (r.style.display !== 'none') n++;
+          });
+          meta.textContent = n + ' Unread';
+        }
+      }
+    }
+
     el.querySelectorAll('.mail27-side-item').forEach(function (item) {
       item.addEventListener('click', function () {
         el.querySelectorAll('.mail27-side-item').forEach(function (i) {
@@ -1451,9 +1485,16 @@
         var name = item.getAttribute('data-folder') || 'Inbox';
         var title = el.querySelector('.mail27-list-title');
         if (title) title.textContent = name;
+        applyMailFilters();
         sound('tink');
       });
     });
+
+    var searchInput = el.querySelector('.mail27-search');
+    if (searchInput) {
+      searchInput.addEventListener('input', applyMailFilters);
+      searchInput.addEventListener('search', applyMailFilters);
+    }
 
     var newBtn = el.querySelector('.mail27-tb.primary, .mail27-tb[title="New Message"]');
     function openCompose(replyTo) {
@@ -1492,6 +1533,7 @@
         if (list) {
           var row = document.createElement('div');
           row.className = 'mail27-row';
+          row.setAttribute('data-folder', 'Sent');
           row.innerHTML =
             '<span class="mail27-dot" aria-hidden="true"></span>' +
             '<div class="mail27-row-main"><div class="mail27-row-top">' +
@@ -1508,6 +1550,7 @@
           row.addEventListener('click', function () {
             selectRow(row);
           });
+          applyMailFilters();
         }
         /* bump Sent count */
         var sent = el.querySelector('.mail27-side-item[data-folder="Sent"] .mail27-side-count');
@@ -1544,8 +1587,33 @@
       trash.addEventListener('click', function () {
         var row = el.querySelector('.mail27-row.selected');
         if (row) {
-          row.remove();
+          row.setAttribute('data-folder', 'Trash');
+          row.classList.remove('selected', 'unread', 'flagged');
+          applyMailFilters();
           sound('emptyTrash');
+        }
+      });
+    }
+    var archive = el.querySelector('.mail27-tb[title="Archive"]');
+    if (archive) {
+      archive.addEventListener('click', function () {
+        var row = el.querySelector('.mail27-row.selected');
+        if (row) {
+          row.setAttribute('data-folder', 'Archive');
+          row.classList.remove('selected', 'unread');
+          applyMailFilters();
+          sound('tink');
+        }
+      });
+    }
+    var flag = el.querySelector('.mail27-tb[title="Flag"]');
+    if (flag) {
+      flag.addEventListener('click', function () {
+        var row = el.querySelector('.mail27-row.selected');
+        if (row) {
+          row.classList.toggle('flagged');
+          applyMailFilters();
+          sound('tink');
         }
       });
     }
@@ -1569,7 +1637,49 @@
     var body = el.querySelector('.notes27-body-text');
     var dateEl = el.querySelector('.notes27-date');
 
-    el.querySelectorAll('.notes27-item').forEach(function (item) {
+    /* Default folders for sample notes without data-folder */
+    var defaultFolders = ['notes', 'notes', 'notes', 'quick', 'shared', 'notes'];
+    el.querySelectorAll('.notes27-item').forEach(function (item, idx) {
+      if (!item.getAttribute('data-folder')) {
+        item.setAttribute('data-folder', defaultFolders[idx] || 'notes');
+      }
+    });
+
+    function applyNotesFilters() {
+      var q = ((el.querySelector('.notes27-search') || {}).value || '').toLowerCase().trim();
+      var folderEl = el.querySelector('.notes27-folder.active');
+      var folder = (folderEl && folderEl.getAttribute('data-folder')) || 'notes';
+      var folderLabel = folderEl && folderEl.querySelector('.notes27-folder-name');
+      var labelText = folderLabel ? folderLabel.textContent.trim() : '';
+      el.querySelectorAll('.notes27-item').forEach(function (item) {
+        var f = item.getAttribute('data-folder') || 'notes';
+        var text = (item.textContent || '').toLowerCase();
+        var matchQ = !q || text.indexOf(q) >= 0;
+        var matchF = true;
+        if (folder === 'icloud') matchF = f !== 'recently';
+        else if (folder === 'recently') matchF = f === 'recently';
+        else if (folder === 'quick') matchF = f === 'quick';
+        else if (folder === 'shared') matchF = f === 'shared';
+        else if (folder === 'notes' || labelText === 'Notes') matchF = f === 'notes' || f === 'icloud';
+        else matchF = f === folder;
+        item.style.display = matchQ && matchF ? '' : 'none';
+      });
+      /* refresh folder counts */
+      el.querySelectorAll('.notes27-folder[data-folder]').forEach(function (folderNode) {
+        var id = folderNode.getAttribute('data-folder');
+        var countEl = folderNode.querySelector('.notes27-folder-count');
+        if (!countEl) return;
+        var n = 0;
+        el.querySelectorAll('.notes27-item').forEach(function (item) {
+          var f = item.getAttribute('data-folder') || 'notes';
+          if (id === 'icloud' && f !== 'recently') n++;
+          else if (f === id) n++;
+        });
+        countEl.textContent = String(n);
+      });
+    }
+
+    function bindNoteItem(item) {
       item.addEventListener('click', function () {
         el.querySelectorAll('.notes27-item').forEach(function (i) {
           i.classList.remove('selected');
@@ -1586,7 +1696,9 @@
         if (dateEl) dateEl.textContent = 'Today at ' + nowTime();
         sound('pop');
       });
-    });
+    }
+
+    el.querySelectorAll('.notes27-item').forEach(bindNoteItem);
 
     el.querySelectorAll('.notes27-folder').forEach(function (f) {
       f.addEventListener('click', function () {
@@ -1594,15 +1706,26 @@
           x.classList.remove('active');
         });
         f.classList.add('active');
+        applyNotesFilters();
         sound('tink');
       });
     });
 
+    var notesSearch = el.querySelector('.notes27-search');
+    if (notesSearch) {
+      notesSearch.addEventListener('input', applyNotesFilters);
+      notesSearch.addEventListener('search', applyNotesFilters);
+    }
+
     var newBtn = el.querySelector('.notes27-tb-btn[title="New Note"]');
     if (newBtn && list) {
       newBtn.addEventListener('click', function () {
+        var activeFolder = el.querySelector('.notes27-folder.active');
+        var folderId = (activeFolder && activeFolder.getAttribute('data-folder')) || 'notes';
+        if (folderId === 'icloud' || folderId === 'recently') folderId = 'notes';
         var item = document.createElement('div');
         item.className = 'notes27-item selected';
+        item.setAttribute('data-folder', folderId);
         item.innerHTML =
           '<div class="notes27-item-title">New Note</div>' +
           '<div class="notes27-item-meta"><span>Just now</span> Start typing…</div>';
@@ -1613,12 +1736,8 @@
         if (title) title.textContent = 'New Note';
         if (body) body.innerHTML = '<p><br></p>';
         if (dateEl) dateEl.textContent = 'Today at ' + nowTime();
-        item.addEventListener('click', function () {
-          el.querySelectorAll('.notes27-item').forEach(function (i) {
-            i.classList.remove('selected');
-          });
-          item.classList.add('selected');
-        });
+        bindNoteItem(item);
+        applyNotesFilters();
         if (title) title.focus();
         sound('pop');
       });
@@ -1629,11 +1748,15 @@
       del.addEventListener('click', function () {
         var sel = el.querySelector('.notes27-item.selected');
         if (sel) {
-          sel.remove();
+          sel.setAttribute('data-folder', 'recently');
+          sel.classList.remove('selected');
+          applyNotesFilters();
           sound('emptyTrash');
         }
       });
     }
+
+    applyNotesFilters();
 
     el.querySelectorAll('.notes27-fmt').forEach(function (btn) {
       btn.addEventListener('click', function () {

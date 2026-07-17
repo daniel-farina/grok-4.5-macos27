@@ -2170,6 +2170,14 @@ html[data-theme='light'] .mail27-row.selected {
   background: #0a84ff;
   box-shadow: 0 0 0 2px rgba(10, 132, 255, 0.18);
 }
+.mail27-row.flagged .mail27-from::before {
+  content: '⚑ ';
+  color: #ff9f0a;
+  font-size: 11px;
+}
+.mail27-row.flagged {
+  box-shadow: inset 3px 0 0 #ff9f0a;
+}
 .mail27-row-main {
   flex: 1;
   min-width: 0;

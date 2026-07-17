@@ -10,6 +10,8 @@ On **each scheduled loop**, after meaningful code changes:
 Remember: **commit as you go on each loop** - one solid commit + push per productive loop.
 
 ## Why the continuous updates
+**Remember:** commit as you go on each loop.
+
 We **started sending frequent commits and public updates** on the functional-fidelity loop to **demonstrate what else can be done if we spend more than ~10 minutes in a loop in Grok 4.5**:
 
 - Longer loops unlock multi-app wiring, real media assets, sounds, device simulators, and deeper interactivity.

@@ -1188,7 +1188,7 @@
             ${msgs
               .map(
                 (m) =>
-                  `<div class="mail27-row${m.selected ? ' selected' : ''}${m.unread ? ' unread' : ''}">
+                  `<div class="mail27-row${m.selected ? ' selected' : ''}${m.unread ? ' unread' : ''}" data-folder="Inbox">
                     <span class="mail27-dot" aria-hidden="true"></span>
                     <div class="mail27-row-main">
                       <div class="mail27-row-top">
@@ -1869,12 +1869,12 @@
         { id: 'recently', label: 'Recently Deleted', count: 0 },
       ];
       const list = [
-        { title: 'Welcome to Notes', preview: 'Capture ideas, lists, and sketches…', date: 'Today', selected: true },
-        { title: 'Shopping List', preview: 'Milk, eggs, bread, coffee…', date: 'Yesterday' },
-        { title: 'Meeting Agenda', preview: '1. Status 2. Goals 3. Next steps', date: 'Jul 15' },
-        { title: 'Travel Checklist', preview: 'Passport, charger, tickets…', date: 'Jul 12' },
-        { title: 'Book Ideas', preview: 'Chapter outlines and themes…', date: 'Jul 8' },
-        { title: 'Recipes', preview: 'Pasta, salad, dessert…', date: 'Jul 1' },
+        { title: 'Welcome to Notes', preview: 'Capture ideas, lists, and sketches…', date: 'Today', selected: true, folder: 'notes' },
+        { title: 'Shopping List', preview: 'Milk, eggs, bread, coffee…', date: 'Yesterday', folder: 'notes' },
+        { title: 'Meeting Agenda', preview: '1. Status 2. Goals 3. Next steps', date: 'Jul 15', folder: 'notes' },
+        { title: 'Travel Checklist', preview: 'Passport, charger, tickets…', date: 'Jul 12', folder: 'quick' },
+        { title: 'Book Ideas', preview: 'Chapter outlines and themes…', date: 'Jul 8', folder: 'shared' },
+        { title: 'Recipes', preview: 'Pasta, salad, dessert…', date: 'Jul 1', folder: 'notes' },
       ];
       return `<div class="notes27-app">
         <div class="notes27-toolbar" data-drag-region data-drag-handle>
@@ -1916,7 +1916,7 @@
             ${list
               .map(
                 (n) =>
-                  `<div class="notes27-item${n.selected ? ' selected' : ''}">
+                  `<div class="notes27-item${n.selected ? ' selected' : ''}" data-folder="${n.folder || 'notes'}">
                     <div class="notes27-item-title">${n.title}</div>
                     <div class="notes27-item-meta"><span>${n.date}</span> ${n.preview}</div>
                   </div>`
