@@ -3,9 +3,9 @@
 Job started: 2026-07-17T20:55:45Z · Cancel after ~3h · `scheduler_delete 019f71def611`
 
 ## This loop
-- [x] Maps: drop pin, directions steps, map modes, more places
-- [x] Keychain search + add; Audio MIDI test tone; ColorSync assign
-- [x] Voice Memos delete/play; FaceTime contact search
+- [x] Safari: bookmarks sidebar + add bookmark (persisted)
+- [x] Migration animated transfer; Directory Utility Bind; DVD chapters
+- [x] Home light/climate levels; Photos people/places/screenshots filters
 - [x] Audit ALL PASS
 
 ## Process

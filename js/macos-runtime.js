@@ -452,6 +452,108 @@
     el.querySelectorAll('.safari-tab-add, .safari-tb-btn[title="New Tab"]').forEach(function (btn) {
       btn.addEventListener('click', newTab);
     });
+
+    /* Bookmarks / favorites */
+    var bookmarks = [];
+    try {
+      bookmarks = JSON.parse(localStorage.getItem('macos-safari-bookmarks') || '[]') || [];
+    } catch (e) {
+      bookmarks = [];
+    }
+    function saveBookmarks() {
+      try {
+        localStorage.setItem('macos-safari-bookmarks', JSON.stringify(bookmarks));
+      } catch (e) {}
+    }
+    function addBookmark() {
+      var url = tabs[tabIdx].url || (input && input.value) || '';
+      var title = tabs[tabIdx].title || url || 'Start Page';
+      if (!url) {
+        sound('sosumi');
+        return;
+      }
+      var exists = bookmarks.some(function (b) {
+        return b.url === url;
+      });
+      if (!exists) {
+        bookmarks.unshift({ title: title, url: url });
+        if (bookmarks.length > 30) bookmarks.pop();
+        saveBookmarks();
+      }
+      sound('hero');
+      if (global.MacShell && MacShell.notify) {
+        MacShell.notify('Safari', 'Bookmark Added', title, 'now');
+      }
+      renderBookmarksSidebar();
+    }
+    function renderBookmarksSidebar() {
+      var side = el.querySelector('.safari-bookmarks-side');
+      if (!side) return;
+      side.innerHTML =
+        '<div class="safari-bm-head">Favorites</div>' +
+        bookmarks
+          .map(function (b, i) {
+            return (
+              '<button type="button" class="safari-bm-item" data-i="' +
+              i +
+              '"><span class="safari-bm-title"></span><span class="muted safari-bm-url"></span></button>'
+            );
+          })
+          .join('') ||
+        '<p class="muted" style="padding:8px">No bookmarks yet</p>';
+      side.querySelectorAll('.safari-bm-item').forEach(function (btn) {
+        var i = parseInt(btn.getAttribute('data-i'), 10);
+        var b = bookmarks[i];
+        if (!b) return;
+        btn.querySelector('.safari-bm-title').textContent = b.title;
+        btn.querySelector('.safari-bm-url').textContent = (b.url || '').replace(/^https?:\/\//, '').slice(0, 28);
+        btn.addEventListener('click', function () {
+          navigate(b.url);
+        });
+      });
+    }
+    var shareBtn = el.querySelector(
+      '.safari-tb-btn[title="Share"], .safari-share, [aria-label="Share"], .safari-url-share'
+    );
+    if (shareBtn && !shareBtn.dataset.bmWired) {
+      shareBtn.dataset.bmWired = '1';
+      shareBtn.addEventListener('click', function () {
+        addBookmark();
+      });
+    }
+    if (!el.querySelector('.safari-add-bookmark')) {
+      var chrome = el.querySelector('.safari-urlbar, .safari-toolbar, .safari-chrome') || el;
+      var addBm = document.createElement('button');
+      addBm.type = 'button';
+      addBm.className = 'safari-tb-btn safari-add-bookmark';
+      addBm.title = 'Add Bookmark';
+      addBm.textContent = '☆';
+      chrome.appendChild(addBm);
+      addBm.addEventListener('click', addBookmark);
+    }
+    if (!el.querySelector('.safari-bookmarks-side')) {
+      var body = el.querySelector('.safari-body, .safari-content') || page && page.parentElement;
+      if (body) {
+        var side = document.createElement('aside');
+        side.className = 'safari-bookmarks-side';
+        side.hidden = true;
+        body.insertBefore(side, body.firstChild);
+        var toggle = document.createElement('button');
+        toggle.type = 'button';
+        toggle.className = 'safari-tb-btn';
+        toggle.title = 'Show Bookmarks';
+        toggle.textContent = '☰';
+        var ch = el.querySelector('.safari-urlbar, .safari-toolbar, .safari-chrome') || el;
+        ch.appendChild(toggle);
+        toggle.addEventListener('click', function () {
+          side.hidden = !side.hidden;
+          if (!side.hidden) renderBookmarksSidebar();
+          sound('tink');
+        });
+      }
+    }
+    renderBookmarksSidebar();
+
     wireSafariStartClicks(el, navigate);
     renderTabs();
   }
@@ -718,14 +820,28 @@
           var show = true;
           if (id === 'favorites') show = !!favorites[t.getAttribute('data-src')];
           else if (id === 'recents') show = i >= tiles.length - 8;
+          else if (id === 'funny' || id === 'lib') show = true;
+          else if (id === 'people') show = i % 3 === 0;
+          else if (id === 'places') show = i % 4 === 1;
+          else if (id === 'videos') show = false;
+          else if (id === 'screenshots') show = i >= tiles.length - 4;
           t.style.display = show ? '' : 'none';
         });
         var head = el.querySelector('.photos-section-head h2');
         var count = el.querySelector('.photos-section-head .muted');
         var n = visibleTiles().length;
         if (head) {
-          head.textContent =
-            id === 'favorites' ? 'Favorites' : id === 'recents' ? 'Recents' : 'Funny Collection';
+          var labels = {
+            favorites: 'Favorites',
+            recents: 'Recents',
+            funny: 'Funny Collection',
+            lib: 'Library',
+            people: 'People',
+            places: 'Places',
+            videos: 'Videos',
+            screenshots: 'Screenshots',
+          };
+          head.textContent = labels[id] || 'Library';
         }
         if (count) count.textContent = n + ' Photo' + (n === 1 ? '' : 's');
         sound('tink');
@@ -4674,11 +4790,60 @@
       var b = el.querySelector('#' + id);
       if (b) {
         b.addEventListener('click', function () {
+          if (id === 'dvd-prev') pos = Math.max(0, pos - 30);
+          else if (id === 'dvd-next') pos = pos + 30;
           sound('tink');
-          setStatus(id === 'dvd-menu' ? 'Disc Menu' : 'Chapter change');
+          if (id === 'dvd-menu') {
+            setPlay(false);
+            setStatus('Disc Menu · Chapters 1–8');
+          } else {
+            var ch = 1 + Math.floor(pos / 30);
+            setStatus('Chapter ' + ch + ' · ' + Math.floor(pos / 60) + ':' + (pos % 60 < 10 ? '0' : '') + (pos % 60));
+          }
         });
       }
     });
+    el.querySelectorAll('.dvd-chapter, [data-chapter]').forEach(function (ch) {
+      ch.addEventListener('click', function () {
+        var n = parseInt(ch.getAttribute('data-chapter') || ch.textContent, 10) || 1;
+        pos = (n - 1) * 30;
+        if (!hasDisc) {
+          hasDisc = true;
+          if (disc) disc.style.animation = 'dvd-spin 3s linear infinite';
+        }
+        setPlay(true);
+        setStatus('Chapter ' + n);
+        sound('funk');
+      });
+    });
+    if (!el.querySelector('.dvd-chapters') && el.querySelector('#dvd-menu, .dvd-player')) {
+      var list = document.createElement('div');
+      list.className = 'dvd-chapters';
+      list.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px;padding:8px;justify-content:center';
+      for (var c = 1; c <= 8; c++) {
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'btn-glass dvd-chapter';
+        btn.setAttribute('data-chapter', String(c));
+        btn.textContent = 'Ch ' + c;
+        list.appendChild(btn);
+      }
+      var host = el.querySelector('.dvd-controls, .dvd-player') || el;
+      host.appendChild(list);
+      list.querySelectorAll('.dvd-chapter').forEach(function (ch) {
+        ch.addEventListener('click', function () {
+          var n = parseInt(ch.getAttribute('data-chapter'), 10) || 1;
+          pos = (n - 1) * 30;
+          if (!hasDisc) {
+            hasDisc = true;
+            if (disc) disc.style.animation = 'dvd-spin 3s linear infinite';
+          }
+          setPlay(true);
+          setStatus('Chapter ' + n);
+          sound('funk');
+        });
+      });
+    }
   }
 
   /* ── Migration Assistant ────────────────────────────── */
@@ -4713,6 +4878,34 @@
     var cont = el.querySelector('#mig-continue');
     if (cont) {
       cont.addEventListener('click', function () {
+        if (step === 1) {
+          setStep(2);
+          sound('purr');
+          cont.disabled = true;
+          cont.textContent = 'Transferring…';
+          var prog = el.querySelector('#ma-progress, .ma-progress');
+          var pct = 0;
+          var iv = setInterval(function () {
+            if (!el.isConnected) {
+              clearInterval(iv);
+              return;
+            }
+            pct += 8 + Math.random() * 12;
+            if (prog) prog.style.width = Math.min(100, pct) + '%';
+            if (status) status.textContent = 'Transferring… ' + Math.min(100, Math.floor(pct)) + '%';
+            if (pct >= 100) {
+              clearInterval(iv);
+              setStep(3);
+              cont.disabled = false;
+              cont.textContent = 'Done';
+              sound('hero');
+              if (global.MacShell && MacShell.notify) {
+                MacShell.notify('Migration Assistant', 'Complete', 'Demo migration finished', 'now');
+              }
+            }
+          }, 280);
+          return;
+        }
         setStep(Math.min(3, step + 1));
         sound(step === 3 ? 'hero' : 'tink');
         if (step === 3 && global.MacShell && MacShell.notify) {
@@ -5292,7 +5485,7 @@
     var locked = true;
     var lock = el.querySelector('#du-lock');
     var status = el.querySelector('#du-status');
-    var boxes = el.querySelectorAll('#du-ad, #du-ldap, #du-nis');
+    var boxes = el.querySelectorAll('#du-ad, #du-ldap, #du-nis, input[type="checkbox"]');
     function setLocked(on) {
       locked = on;
       boxes.forEach(function (b) {
@@ -5310,13 +5503,47 @@
     }
     boxes.forEach(function (b) {
       b.addEventListener('change', function () {
-        var lab = b.parentElement;
-        if (lab && lab.childNodes[1]) {
-          /* update label text node roughly */
+        if (locked) {
+          b.checked = !b.checked;
+          sound('sosumi');
+          return;
         }
         sound('tink');
+        if (status) {
+          status.textContent =
+            (b.checked ? 'Enabled' : 'Disabled') +
+            ' · ' +
+            (b.id || b.getAttribute('name') || 'service') +
+            ' (demo)';
+        }
       });
     });
+    if (!el.querySelector('#du-bind')) {
+      var bar = el.querySelector('.du-actions, .app-toolbar') || el;
+      var bind = document.createElement('button');
+      bind.type = 'button';
+      bind.className = 'btn-primary';
+      bind.id = 'du-bind';
+      bind.textContent = 'Bind…';
+      bind.style.cssText = 'margin:8px';
+      bar.appendChild(bind);
+      bind.addEventListener('click', function () {
+        if (locked) {
+          sound('sosumi');
+          if (status) status.textContent = 'Unlock to bind this Mac to a directory';
+          return;
+        }
+        if (status) status.textContent = 'Binding to directory server…';
+        sound('purr');
+        setTimeout(function () {
+          if (status) status.textContent = 'Bound · demo.directory.local (simulated)';
+          sound('hero');
+          if (global.MacShell && MacShell.notify) {
+            MacShell.notify('Directory Utility', 'Bound', 'demo.directory.local', 'now');
+          }
+        }, 1100);
+      });
+    }
   }
 
   /* ── Stickies ───────────────────────────────────────── */
@@ -6517,6 +6744,30 @@
         var on = !tile.classList.contains('is-on');
         applyTile(tile, on);
         sound(on ? 'pop' : 'tink');
+      });
+      /* long-press style: double-click cycles light brightness */
+      tile.addEventListener('dblclick', function (e) {
+        e.preventDefault();
+        var kind = tile.getAttribute('data-kind');
+        if (kind === 'light') {
+          var st = tile.querySelector('.home-tile-state');
+          var levels = ['Off', 'On · 40%', 'On · 80%', 'On · 100%'];
+          var cur = st ? st.textContent : 'Off';
+          var i = levels.indexOf(cur);
+          i = (i + 1) % levels.length;
+          if (st) st.textContent = levels[i];
+          tile.classList.toggle('is-on', i > 0);
+          sound('volume');
+        } else if (kind === 'climate') {
+          var st2 = tile.querySelector('.home-tile-state');
+          var temps = ['Off', '68°', '70°', '72°', '74°'];
+          var cur2 = st2 ? st2.textContent : 'Off';
+          var j = temps.indexOf(cur2);
+          j = (j + 1) % temps.length;
+          if (st2) st2.textContent = temps[j];
+          tile.classList.toggle('is-on', j > 0);
+          sound('tink');
+        }
       });
     });
 
