@@ -15,3 +15,7 @@ See `docs/LOOP_PRACTICE.md` for why we commit every loop.
 ### 2026-07-17
 - iPhone dock apps open Phone/Safari/Messages/Music; live status clock
 - Control Center brightness & volume persist in localStorage
+
+### 2026-07-17
+- Finder sidebar: Pictures, Music, Movies; AirDrop empty state
+- Keyboard cheat sheet (⌘/)

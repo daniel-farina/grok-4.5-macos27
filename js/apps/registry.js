@@ -203,9 +203,9 @@
     airdrop: {
       title: 'AirDrop',
       crumbs: ['AirDrop'],
-      files: [
-        { title: 'Waiting for others…', kind: 'doc', hue: 210 },
-      ],
+      files: [],
+      emptyTitle: 'Allow me to be discovered by',
+      emptySub: 'Contacts Only · No one nearby (demo)',
     },
     network: {
       title: 'Network',
@@ -332,10 +332,12 @@
     </div>`;
   }
 
-  function finderContentHTML(files, view) {
+  function finderContentHTML(files, view, emptyOpts) {
     const list = files || [];
     if (list.length === 0) {
-      return `<div class="finder-empty" id="finder-list"><div class="empty-title">Folder is Empty</div><div class="muted">No items to show.</div></div>`;
+      const t = (emptyOpts && emptyOpts.emptyTitle) || 'Folder is Empty';
+      const s = (emptyOpts && emptyOpts.emptySub) || 'No items to show.';
+      return `<div class="finder-empty" id="finder-list"><div class="empty-title">${t}</div><div class="muted">${s}</div></div>`;
     }
     if (view === 'list') {
       return `<div class="finder-list-view" id="finder-list" data-view="list">
@@ -425,6 +427,9 @@
       { id: 'desktop', label: 'Desktop', icon: SF.desktop },
       { id: 'docs', label: 'Documents', icon: SF.docs },
       { id: 'down', label: 'Downloads', icon: SF.down },
+      { id: 'pictures', label: 'Pictures', icon: SF.folder },
+      { id: 'music', label: 'Music', icon: SF.folder },
+      { id: 'movies', label: 'Movies', icon: SF.folder },
     ];
     const loc = [
       { id: 'icloud', label: 'iCloud Drive', icon: SF.cloud },
@@ -460,7 +465,7 @@
   function finderMainHTML(loc, view) {
     const files = loc.files || [];
     const v = view || 'icons';
-    const content = finderContentHTML(files, v);
+    const content = finderContentHTML(files, v, loc);
     const viewBtns = [
       { id: 'icons', title: 'as Icons', svg: TB_SVG.icons },
       { id: 'list', title: 'as List', svg: TB_SVG.list },
@@ -566,7 +571,7 @@
           files = files.filter((f) => (f.title || '').toLowerCase().indexOf(q) !== -1);
         }
         if (content) {
-          content.innerHTML = finderContentHTML(files, currentView);
+          content.innerHTML = finderContentHTML(files, currentView, loc);
           content.classList.add('is-ready');
           setTimeout(() => content.classList.remove('is-ready'), 160);
         }

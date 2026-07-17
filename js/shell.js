@@ -2140,6 +2140,60 @@
     if (global.MacSounds && MacSounds.play) MacSounds.play('purr');
   }
 
+  function showKeyboardCheatSheet() {
+    var existing = document.getElementById('kbd-cheatsheet');
+    if (existing) {
+      existing.remove();
+      return;
+    }
+    var ov = document.createElement('div');
+    ov.id = 'kbd-cheatsheet';
+    ov.className = 'kbd-overlay';
+    var rows = [
+      ['⌘Space', 'Spotlight'],
+      ['⌘Tab', 'Switch windows'],
+      ['⌘N', 'New Finder window'],
+      ['⌘W', 'Close window'],
+      ['⌘M', 'Minimize'],
+      ['⌘,', 'System Settings'],
+      ['⌘H', 'Hide window'],
+      ['⌥⌘H', 'Hide others'],
+      ['⌘1–4', 'Finder views'],
+      ['⌘⇧3 / 4', 'Screenshot'],
+      ['⌃⌘Q', 'Lock Screen'],
+      ['⌥⌘Esc', 'Force Quit'],
+      ['F3', 'Mission Control'],
+      ['F4', 'Launchpad'],
+      ['Space', 'Quick Look (Finder)'],
+      ['⌘/', 'This cheat sheet'],
+    ];
+    ov.innerHTML =
+      '<div class="kbd-panel glass">' +
+      '<div class="kbd-head"><strong>Keyboard Shortcuts</strong><button type="button" class="ql-close" id="kbd-close" aria-label="Close">✕</button></div>' +
+      '<div class="kbd-grid">' +
+      rows
+        .map(function (r) {
+          return (
+            '<div class="kbd-row"><kbd>' +
+            r[0] +
+            '</kbd><span>' +
+            r[1] +
+            '</span></div>'
+          );
+        })
+        .join('') +
+      '</div></div>';
+    document.body.appendChild(ov);
+    function close() {
+      ov.remove();
+    }
+    ov.querySelector('#kbd-close').addEventListener('click', close);
+    ov.addEventListener('click', function (e) {
+      if (e.target === ov) close();
+    });
+    if (global.MacSounds && MacSounds.play) MacSounds.play('pop');
+  }
+
   function showForceQuit() {
     var existing = document.getElementById('force-quit');
     if (existing) existing.remove();
@@ -2717,6 +2771,14 @@
         return;
       }
 
+      /* ⌘/ or ⌘? keyboard shortcuts help */
+      if (meta && (key === '/' || key === '?' || e.code === 'Slash')) {
+        if (typing) return;
+        e.preventDefault();
+        showKeyboardCheatSheet();
+        return;
+      }
+
       if (!meta || !global.WindowManager) return;
 
       // Don't steal from inputs except known shortcuts
@@ -2860,6 +2922,7 @@
     openApp: openApp,
     showLockScreen: showLockScreen,
     showForceQuit: showForceQuit,
+    showKeyboardCheatSheet: showKeyboardCheatSheet,
     captureScreenshot: captureScreenshot,
     openLaunchpad: openLaunchpad,
     closeLaunchpad: hideLaunchpad,

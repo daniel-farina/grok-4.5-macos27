@@ -3,9 +3,9 @@
 Job started: 2026-07-17T20:55:45Z · Cancel after ~3h · `scheduler_delete 019f71def611`
 
 ## This loop
-- [x] iPhone dock icons open apps
-- [x] iPhone status bar live clock
-- [x] CC brightness + volume persistence
+- [x] Finder Favorites: Pictures, Music, Movies
+- [x] AirDrop custom empty state
+- [x] Keyboard shortcuts cheat sheet (⌘/)
 - [x] Audit ALL PASS
 
 ## Process

@@ -3868,3 +3868,60 @@ html[data-theme='light'] .quick-look-panel {
   object-fit: contain;
 }
 .ql-doc-icon { font-size: 64px; }
+
+/* Keyboard cheat sheet */
+.kbd-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 145000;
+  background: rgba(0,0,0,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(10px);
+}
+.kbd-panel {
+  width: min(420px, 92vw);
+  max-height: 80vh;
+  overflow: auto;
+  border-radius: 14px;
+  padding: 0 0 12px;
+  background: rgba(40,40,42,0.94);
+  color: #fff;
+  border: 0.5px solid rgba(255,255,255,0.12);
+  box-shadow: 0 24px 64px rgba(0,0,0,0.4);
+}
+html[data-theme='light'] .kbd-panel {
+  background: rgba(250,250,252,0.96);
+  color: #1d1d1f;
+}
+.kbd-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  border-bottom: 0.5px solid rgba(128,128,128,0.2);
+  position: sticky;
+  top: 0;
+  background: inherit;
+}
+.kbd-grid { padding: 8px 12px; }
+.kbd-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 6px;
+  font-size: 13px;
+  border-bottom: 0.5px solid rgba(128,128,128,0.1);
+}
+.kbd-row kbd {
+  font-family: -apple-system, system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: rgba(120,120,128,0.2);
+  border: 0.5px solid rgba(128,128,128,0.25);
+  white-space: nowrap;
+}
