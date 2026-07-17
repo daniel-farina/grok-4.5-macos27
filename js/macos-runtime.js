@@ -399,6 +399,8 @@
         { icon: '🕐', name: 'Clock', app: 'clock' },
         { icon: '🌤', name: 'Weather', app: 'weather' },
         { icon: '📝', name: 'Notes', app: 'notes' },
+        { icon: '📹', name: 'FaceTime', app: 'facetime' },
+        { icon: '🎛', name: 'Controls', app: 'control' },
       ]
         .map(function (a) {
           return (
@@ -439,21 +441,36 @@
     var home = el.querySelector('#iphone-home');
     var view = el.querySelector('#iphone-app-view');
     var dock = el.querySelector('.iphone-dock-bar');
+    var locked = false;
+    var dialBuf = '';
+    var musicPlaying = false;
+    var wxIdx = 0;
+    var wxCities = [
+      { city: 'Cupertino', temp: 68, cond: 'Foggy' },
+      { city: 'Seattle', temp: 59, cond: 'Rain' },
+      { city: 'Miami', temp: 86, cond: 'Sunny' },
+      { city: 'Denver', temp: 64, cond: 'Clear' },
+    ];
+
+    function fmtClock() {
+      var n = new Date();
+      var h = n.getHours() % 12 || 12;
+      var m = n.getMinutes();
+      return h + ':' + (m < 10 ? '0' : '') + m;
+    }
 
     /* live status clock */
     var clockEl = el.querySelector('.iphone-clock');
     if (clockEl) {
       var tick = function () {
-        var n = new Date();
-        var h = n.getHours() % 12 || 12;
-        var m = n.getMinutes();
-        clockEl.textContent = h + ':' + (m < 10 ? '0' : '') + m;
+        clockEl.textContent = fmtClock();
       };
       tick();
       setInterval(tick, 15000);
     }
 
     function goHome() {
+      locked = false;
       if (home) home.hidden = false;
       if (view) {
         view.hidden = true;
@@ -463,79 +480,343 @@
       sound('pop');
     }
 
-    function openIApp(id) {
-      if (!view) return;
-      if (home) home.hidden = true;
-      if (dock) dock.style.display = 'none';
-      view.hidden = false;
-      var screens = {
-        phone:
-          '<div class="iapp-phone"><div class="iapp-title">Phone</div><div class="iapp-keypad">' +
-          '123456789*0#'.split('').map(function (k) {
-            return '<button type="button" class="iapp-key">' + k + '</button>';
-          }).join('') +
-          '</div><button type="button" class="iapp-call">Call</button></div>',
-        messages:
-          '<div class="iapp-msg"><div class="iapp-title">Messages</div><div class="iapp-thread">' +
-          '<div class="bubble them">Hey from iPhone!</div><div class="bubble me">Mirroring works ✨</div></div>' +
-          '<div class="iapp-compose"><input placeholder="iMessage" id="iphone-msg-in" /><button type="button" id="iphone-msg-send">↑</button></div></div>',
-        camera:
-          '<div class="iapp-camera"><div class="iapp-viewfinder"></div><button type="button" class="iapp-shutter" id="iphone-shutter"></button><p class="muted">Tap to capture</p></div>',
-        photos:
-          '<div class="iapp-photos"><div class="iapp-title">Photos</div><div class="iapp-photo-grid">' +
-          [1, 2, 3, 4, 5, 6]
-            .map(function (i) {
-              return '<img src="assets/photos/funny/funny-0' + i + '.jpg" alt="" />';
-            })
-            .join('') +
-          '</div></div>',
-        settings:
-          '<div class="iapp-settings"><div class="iapp-title">Settings</div><div class="iapp-row">Wi‑Fi · Home Network</div><div class="iapp-row">Bluetooth · On</div><div class="iapp-row">Display · Light</div><div class="iapp-row">Sounds · Default</div></div>',
-        safari:
-          '<div class="iapp-safari"><div class="iapp-title">Safari</div><input class="iapp-url" value="apple.com" /><div class="iapp-web muted">Mobile Safari simulation</div></div>',
-        music:
-          '<div class="iapp-music"><div class="iapp-title">Music</div><div class="iapp-now">Liquid Glass · Ensemble</div><button type="button" class="btn-primary" id="iphone-play">Play</button></div>',
-        maps: '<div class="iapp-maps"><div class="iapp-title">Maps</div><div class="iapp-map-canvas"></div></div>',
-        mail: '<div class="iapp-mail"><div class="iapp-title">Mail</div><div class="iapp-row">Inbox · 3 Unread</div></div>',
-        clock: '<div class="iapp-clock"><div class="iapp-bigtime">9:41</div><div class="muted">World Clock</div></div>',
-        weather: '<div class="iapp-weather"><div class="iapp-title">City</div><div class="iapp-bigtime">72°</div><div class="muted">Sunny</div></div>',
-        notes: '<div class="iapp-notes"><div class="iapp-title">Notes</div><textarea class="iapp-note">Quick note from iPhone…</textarea></div>',
-      };
-      view.innerHTML = screens[id] || '<div class="iapp-title">' + id + '</div><p class="muted">App placeholder</p>';
-      sound('pop');
+    function photoGridHtml() {
+      var html = '';
+      for (var i = 1; i <= 20; i++) {
+        var n = i < 10 ? '0' + i : String(i);
+        html += '<img src="assets/photos/funny/funny-' + n + '.jpg" alt="" data-i="' + i + '" />';
+      }
+      return html;
+    }
 
+    function wireAppChrome() {
+      if (!view) return;
+      /* Phone keypad */
+      var disp = view.querySelector('#iphone-dial-disp');
+      view.querySelectorAll('.iapp-key[data-k]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          dialBuf += btn.getAttribute('data-k') || '';
+          if (disp) disp.textContent = dialBuf;
+          sound('volume');
+        });
+      });
+      var del = view.querySelector('#iphone-dial-del');
+      if (del) {
+        del.addEventListener('click', function () {
+          dialBuf = dialBuf.slice(0, -1);
+          if (disp) disp.textContent = dialBuf || ' ';
+          sound('pop');
+        });
+      }
+      var call = view.querySelector('.iapp-call');
+      if (call) {
+        call.addEventListener('click', function () {
+          var num = dialBuf || '555-0100';
+          call.textContent = 'End';
+          call.classList.add('is-on-call');
+          sound('submarine');
+          if (global.MacShell && MacShell.notify) {
+            MacShell.notify('Phone', 'Calling…', num, 'now');
+          }
+          setTimeout(function () {
+            call.textContent = 'Call';
+            call.classList.remove('is-on-call');
+            sound('pop');
+          }, 2800);
+        });
+      }
+      /* Messages */
       var send = view.querySelector('#iphone-msg-send');
       var min = view.querySelector('#iphone-msg-in');
-      if (send && min) {
-        send.addEventListener('click', function () {
-          if (!min.value.trim()) return;
-          var th = view.querySelector('.iapp-thread');
-          if (th) {
-            var b = document.createElement('div');
-            b.className = 'bubble me';
-            b.textContent = min.value.trim();
-            th.appendChild(b);
-            min.value = '';
-            sound('messageSent');
+      function sendMsg() {
+        if (!min || !min.value.trim()) return;
+        var th = view.querySelector('.iapp-thread');
+        if (!th) return;
+        var b = document.createElement('div');
+        b.className = 'bubble me';
+        b.textContent = min.value.trim();
+        th.appendChild(b);
+        min.value = '';
+        th.scrollTop = th.scrollHeight;
+        sound('messageSent');
+        setTimeout(function () {
+          var r = document.createElement('div');
+          r.className = 'bubble them';
+          r.textContent = 'Got it on iPhone 👍';
+          th.appendChild(r);
+          th.scrollTop = th.scrollHeight;
+          sound('messageReceived');
+        }, 800);
+      }
+      if (send) send.addEventListener('click', sendMsg);
+      if (min) {
+        min.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            sendMsg();
           }
         });
       }
+      /* Camera */
       var shutter = view.querySelector('#iphone-shutter');
       if (shutter) {
         shutter.addEventListener('click', function () {
           sound('tink');
           shutter.classList.add('flash');
+          var vf = view.querySelector('.iapp-viewfinder');
+          if (vf) {
+            var n = 1 + Math.floor(Math.random() * 20);
+            var nn = n < 10 ? '0' + n : String(n);
+            vf.style.backgroundImage = 'url(assets/photos/funny/funny-' + nn + '.jpg)';
+            vf.style.backgroundSize = 'cover';
+          }
           setTimeout(function () {
             shutter.classList.remove('flash');
           }, 200);
+          if (global.MacShell && MacShell.notify) {
+            MacShell.notify('Camera', 'Photo saved', 'Library · Recents', 'now');
+          }
         });
       }
+      /* Photos lightbox-ish */
+      view.querySelectorAll('.iapp-photo-grid img').forEach(function (img) {
+        img.addEventListener('click', function () {
+          var lb = view.querySelector('.iapp-photo-lb');
+          if (!lb) {
+            lb = document.createElement('div');
+            lb.className = 'iapp-photo-lb';
+            lb.innerHTML = '<img alt="" /><button type="button" class="iapp-lb-close">Close</button>';
+            view.appendChild(lb);
+            lb.querySelector('.iapp-lb-close').addEventListener('click', function () {
+              lb.hidden = true;
+            });
+            lb.addEventListener('click', function (e) {
+              if (e.target === lb) lb.hidden = true;
+            });
+          }
+          lb.querySelector('img').src = img.src;
+          lb.hidden = false;
+          sound('pop');
+        });
+      });
+      /* Safari */
+      var urlIn = view.querySelector('.iapp-url');
+      var web = view.querySelector('.iapp-web');
+      function navSafari() {
+        if (!urlIn || !web) return;
+        var u = (urlIn.value || '').trim() || 'apple.com';
+        if (!/^https?:/i.test(u) && u.indexOf('.') > 0) u = 'https://' + u;
+        web.innerHTML =
+          '<div class="iapp-web-card"><strong></strong><p class="muted">Loaded on iPhone Safari (demo)</p><p class="iapp-web-url"></p></div>';
+        web.querySelector('strong').textContent = u.replace(/^https?:\/\//, '').split('/')[0];
+        web.querySelector('.iapp-web-url').textContent = u;
+        sound('pop');
+      }
+      if (urlIn) {
+        urlIn.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            navSafari();
+          }
+        });
+      }
+      var goBtn = view.querySelector('#iphone-safari-go');
+      if (goBtn) goBtn.addEventListener('click', navSafari);
+      /* Music */
       var play = view.querySelector('#iphone-play');
       if (play) {
         play.addEventListener('click', function () {
-          sound('funk');
+          musicPlaying = !musicPlaying;
+          play.textContent = musicPlaying ? 'Pause' : 'Play';
+          sound(musicPlaying ? 'funk' : 'tink');
         });
       }
+      var skip = view.querySelector('#iphone-skip');
+      if (skip) {
+        skip.addEventListener('click', function () {
+          var now = view.querySelector('.iapp-now');
+          var tracks = ['Liquid Glass · Ensemble', 'Focus Flow · Demo', 'Weekend · Chill Mix', 'Neon Dock · Lo-Fi'];
+          if (now) now.textContent = tracks[Math.floor(Math.random() * tracks.length)];
+          sound('pop');
+        });
+      }
+      /* Weather */
+      var wxTap = view.querySelector('.iapp-weather');
+      if (wxTap) {
+        wxTap.style.cursor = 'pointer';
+        wxTap.addEventListener('click', function () {
+          wxIdx = (wxIdx + 1) % wxCities.length;
+          var c = wxCities[wxIdx];
+          var t = view.querySelector('.iapp-wx-city');
+          var temp = view.querySelector('.iapp-bigtime');
+          var cond = view.querySelector('.iapp-wx-cond');
+          if (t) t.textContent = c.city;
+          if (temp) temp.textContent = c.temp + '°';
+          if (cond) cond.textContent = c.cond;
+          sound('pop');
+        });
+      }
+      /* Settings rows */
+      view.querySelectorAll('.iapp-row[data-toggle]').forEach(function (row) {
+        row.addEventListener('click', function () {
+          row.classList.toggle('is-on');
+          var val = row.querySelector('.iapp-row-val');
+          if (val) val.textContent = row.classList.contains('is-on') ? 'On' : 'Off';
+          sound('tink');
+        });
+      });
+      /* Mail open */
+      view.querySelectorAll('.iapp-mail-item').forEach(function (item) {
+        item.addEventListener('click', function () {
+          view.querySelectorAll('.iapp-mail-item').forEach(function (x) {
+            x.classList.remove('is-active');
+          });
+          item.classList.add('is-active');
+          sound('pop');
+        });
+      });
+      /* Maps search */
+      var mapSearch = view.querySelector('#iphone-map-search');
+      var mapCanvas = view.querySelector('.iapp-map-canvas');
+      if (mapSearch && mapCanvas) {
+        mapSearch.addEventListener('keydown', function (e) {
+          if (e.key !== 'Enter') return;
+          e.preventDefault();
+          var q = mapSearch.value.trim() || 'Apple Park';
+          mapCanvas.innerHTML = '<div class="iapp-map-pin">📍</div><p></p>';
+          mapCanvas.querySelector('p').textContent = q;
+          sound('pop');
+        });
+      }
+      /* Clock live */
+      var big = view.querySelector('.iapp-clock .iapp-bigtime');
+      if (big) {
+        big.textContent = fmtClock();
+      }
+      /* Notes autosave toast */
+      var note = view.querySelector('.iapp-note');
+      if (note) {
+        var noteTimer;
+        note.addEventListener('input', function () {
+          clearTimeout(noteTimer);
+          noteTimer = setTimeout(function () {
+            sound('tink');
+          }, 600);
+        });
+      }
+      /* Control Center tiles */
+      view.querySelectorAll('.icc-tile').forEach(function (tile) {
+        tile.addEventListener('click', function () {
+          tile.classList.toggle('is-active');
+          sound('pop');
+        });
+      });
+      /* FaceTime */
+      var ft = view.querySelector('#iphone-ft-call');
+      if (ft) {
+        ft.addEventListener('click', function () {
+          var st = view.querySelector('.iapp-ft-status');
+          if (st) st.textContent = 'Connected · 00:08';
+          sound('submarine');
+        });
+      }
+    }
+
+    function openIApp(id) {
+      if (!view) return;
+      if (locked && id !== 'lock') return;
+      locked = false;
+      if (home) home.hidden = true;
+      if (dock) dock.style.display = 'none';
+      view.hidden = false;
+      dialBuf = '';
+      var photoImgs = photoGridHtml();
+      var screens = {
+        phone:
+          '<div class="iapp-phone"><div class="iapp-nav"><button type="button" class="iapp-back" data-back>‹</button><div class="iapp-title">Phone</div></div>' +
+          '<div class="iapp-dial-disp" id="iphone-dial-disp"> </div>' +
+          '<div class="iapp-keypad">' +
+          '123456789*0#'.split('').map(function (k) {
+            return '<button type="button" class="iapp-key" data-k="' + k + '">' + k + '</button>';
+          }).join('') +
+          '</div><div class="iapp-phone-actions"><button type="button" class="iapp-call">Call</button>' +
+          '<button type="button" class="btn-glass" id="iphone-dial-del">Delete</button></div></div>',
+        messages:
+          '<div class="iapp-msg"><div class="iapp-nav"><button type="button" class="iapp-back" data-back>‹</button><div class="iapp-title">Messages</div></div>' +
+          '<div class="iapp-thread">' +
+          '<div class="bubble them">Hey from iPhone!</div><div class="bubble me">Mirroring works ✨</div></div>' +
+          '<div class="iapp-compose"><input placeholder="iMessage" id="iphone-msg-in" autocomplete="off" /><button type="button" id="iphone-msg-send">↑</button></div></div>',
+        camera:
+          '<div class="iapp-camera"><div class="iapp-nav"><button type="button" class="iapp-back" data-back>‹</button><div class="iapp-title">Camera</div></div>' +
+          '<div class="iapp-viewfinder"></div><button type="button" class="iapp-shutter" id="iphone-shutter" aria-label="Shutter"></button><p class="muted">Tap shutter · photo lands in Recents</p></div>',
+        photos:
+          '<div class="iapp-photos"><div class="iapp-nav"><button type="button" class="iapp-back" data-back>‹</button><div class="iapp-title">Photos</div></div>' +
+          '<div class="iapp-photo-grid">' +
+          photoImgs +
+          '</div></div>',
+        settings:
+          '<div class="iapp-settings"><div class="iapp-nav"><button type="button" class="iapp-back" data-back>‹</button><div class="iapp-title">Settings</div></div>' +
+          '<div class="iapp-row" data-toggle><span>Wi‑Fi</span><span class="iapp-row-val">On</span></div>' +
+          '<div class="iapp-row" data-toggle><span>Bluetooth</span><span class="iapp-row-val">On</span></div>' +
+          '<div class="iapp-row" data-toggle><span>Airplane Mode</span><span class="iapp-row-val">Off</span></div>' +
+          '<div class="iapp-row"><span>Display</span><span class="iapp-row-val">Light</span></div>' +
+          '<div class="iapp-row"><span>Sounds</span><span class="iapp-row-val">Default</span></div></div>',
+        safari:
+          '<div class="iapp-safari"><div class="iapp-nav"><button type="button" class="iapp-back" data-back>‹</button><div class="iapp-title">Safari</div></div>' +
+          '<div class="iapp-url-row"><input class="iapp-url" value="apple.com" spellcheck="false" /><button type="button" class="btn-glass" id="iphone-safari-go">Go</button></div>' +
+          '<div class="iapp-web muted"><div class="iapp-web-card"><strong>Start Page</strong><p class="muted">Enter a site and press Go</p></div></div></div>',
+        music:
+          '<div class="iapp-music"><div class="iapp-nav"><button type="button" class="iapp-back" data-back>‹</button><div class="iapp-title">Music</div></div>' +
+          '<div class="iapp-art" aria-hidden="true">♪</div><div class="iapp-now">Liquid Glass · Ensemble</div>' +
+          '<div class="iapp-music-btns"><button type="button" class="btn-primary" id="iphone-play">Play</button>' +
+          '<button type="button" class="btn-glass" id="iphone-skip">Next</button></div></div>',
+        maps:
+          '<div class="iapp-maps"><div class="iapp-nav"><button type="button" class="iapp-back" data-back>‹</button><div class="iapp-title">Maps</div></div>' +
+          '<input class="iapp-url" id="iphone-map-search" placeholder="Search Maps" value="Apple Park" />' +
+          '<div class="iapp-map-canvas"><div class="iapp-map-pin">📍</div><p>Apple Park</p></div></div>',
+        mail:
+          '<div class="iapp-mail"><div class="iapp-nav"><button type="button" class="iapp-back" data-back>‹</button><div class="iapp-title">Mail</div></div>' +
+          '<div class="iapp-mail-item is-active"><strong>Design Weekly</strong><span class="muted">Liquid Glass roundup</span></div>' +
+          '<div class="iapp-mail-item"><strong>App Store</strong><span class="muted">Your receipt</span></div>' +
+          '<div class="iapp-mail-item"><strong>Team</strong><span class="muted">Ship checklist</span></div></div>',
+        clock:
+          '<div class="iapp-clock"><div class="iapp-nav"><button type="button" class="iapp-back" data-back>‹</button><div class="iapp-title">Clock</div></div>' +
+          '<div class="iapp-bigtime">' +
+          fmtClock() +
+          '</div><div class="muted">Local · World Clock</div>' +
+          '<div class="iapp-row"><span>Cupertino</span><span class="iapp-row-val">−0h</span></div>' +
+          '<div class="iapp-row"><span>London</span><span class="iapp-row-val">+8h</span></div></div>',
+        weather:
+          '<div class="iapp-weather"><div class="iapp-nav"><button type="button" class="iapp-back" data-back>‹</button><div class="iapp-title">Weather</div></div>' +
+          '<div class="iapp-wx-city">Cupertino</div><div class="iapp-bigtime">68°</div><div class="muted iapp-wx-cond">Foggy</div>' +
+          '<p class="muted" style="margin-top:12px">Tap to cycle cities</p></div>',
+        notes:
+          '<div class="iapp-notes"><div class="iapp-nav"><button type="button" class="iapp-back" data-back>‹</button><div class="iapp-title">Notes</div></div>' +
+          '<textarea class="iapp-note" placeholder="Quick note…">Quick note from iPhone…</textarea></div>',
+        facetime:
+          '<div class="iapp-ft"><div class="iapp-nav"><button type="button" class="iapp-back" data-back>‹</button><div class="iapp-title">FaceTime</div></div>' +
+          '<div class="iapp-ft-preview"></div><p class="iapp-ft-status muted">Ready</p>' +
+          '<button type="button" class="btn-primary" id="iphone-ft-call">Video Call</button></div>',
+        control:
+          '<div class="iapp-cc"><div class="iapp-nav"><button type="button" class="iapp-back" data-back>‹</button><div class="iapp-title">Control Center</div></div>' +
+          '<div class="icc-grid">' +
+          '<button type="button" class="icc-tile is-active">Wi‑Fi</button>' +
+          '<button type="button" class="icc-tile is-active">Bluetooth</button>' +
+          '<button type="button" class="icc-tile">AirDrop</button>' +
+          '<button type="button" class="icc-tile">Focus</button>' +
+          '<button type="button" class="icc-tile">Flashlight</button>' +
+          '<button type="button" class="icc-tile">Camera</button>' +
+          '</div></div>',
+      };
+      view.innerHTML =
+        screens[id] ||
+        '<div class="iapp-nav"><button type="button" class="iapp-back" data-back>‹</button><div class="iapp-title">' +
+          id +
+          '</div></div><p class="muted">App placeholder</p>';
+      sound('pop');
+      wireAppChrome();
+      var back = view.querySelector('[data-back]');
+      if (back) back.addEventListener('click', goHome);
     }
 
     el.querySelectorAll('.iphone-icon, .iphone-dock-icon').forEach(function (btn) {
@@ -550,12 +831,19 @@
     var lock = el.querySelector('#iphone-lock');
     if (lock) {
       lock.addEventListener('click', function () {
+        locked = true;
         if (view) {
           view.hidden = false;
           view.innerHTML =
-            '<div class="iphone-lockscreen"><div class="iapp-bigtime">9:41</div><div class="muted">Swipe or Home to unlock</div></div>';
+            '<div class="iphone-lockscreen"><div class="iapp-bigtime">' +
+            fmtClock() +
+            '</div><div class="muted">Home to unlock</div>' +
+            '<button type="button" class="btn-primary" data-unlock>Unlock</button></div>';
+          var un = view.querySelector('[data-unlock]');
+          if (un) un.addEventListener('click', goHome);
         }
         if (home) home.hidden = true;
+        if (dock) dock.style.display = 'none';
         sound('purr');
       });
     }
@@ -566,6 +854,30 @@
         if (global.MacShell && MacShell.notify) {
           MacShell.notify('iPhone', 'Messages', 'New message on iPhone', 'now');
         }
+      });
+    }
+    /* extra caption actions */
+    var cap = el.querySelector('.device-actions');
+    if (cap && !cap.querySelector('#iphone-cc')) {
+      var ccBtn = document.createElement('button');
+      ccBtn.type = 'button';
+      ccBtn.className = 'btn-glass';
+      ccBtn.id = 'iphone-cc';
+      ccBtn.textContent = 'CC';
+      cap.insertBefore(ccBtn, homeBtn || null);
+      ccBtn.addEventListener('click', function () {
+        openIApp('control');
+      });
+    }
+    if (cap && !cap.querySelector('#iphone-ft')) {
+      var ftBtn = document.createElement('button');
+      ftBtn.type = 'button';
+      ftBtn.className = 'btn-glass';
+      ftBtn.id = 'iphone-ft';
+      ftBtn.textContent = 'FaceTime';
+      cap.insertBefore(ftBtn, homeBtn || null);
+      ftBtn.addEventListener('click', function () {
+        openIApp('facetime');
       });
     }
   }
@@ -1055,23 +1367,63 @@
         sound('tink');
       });
     }
+    function addEventToCell(name, cell) {
+      if (!cell) return;
+      var ev = document.createElement('div');
+      ev.className = 'cal27-ev timed blue';
+      ev.innerHTML =
+        '<span class="cal27-ev-bar"></span><span class="cal27-ev-t"></span><span class="cal27-ev-time">Now</span>';
+      ev.querySelector('.cal27-ev-t').textContent = name;
+      cell.insertBefore(ev, cell.firstChild);
+      sound('hero');
+      if (global.MacShell && MacShell.notify) {
+        MacShell.notify('Calendar', 'Event added', name, 'now');
+      }
+    }
+
     var add = el.querySelector('.cal27-icon-btn.plus');
     if (add) {
       add.addEventListener('click', function () {
-        var name = prompt('Event title', 'New Event');
-        if (!name) return;
         var cell =
           el.querySelector('.cal27-cell.is-selected .cal27-evs') ||
           el.querySelector('.cal27-cell.today .cal27-evs') ||
           el.querySelector('.cal27-cell:not(.muted) .cal27-evs');
-        if (cell) {
-          var ev = document.createElement('div');
-          ev.className = 'cal27-ev timed blue';
-          ev.innerHTML =
-            '<span class="cal27-ev-bar"></span><span class="cal27-ev-t"></span><span class="cal27-ev-time">Now</span>';
-          ev.querySelector('.cal27-ev-t').textContent = name;
-          cell.insertBefore(ev, cell.firstChild);
-          sound('hero');
+        /* inline sheet instead of prompt */
+        var existing = el.querySelector('.cal-new-event');
+        if (existing) {
+          existing.remove();
+          return;
+        }
+        var sheet = document.createElement('div');
+        sheet.className = 'cal-new-event';
+        sheet.innerHTML =
+          '<strong>New Event</strong>' +
+          '<input type="text" class="cal-new-input" placeholder="Event title" maxlength="80" value="New Event" />' +
+          '<div class="cal-new-actions">' +
+          '<button type="button" class="btn-glass cal-new-cancel">Cancel</button>' +
+          '<button type="button" class="btn-primary cal-new-ok">Add</button></div>';
+        el.appendChild(sheet);
+        var input = sheet.querySelector('.cal-new-input');
+        if (input) {
+          input.focus();
+          input.select();
+        }
+        function commit() {
+          var name = (input && input.value.trim()) || 'New Event';
+          sheet.remove();
+          addEventToCell(name, cell);
+        }
+        sheet.querySelector('.cal-new-ok').addEventListener('click', commit);
+        sheet.querySelector('.cal-new-cancel').addEventListener('click', function () {
+          sheet.remove();
+        });
+        if (input) {
+          input.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              commit();
+            } else if (e.key === 'Escape') sheet.remove();
+          });
         }
       });
     }
@@ -4088,9 +4440,13 @@
       sq.addEventListener('click', function () {
         if (selected && selected !== sq) {
           if (selected.textContent) {
+            var captured = sq.textContent;
             sq.textContent = selected.textContent;
             selected.textContent = '';
-            sound('tink');
+            sound(captured ? 'hero' : 'tink');
+            if (captured && global.MacShell && MacShell.notify) {
+              MacShell.notify('Chess', 'Capture', captured + ' taken', 'now');
+            }
           }
           selected.classList.remove('is-selected');
           selected = null;

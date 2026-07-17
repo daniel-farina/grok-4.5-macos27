@@ -3945,8 +3945,20 @@
         const arg = parts.slice(1).join(' ');
         if (base === 'help') {
           print(
-            'Built-in: help date whoami clear uname ls pwd cd echo cat open neofetch history fortune cowsay ping curl env hostname uptime cal'
+            'Built-in: help date whoami clear uname ls pwd cd echo cat open neofetch history fortune cowsay ping curl env hostname uptime cal say afplay touch mkdir which python3 node'
           );
+        } else if (base === 'say') {
+          print('say: ' + (arg || '(silence)'));
+          if (global.MacSounds && MacSounds.play) MacSounds.play('submarine');
+        } else if (base === 'afplay') {
+          const snd = arg || 'sosumi';
+          print('Playing ' + snd + ' (synthesized)');
+          if (global.MacSounds && MacSounds.play) MacSounds.play(snd.replace(/\.\w+$/, '') || 'sosumi');
+        } else if (base === 'touch') print('');
+        else if (base === 'mkdir') print('');
+        else if (base === 'which') print(arg ? '/usr/bin/' + arg.split(/\s+/)[0] : '');
+        else if (base === 'python3' || base === 'node') {
+          print((base === 'python3' ? 'Python 3.12.0' : 'v20.11.0') + ' · demo only, not a real REPL');
         } else if (base === 'date') print(new Date().toString());
         else if (base === 'whoami') print('user');
         else if (base === 'hostname') print('macos-27.local');

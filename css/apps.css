@@ -2324,6 +2324,236 @@
   margin: 12px 0;
   text-align: center;
 }
+.iapp-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: -8px 0 12px;
+}
+.iapp-nav .iapp-title {
+  margin: 0;
+  flex: 1;
+  font-size: 17px;
+}
+.iapp-back {
+  border: none;
+  background: transparent;
+  font-size: 28px;
+  line-height: 1;
+  color: #0a84ff;
+  cursor: pointer;
+  padding: 0 4px 0 0;
+}
+.iapp-dial-disp {
+  text-align: center;
+  font-size: 28px;
+  font-weight: 300;
+  letter-spacing: 0.04em;
+  min-height: 36px;
+  margin-bottom: 12px;
+}
+.iapp-phone-actions {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  margin-top: 12px;
+}
+.iapp-call.is-on-call {
+  background: #ff3b30;
+}
+.iapp-url-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.iapp-url {
+  flex: 1;
+  width: 100%;
+  border-radius: 10px;
+  border: none;
+  background: #e5e5ea;
+  padding: 10px 12px;
+  font-size: 14px;
+  margin-bottom: 8px;
+  box-sizing: border-box;
+}
+.iapp-url-row .iapp-url {
+  margin-bottom: 0;
+}
+.iapp-web-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 14px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+.iapp-photo-lb {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.92);
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  margin: -48px -14px -16px;
+}
+.iapp-photo-lb[hidden] {
+  display: none;
+}
+.iapp-photo-lb img {
+  max-width: 100%;
+  max-height: 70%;
+  object-fit: contain;
+  border-radius: 8px;
+}
+.iapp-lb-close {
+  margin-top: 12px;
+  border: none;
+  border-radius: 999px;
+  padding: 8px 18px;
+  background: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+.iapp-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+}
+.iapp-row.is-on {
+  background: #e8f1ff;
+}
+.iapp-row-val {
+  color: #8e8e93;
+  font-size: 13px;
+}
+.iapp-art {
+  width: 120px;
+  height: 120px;
+  border-radius: 16px;
+  margin: 12px auto;
+  background: linear-gradient(145deg, #5b6cff, #c44dff);
+  display: grid;
+  place-items: center;
+  font-size: 48px;
+  color: #fff;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+.iapp-music-btns {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+.iapp-map-canvas {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.iapp-map-pin {
+  font-size: 32px;
+}
+.iapp-mail-item {
+  background: #fff;
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  cursor: pointer;
+}
+.iapp-mail-item.is-active {
+  outline: 2px solid #0a84ff;
+}
+.iapp-wx-city {
+  text-align: center;
+  font-size: 18px;
+  font-weight: 600;
+}
+.icc-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.icc-tile {
+  border: none;
+  border-radius: 16px;
+  padding: 18px 12px;
+  background: #e5e5ea;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  color: #1d1d1f;
+}
+.icc-tile.is-active {
+  background: #0a84ff;
+  color: #fff;
+}
+.iapp-ft-preview {
+  height: 180px;
+  border-radius: 16px;
+  background: linear-gradient(160deg, #1a1a2e, #3d2a5c);
+  margin: 12px 0;
+}
+.iapp-ft-status {
+  text-align: center;
+  margin-bottom: 12px;
+}
+.iphone-app-view {
+  position: relative;
+}
+.iphone-icon,
+.iphone-dock-icon {
+  cursor: pointer;
+}
+
+/* Calendar new event sheet */
+.cal-new-event {
+  position: absolute;
+  left: 50%;
+  top: 72px;
+  transform: translateX(-50%);
+  z-index: 20;
+  width: min(320px, 90%);
+  background: rgba(40, 40, 42, 0.96);
+  color: #fff;
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
+  border: 0.5px solid rgba(255, 255, 255, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+html[data-theme='light'] .cal-new-event {
+  background: rgba(255, 255, 255, 0.98);
+  color: #1d1d1f;
+  border-color: rgba(0, 0, 0, 0.08);
+}
+.cal-new-input {
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 8px;
+  border: 0.5px solid rgba(128, 128, 128, 0.35);
+  padding: 10px 12px;
+  font: inherit;
+  background: rgba(128, 128, 128, 0.12);
+  color: inherit;
+}
+.cal-new-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.cal27-app {
+  position: relative;
+}
 
 /* Sidecar / iPad */
 .ipad-bezel {
