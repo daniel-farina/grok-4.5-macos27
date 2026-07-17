@@ -13,9 +13,8 @@ Public commits track multi-minute interactive work on this virtual macOS 27 desk
 See `docs/LOOP_PRACTICE.md` for why we commit every loop.
 
 ### 2026-07-17 / 18 (loop demo)
-- Dock minimize/restore; trash Empty Trash menu; window edge snap
-- Boot skip; clock copy/open; Sleep/Lock/NC/Stage Manager
-- Spotlight; ⌘Tab; Mission Control; Force Quit; and more
+- Control Center media/mirroring; four hot corners; volume keys
+- Dock minimize/restore; edge snap; Sleep/Lock; Spotlight; ⌘Tab
 - Commit-as-you-go for multi-minute Grok 4.5 loops
 
 ### 2026-07-17

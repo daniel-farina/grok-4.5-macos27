@@ -2586,6 +2586,7 @@
     var rows = [
       ['⌘Space', 'Spotlight'],
       ['⌘Tab', 'Switch windows'],
+      ['Hot corners', 'TL Mission · TR NC · BL Launchpad · BR Desktop'],
       ['⌘N', 'New Finder window'],
       ['⌘W', 'Close window'],
       ['⌘M', 'Minimize'],
@@ -3102,6 +3103,21 @@
             MacSounds.play('pop');
           } catch (err) {}
         }
+        if (cc === 'screen-mirroring') {
+          var mirOn = tile.classList.contains('is-active');
+          notify(
+            'Screen Mirroring',
+            mirOn ? 'Looking for displays…' : 'Stopped',
+            mirOn ? 'Opening Sidecar as second display' : 'Screen Mirroring off',
+            'now'
+          );
+          if (mirOn) {
+            setTimeout(function () {
+              openApp('sidecar');
+            }, 350);
+          }
+          return;
+        }
         var sub = tile.querySelector('.cc-sublabel');
         if (sub && (cc === 'wifi' || cc === 'bluetooth' || cc === 'airdrop' || cc === 'focus')) {
           var on = tile.classList.contains('is-active');
@@ -3117,9 +3133,22 @@
               'now',
               { force: true }
             );
-          } else if (cc === 'airdrop') sub.textContent = on ? 'Everyone' : 'Contacts Only';
-          else if (cc === 'wifi') sub.textContent = on ? 'Home Network' : 'Off';
-          else sub.textContent = on ? 'On' : 'Off';
+          } else if (cc === 'airdrop') {
+            sub.textContent = on ? 'Everyone' : 'Contacts Only';
+            notify('AirDrop', on ? 'Everyone' : 'Contacts Only', 'Receiving set', 'now');
+          } else if (cc === 'wifi') {
+            sub.textContent = on ? 'Home Network' : 'Off';
+            var wifiBtn = $('#wifi-btn');
+            if (wifiBtn) {
+              wifiBtn.classList.toggle('is-offline', !on);
+              wifiBtn.title = on ? 'Wi-Fi · Home Network' : 'Wi-Fi · Off';
+            }
+            document.documentElement.classList.toggle('is-offline', !on);
+            notify('Wi‑Fi', on ? 'Connected' : 'Off', on ? 'Home Network' : 'Not connected', 'now');
+          } else if (cc === 'bluetooth') {
+            sub.textContent = on ? 'On' : 'Off';
+            notify('Bluetooth', on ? 'On' : 'Off', on ? 'Devices available' : 'Bluetooth disabled', 'now');
+          } else sub.textContent = on ? 'On' : 'Off';
           try {
             localStorage.setItem('macos-cc-' + cc, on ? '1' : '0');
           } catch (err2) {}
@@ -3158,20 +3187,47 @@
       });
     }
 
-    // Hot corner: top-left opens Mission Control (brief dwell)
+    // Hot corners (dwell ~280ms)
+    // TL Mission Control · TR Notification Center · BL Launchpad · BR Desktop (minimize all)
+    var lastHotCorner = '';
     document.addEventListener('mousemove', function (e) {
-      if (e.clientX <= 2 && e.clientY <= 2) {
-        if (hotCornerTimer) return;
-        hotCornerTimer = setTimeout(function () {
+      var w = window.innerWidth;
+      var h = window.innerHeight;
+      var corner = '';
+      if (e.clientX <= 3 && e.clientY <= 3) corner = 'tl';
+      else if (e.clientX >= w - 3 && e.clientY <= 3) corner = 'tr';
+      else if (e.clientX <= 3 && e.clientY >= h - 3) corner = 'bl';
+      else if (e.clientX >= w - 3 && e.clientY >= h - 3) corner = 'br';
+      if (!corner) {
+        if (hotCornerTimer) {
+          clearTimeout(hotCornerTimer);
           hotCornerTimer = null;
-          if (!isOpen($('#mission-control')) && !isOpen($('#launchpad'))) {
-            openMissionControl();
-          }
-        }, 280);
-      } else if (hotCornerTimer) {
-        clearTimeout(hotCornerTimer);
-        hotCornerTimer = null;
+        }
+        lastHotCorner = '';
+        return;
       }
+      if (corner === lastHotCorner && hotCornerTimer) return;
+      if (hotCornerTimer) clearTimeout(hotCornerTimer);
+      lastHotCorner = corner;
+      hotCornerTimer = setTimeout(function () {
+        hotCornerTimer = null;
+        if (corner === 'tl' && !isOpen($('#mission-control')) && !isOpen($('#launchpad'))) {
+          openMissionControl();
+        } else if (corner === 'tr' && !isOpen($('#notification-center'))) {
+          toggleNotificationCenter();
+        } else if (corner === 'bl' && !isOpen($('#launchpad'))) {
+          openLaunchpad();
+        } else if (corner === 'br') {
+          /* Show Desktop: minimize all windows */
+          if (global.WindowManager && WindowManager.getOpenWindows) {
+            WindowManager.getOpenWindows().forEach(function (win) {
+              if (!win.minimized && WindowManager.minimize) WindowManager.minimize(win.id);
+            });
+            if (global.MacSounds && MacSounds.play) MacSounds.play('pop');
+            notify('Desktop', 'Show Desktop', 'Windows minimized', 'now');
+          }
+        }
+      }, 280);
     });
 
     // Brightness (persist)
@@ -3217,6 +3273,89 @@
         }
       });
     }
+
+    /* CC Now Playing mini player */
+    var media = document.querySelector('#control-center .cc-media');
+    if (media && !media.dataset.wired) {
+      media.dataset.wired = '1';
+      var playing = false;
+      var tracks = [
+        { t: 'Liquid Glass', a: 'Ensemble' },
+        { t: 'Neon Rain', a: 'City Nights' },
+        { t: 'Soft Static', a: 'Lo-Fi Lab' },
+        { t: 'Harbor Lights', a: 'Weekend' },
+      ];
+      var ti = 0;
+      var titleEl = media.querySelector('.cc-media-title');
+      function setTrack() {
+        if (titleEl) {
+          titleEl.textContent = playing
+            ? tracks[ti].t + ' — ' + tracks[ti].a
+            : 'Not Playing';
+        }
+      }
+      $$('.cc-media-btn', media).forEach(function (btn, i) {
+        btn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          if (btn.classList.contains('play') || i === 1) {
+            playing = !playing;
+            btn.textContent = playing ? '❚❚' : '▶';
+            btn.setAttribute('aria-label', playing ? 'Pause' : 'Play');
+            setTrack();
+            if (global.MacSounds && MacSounds.play) MacSounds.play(playing ? 'funk' : 'pop');
+          } else {
+            ti = (ti + (i === 0 ? tracks.length - 1 : 1)) % tracks.length;
+            setTrack();
+            if (global.MacSounds && MacSounds.play) MacSounds.play('tink');
+          }
+        });
+      });
+      media.addEventListener('dblclick', function () {
+        openApp('music');
+        hideOverlay($('#control-center'));
+      });
+      media.title = 'Double-click for Music';
+    }
+
+    /* Keyboard volume / brightness when not typing */
+    document.addEventListener('keydown', function (e) {
+      var tag = (e.target && e.target.tagName) || '';
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target && e.target.isContentEditable)) return;
+      var vol = $('#cc-volume');
+      var bri = $('#cc-brightness');
+      if (e.key === 'AudioVolumeUp' || (e.metaKey && e.altKey && e.key === 'ArrowUp')) {
+        if (vol) {
+          vol.value = String(Math.min(100, Number(vol.value) + 5));
+          vol.dispatchEvent(new Event('input'));
+        }
+      } else if (e.key === 'AudioVolumeDown' || (e.metaKey && e.altKey && e.key === 'ArrowDown')) {
+        if (vol) {
+          vol.value = String(Math.max(0, Number(vol.value) - 5));
+          vol.dispatchEvent(new Event('input'));
+        }
+      } else if (e.key === 'AudioVolumeMute') {
+        if (vol) {
+          if (vol.dataset.prev == null) vol.dataset.prev = vol.value;
+          if (Number(vol.value) === 0) {
+            vol.value = vol.dataset.prev || '55';
+          } else {
+            vol.dataset.prev = vol.value;
+            vol.value = '0';
+          }
+          vol.dispatchEvent(new Event('input'));
+        }
+      } else if (e.key === 'BrightnessUp' || (e.metaKey && e.altKey && e.key === 'ArrowRight')) {
+        if (bri) {
+          bri.value = String(Math.min(100, Number(bri.value) + 5));
+          bri.dispatchEvent(new Event('input'));
+        }
+      } else if (e.key === 'BrightnessDown' || (e.metaKey && e.altKey && e.key === 'ArrowLeft')) {
+        if (bri) {
+          bri.value = String(Math.max(0, Number(bri.value) - 5));
+          bri.dispatchEvent(new Event('input'));
+        }
+      }
+    });
 
     // NC clear
     var clearBtn = $('#nc-clear-all');
