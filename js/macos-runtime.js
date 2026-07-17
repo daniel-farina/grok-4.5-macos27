@@ -3589,6 +3589,34 @@
         }, 80);
       }
     }
+    /* Memory keys if missing */
+    if (!el.querySelector('[data-key="MC"]') && !el.querySelector('.calc-mem')) {
+      var memBar = document.createElement('div');
+      memBar.className = 'calc-mem';
+      memBar.style.cssText = 'display:flex;gap:4px;padding:4px 8px;justify-content:flex-end';
+      ['MC', 'MR', 'M+', 'M-'].forEach(function (k) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'calc-key';
+        b.setAttribute('data-key', k);
+        b.textContent = k;
+        b.style.cssText = 'min-width:36px;font-size:11px';
+        memBar.appendChild(b);
+      });
+      el.insertBefore(memBar, histEl ? histEl.nextSibling : el.firstChild);
+      var mem = 0;
+      el.querySelectorAll('.calc-mem .calc-key').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var k = btn.getAttribute('data-key');
+          var cur = parseFloat((display && display.textContent) || '0') || 0;
+          if (k === 'MC') mem = 0;
+          else if (k === 'MR' && display) display.textContent = String(mem);
+          else if (k === 'M+') mem += cur;
+          else if (k === 'M-') mem -= cur;
+          sound('tink');
+        });
+      });
+    }
     el.tabIndex = 0;
     el.addEventListener('keydown', function (e) {
       var map = {
@@ -8003,6 +8031,83 @@
         });
       });
     }
+    if (!el.querySelector('#pw-add')) {
+      var list = el.querySelector('.pw-list') || el;
+      var bar = el.querySelector('.toolbar, .app-toolbar') || el;
+      var add = document.createElement('button');
+      add.type = 'button';
+      add.className = 'btn-primary';
+      add.id = 'pw-add';
+      add.textContent = '+ Password';
+      add.style.cssText = 'margin:8px';
+      bar.appendChild(add);
+      var gen = document.createElement('button');
+      gen.type = 'button';
+      gen.className = 'btn-glass';
+      gen.id = 'pw-gen';
+      gen.textContent = 'Generate';
+      bar.appendChild(gen);
+      function wireNewRow(row) {
+        row.style.cursor = 'pointer';
+        row.addEventListener('click', function (e) {
+          if (e.target.closest('button')) return;
+          el.querySelectorAll('.pw-row').forEach(function (r) {
+            r.classList.remove('is-selected');
+          });
+          row.classList.add('is-selected');
+          sound('pop');
+        });
+        var copyBtn = row.querySelector('.pw-copy');
+        if (copyBtn) {
+          copyBtn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            var site = row.getAttribute('data-site') || 'site';
+            var demo = row.getAttribute('data-pass') || 'demo-password-' + site.replace(/\W/g, '');
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+              navigator.clipboard.writeText(demo).catch(function () {});
+            }
+            copyBtn.textContent = 'Copied';
+            sound('tink');
+            setTimeout(function () {
+              copyBtn.textContent = 'Copy';
+            }, 1200);
+          });
+        }
+      }
+      add.addEventListener('click', function () {
+        var site = 'new' + (el.querySelectorAll('.pw-row').length + 1) + '.example.com';
+        var pass = 'Demo!' + Math.random().toString(36).slice(2, 10);
+        var row = document.createElement('div');
+        row.className = 'pw-row is-selected';
+        row.setAttribute('data-site', site);
+        row.setAttribute('data-pass', pass);
+        row.innerHTML =
+          '<div><strong></strong><div class="muted">you@example.com</div></div>' +
+          '<div class="pw-actions"><span class="pw-pass muted">••••••••••••</span>' +
+          '<button type="button" class="btn-glass pw-copy" data-site="' +
+          site +
+          '">Copy</button></div>';
+        row.querySelector('strong').textContent = site;
+        el.querySelectorAll('.pw-row').forEach(function (r) {
+          r.classList.remove('is-selected');
+        });
+        list.appendChild(row);
+        wireNewRow(row);
+        sound('hero');
+      });
+      gen.addEventListener('click', function () {
+        var chars = 'abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#$';
+        var p = '';
+        for (var i = 0; i < 16; i++) p += chars[Math.floor(Math.random() * chars.length)];
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(p).catch(function () {});
+        }
+        sound('hero');
+        if (global.MacShell && MacShell.notify) {
+          MacShell.notify('Passwords', 'Generated', 'Strong password copied', 'now');
+        }
+      });
+    }
   }
 
   /* ── Console live log ───────────────────────────────── */
@@ -8089,6 +8194,32 @@
       search.addEventListener('input', function () {
         filterQ = search.value.toLowerCase().trim();
         applyFilter();
+      });
+    }
+    if (!el.querySelector('#console-export') && log) {
+      var tb = el.querySelector('.toolbar, .app-toolbar') || el;
+      var exp = document.createElement('button');
+      exp.type = 'button';
+      exp.className = 'btn-glass';
+      exp.id = 'console-export';
+      exp.textContent = 'Export';
+      exp.style.cssText = 'margin-left:8px';
+      tb.appendChild(exp);
+      exp.addEventListener('click', function () {
+        var lines = [];
+        log.querySelectorAll(':scope > div').forEach(function (line) {
+          if (line.style.display === 'none') return;
+          lines.push((line.textContent || '').trim());
+        });
+        var blob = new Blob([lines.join('\n')], { type: 'text/plain' });
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'console-log.txt';
+        a.click();
+        sound('hero');
+        if (global.MacShell && MacShell.notify) {
+          MacShell.notify('Console', 'Exported', lines.length + ' lines', 'now');
+        }
       });
     }
   }
@@ -8782,6 +8913,40 @@
     }
     var add = el.querySelector('#pc-add');
     if (add) add.addEventListener('click', addJob);
+    if (!el.querySelector('#pc-cancel-all') && jobs) {
+      var bar = el.querySelector('.pc-toolbar, .app-toolbar') || el;
+      var cancelAll = document.createElement('button');
+      cancelAll.type = 'button';
+      cancelAll.className = 'btn-glass';
+      cancelAll.id = 'pc-cancel-all';
+      cancelAll.textContent = 'Cancel All';
+      bar.appendChild(cancelAll);
+      cancelAll.addEventListener('click', function () {
+        jobs.querySelectorAll('.pc-job').forEach(function (j) {
+          j.remove();
+        });
+        sound('emptyTrash');
+        if (global.MacShell && MacShell.notify) {
+          MacShell.notify('Print Center', 'Queue', 'All jobs canceled', 'now');
+        }
+      });
+    }
+    el.querySelectorAll('.pc-printer').forEach(function (p) {
+      if (p.dataset.pcStatus) return;
+      p.dataset.pcStatus = '1';
+      p.addEventListener('dblclick', function () {
+        var on = p.classList.toggle('is-offline');
+        sound(on ? 'sosumi' : 'hero');
+        if (global.MacShell && MacShell.notify) {
+          MacShell.notify(
+            'Print Center',
+            on ? 'Offline' : 'Online',
+            (p.querySelector('strong') && p.querySelector('strong').textContent) || 'Printer',
+            'now'
+          );
+        }
+      });
+    });
     var del = el.querySelector('#pc-delete');
     if (del && jobs) {
       del.addEventListener('click', function () {
@@ -8886,10 +9051,21 @@
       bar.className = 'chess-toolbar';
       bar.innerHTML =
         '<h3 style="margin:0;flex:1">Chess</h3>' +
+        '<button type="button" class="btn-glass" id="chess-flip">Flip</button>' +
         '<button type="button" class="btn-glass" id="chess-undo">Undo</button>' +
         '<button type="button" class="btn-primary" id="chess-new">New Game</button>';
       wrap.insertBefore(bar, wrap.firstChild);
+    } else if (!el.querySelector('#chess-flip') && bar) {
+      var flipBtn = document.createElement('button');
+      flipBtn.type = 'button';
+      flipBtn.className = 'btn-glass';
+      flipBtn.id = 'chess-flip';
+      flipBtn.textContent = 'Flip';
+      var undoBtn = bar.querySelector('#chess-undo');
+      if (undoBtn) bar.insertBefore(flipBtn, undoBtn);
+      else bar.appendChild(flipBtn);
     }
+    var flipped = false;
     var selected = null;
     var history = [];
     function snapshot() {
@@ -8905,27 +9081,61 @@
     function isBlack(ch) {
       return '♟♜♞♝♛♚'.indexOf(ch) >= 0;
     }
+    function setStatus(msg) {
+      var st = el.querySelector('#chess-status');
+      if (!st) {
+        st = document.createElement('p');
+        st.id = 'chess-status';
+        st.className = 'muted';
+        st.style.cssText = 'margin:8px 0 0';
+        var wrap = el.querySelector('.chess-wrap') || el;
+        wrap.appendChild(st);
+      }
+      st.textContent = msg;
+    }
     function computerMove() {
       var squares = Array.prototype.slice.call(el.querySelectorAll('.chess-sq'));
       var blackPieces = squares.filter(function (sq) {
         return isBlack(sq.textContent);
       });
-      if (!blackPieces.length) return;
-      /* try a few random legal-ish moves (any empty or white target) */
-      for (var attempt = 0; attempt < 40; attempt++) {
-        var from = blackPieces[Math.floor(Math.random() * blackPieces.length)];
-        var to = squares[Math.floor(Math.random() * 64)];
-        if (to === from) continue;
-        if (to.textContent && isBlack(to.textContent)) continue;
-        history.push(snapshot());
-        var cap = to.textContent;
-        to.textContent = from.textContent;
-        from.textContent = '';
-        sound(cap ? 'hero' : 'tink');
-        if (cap && global.MacShell && MacShell.notify) {
-          MacShell.notify('Chess', 'Computer', 'Captured ' + cap, 'now');
-        }
+      if (!blackPieces.length) {
+        setStatus('You win · no black pieces left');
+        sound('hero');
         return;
+      }
+      /* prefer captures, then random */
+      var captures = [];
+      blackPieces.forEach(function (from) {
+        squares.forEach(function (to) {
+          if (to !== from && isWhite(to.textContent)) {
+            captures.push([from, to]);
+          }
+        });
+      });
+      var from;
+      var to;
+      if (captures.length && Math.random() < 0.7) {
+        var pick = captures[Math.floor(Math.random() * captures.length)];
+        from = pick[0];
+        to = pick[1];
+      } else {
+        for (var attempt = 0; attempt < 50; attempt++) {
+          from = blackPieces[Math.floor(Math.random() * blackPieces.length)];
+          to = squares[Math.floor(Math.random() * 64)];
+          if (to === from) continue;
+          if (to.textContent && isBlack(to.textContent)) continue;
+          break;
+        }
+      }
+      if (!from || !to || (to.textContent && isBlack(to.textContent))) return;
+      history.push(snapshot());
+      var cap = to.textContent;
+      to.textContent = from.textContent;
+      from.textContent = '';
+      sound(cap ? 'hero' : 'tink');
+      setStatus(cap ? 'Computer captured ' + cap : 'Computer moved · your turn');
+      if (cap && global.MacShell && MacShell.notify) {
+        MacShell.notify('Chess', 'Computer', 'Captured ' + cap, 'now');
       }
     }
     function bindSquares() {
@@ -8972,8 +9182,12 @@
     if (neu) {
       neu.addEventListener('click', function () {
         history = [];
+        flipped = false;
+        var board = el.querySelector('.chess-board');
+        if (board) board.style.transform = '';
         buildBoard(startPos);
         bindSquares();
+        setStatus('New game · white to move');
         sound('hero');
       });
     }
@@ -8987,9 +9201,23 @@
         var prev = history.pop();
         buildBoard(prev);
         bindSquares();
+        setStatus('Undid move');
         sound('pop');
       });
     }
+    var flip = el.querySelector('#chess-flip');
+    if (flip) {
+      flip.addEventListener('click', function () {
+        flipped = !flipped;
+        var board = el.querySelector('.chess-board');
+        if (board) board.style.transform = flipped ? 'rotate(180deg)' : '';
+        el.querySelectorAll('.chess-sq').forEach(function (sq) {
+          sq.style.transform = flipped ? 'rotate(180deg)' : '';
+        });
+        sound('tink');
+      });
+    }
+    setStatus('White to move · click a piece, then a square');
   }
 
   /* ── Patch AppRegistry apps ─────────────────────────── */
