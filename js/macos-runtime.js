@@ -476,17 +476,34 @@
     var lb = el.querySelector('#photo-lightbox');
     var img = el.querySelector('.photo-lb-img');
     var title = el.querySelector('.photo-lb-title');
+    var search = el.querySelector('.photos-search');
     var idx = 0;
+    var favorites = {};
+    try {
+      favorites = JSON.parse(localStorage.getItem('macos-photo-favs') || '{}') || {};
+    } catch (e) {
+      favorites = {};
+    }
+
+    function visibleTiles() {
+      return tiles.filter(function (t) {
+        return t.style.display !== 'none';
+      });
+    }
 
     function openAt(i) {
-      if (!tiles.length) return;
-      idx = (i + tiles.length) % tiles.length;
-      var t = tiles[idx];
+      var vis = visibleTiles();
+      if (!vis.length) return;
+      idx = (i + vis.length) % vis.length;
+      var t = vis[idx];
       if (img) {
         img.src = t.getAttribute('data-src');
         img.alt = t.getAttribute('data-title') || '';
       }
-      if (title) title.textContent = t.getAttribute('data-title') || '';
+      if (title) {
+        var fav = favorites[t.getAttribute('data-src')] ? ' ★' : '';
+        title.textContent = (t.getAttribute('data-title') || '') + fav;
+      }
       if (lb) {
         lb.hidden = false;
         lb.classList.add('is-open');
@@ -494,11 +511,47 @@
       sound('pop');
     }
 
+    function toggleFav(tile) {
+      var src = tile.getAttribute('data-src');
+      if (favorites[src]) delete favorites[src];
+      else favorites[src] = 1;
+      try {
+        localStorage.setItem('macos-photo-favs', JSON.stringify(favorites));
+      } catch (e) {}
+      tile.classList.toggle('is-favorite', !!favorites[src]);
+      sound(favorites[src] ? 'hero' : 'tink');
+    }
+
     tiles.forEach(function (t, i) {
+      if (favorites[t.getAttribute('data-src')]) t.classList.add('is-favorite');
       t.addEventListener('click', function () {
-        openAt(i);
+        openAt(visibleTiles().indexOf(t));
+      });
+      t.addEventListener('contextmenu', function (e) {
+        e.preventDefault();
+        toggleFav(t);
       });
     });
+
+    /* heart button in lightbox */
+    if (lb && !lb.querySelector('.photo-lb-fav')) {
+      var favBtn = document.createElement('button');
+      favBtn.type = 'button';
+      favBtn.className = 'photo-lb-fav';
+      favBtn.title = 'Favorite';
+      favBtn.textContent = '★';
+      lb.appendChild(favBtn);
+      favBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var vis = visibleTiles();
+        var t = vis[idx];
+        if (t) {
+          toggleFav(t);
+          openAt(idx);
+        }
+      });
+    }
+
     var close = el.querySelector('.photo-lb-close');
     if (close) {
       close.addEventListener('click', function () {
@@ -518,6 +571,61 @@
           lb.hidden = true;
           lb.classList.remove('is-open');
         }
+      });
+    }
+    document.addEventListener('keydown', function onKey(e) {
+      if (!el.isConnected) {
+        document.removeEventListener('keydown', onKey);
+        return;
+      }
+      if (!lb || lb.hidden) return;
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        openAt(idx - 1);
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        openAt(idx + 1);
+      } else if (e.key === 'Escape') {
+        lb.hidden = true;
+        lb.classList.remove('is-open');
+      } else if (e.key === 'f' || e.key === 'F') {
+        var vis = visibleTiles();
+        if (vis[idx]) toggleFav(vis[idx]);
+      }
+    });
+
+    el.querySelectorAll('.photos-sidebar .app-sidebar-item, [data-nav]').forEach(function (nav) {
+      nav.addEventListener('click', function () {
+        el.querySelectorAll('.photos-sidebar .app-sidebar-item').forEach(function (n) {
+          n.classList.remove('active');
+        });
+        nav.classList.add('active');
+        var id = nav.getAttribute('data-nav');
+        tiles.forEach(function (t, i) {
+          var show = true;
+          if (id === 'favorites') show = !!favorites[t.getAttribute('data-src')];
+          else if (id === 'recents') show = i >= tiles.length - 8;
+          t.style.display = show ? '' : 'none';
+        });
+        var head = el.querySelector('.photos-section-head h2');
+        var count = el.querySelector('.photos-section-head .muted');
+        var n = visibleTiles().length;
+        if (head) {
+          head.textContent =
+            id === 'favorites' ? 'Favorites' : id === 'recents' ? 'Recents' : 'Funny Collection';
+        }
+        if (count) count.textContent = n + ' Photo' + (n === 1 ? '' : 's');
+        sound('tink');
+      });
+    });
+
+    if (search) {
+      search.addEventListener('input', function () {
+        var q = search.value.toLowerCase().trim();
+        tiles.forEach(function (t) {
+          var title = (t.getAttribute('data-title') || '').toLowerCase();
+          t.style.display = !q || title.indexOf(q) >= 0 ? '' : 'none';
+        });
       });
     }
   }
@@ -2452,6 +2560,39 @@
         }, 0);
       });
     });
+    /* Keyboard support when window focused */
+    function pressKey(k) {
+      var btn = el.querySelector('.calc-key[data-key="' + k + '"]');
+      if (btn) {
+        btn.classList.add('is-pressed');
+        btn.click();
+        setTimeout(function () {
+          btn.classList.remove('is-pressed');
+        }, 80);
+      }
+    }
+    el.tabIndex = 0;
+    el.addEventListener('keydown', function (e) {
+      var map = {
+        Enter: '=',
+        '=': '=',
+        Escape: 'AC',
+        Backspace: 'AC',
+        '/': '÷',
+        '*': '×',
+        '-': '−',
+        '+': '+',
+        '.': '.',
+        '%': '%',
+      };
+      if (e.key >= '0' && e.key <= '9') {
+        e.preventDefault();
+        pressKey(e.key);
+      } else if (map[e.key]) {
+        e.preventDefault();
+        pressKey(map[e.key]);
+      }
+    });
   }
 
   /* ── Contacts select + actions ──────────────────────── */
@@ -3230,17 +3371,43 @@
     var status = el.querySelector('#dvd-status');
     var disc = el.querySelector('#dvd-disc');
     var play = el.querySelector('#dvd-play');
-    function setStatus(t) {
-      if (status) status.textContent = t;
+    var pos = 0;
+    var timer = null;
+    function setStatus(msg) {
+      if (status) status.textContent = msg;
+    }
+    function setPlay(on) {
+      playing = on;
+      clearInterval(timer);
+      if (play) play.textContent = on ? '❚❚' : '▶';
+      if (on) {
+        timer = setInterval(function () {
+          pos += 1;
+          var m = Math.floor(pos / 60);
+          var s = pos % 60;
+          setStatus(
+            'Playing · ' +
+              m +
+              ':' +
+              (s < 10 ? '0' : '') +
+              s +
+              ' · Chapter ' +
+              (1 + Math.floor(pos / 30))
+          );
+        }, 1000);
+        sound('funk');
+      } else {
+        sound('pop');
+      }
     }
     var eject = el.querySelector('#dvd-eject');
     if (eject) {
       eject.addEventListener('click', function () {
         hasDisc = !hasDisc;
-        playing = false;
+        setPlay(false);
+        pos = 0;
         if (disc) disc.style.animation = hasDisc ? 'dvd-spin 3s linear infinite' : '';
         setStatus(hasDisc ? 'DVD inserted · Ready' : 'No disc · Insert a DVD to begin');
-        if (play) play.textContent = '▶';
         sound(hasDisc ? 'hero' : 'emptyTrash');
       });
     }
@@ -3250,10 +3417,8 @@
           hasDisc = true;
           if (disc) disc.style.animation = 'dvd-spin 3s linear infinite';
         }
-        playing = !playing;
-        play.textContent = playing ? '❚❚' : '▶';
-        setStatus(playing ? 'Playing · Title 1 Chapter 1' : 'Paused');
-        sound(playing ? 'funk' : 'pop');
+        setPlay(!playing);
+        if (!playing) setStatus('Paused');
       });
     }
     ['dvd-prev', 'dvd-next', 'dvd-menu'].forEach(function (id) {
@@ -3503,6 +3668,83 @@
       showQuickLook(name);
       sound('tink');
     });
+
+    /* Empty Trash when in trash view */
+    var emptyBtn = el.querySelector('[data-empty-trash], .tb-glass-btn[title="Empty Trash"]');
+    function emptyTrash() {
+      document.dispatchEvent(new CustomEvent('finder:empty-trash'));
+      sound('emptyTrash');
+      if (global.MacShell && MacShell.notify) {
+        MacShell.notify('Finder', 'Trash', 'Trash is empty', 'now');
+      }
+      var list = el.querySelector('#finder-list, #finder-content');
+      if (list && el.querySelector('.finder-sb-item[data-nav="trash"].active')) {
+        list.innerHTML =
+          '<div class="finder-empty"><div class="empty-title">Trash is Empty</div><div class="muted">Items you delete will appear here.</div></div>';
+      }
+    }
+    if (emptyBtn) emptyBtn.addEventListener('click', emptyTrash);
+
+    /* New Folder toolbar */
+    var newFolder = el.querySelector('.tb-glass-btn[title="New Folder"], [data-new-folder]');
+    if (!newFolder) {
+      var tb = el.querySelector('.finder-toolbar .tb-right, .finder-toolbar, .tb-glass-group');
+      if (tb && !el.querySelector('[data-new-folder]')) {
+        newFolder = document.createElement('button');
+        newFolder.type = 'button';
+        newFolder.className = 'tb-glass-btn';
+        newFolder.title = 'New Folder';
+        newFolder.setAttribute('data-new-folder', '1');
+        newFolder.textContent = 'New Folder';
+        tb.appendChild(newFolder);
+      }
+    }
+    if (newFolder && !newFolder.dataset.nfWired) {
+      newFolder.dataset.nfWired = '1';
+      newFolder.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var host =
+          el.querySelector('#finder-list') ||
+          el.querySelector('.finder-icon-view') ||
+          el.querySelector('#finder-content');
+        if (!host) return;
+        var n = document.createElement('div');
+        n.className = 'finder-icon-item is-selected is-new-folder';
+        n.innerHTML =
+          '<div class="finder-thumb kind-folder" style="--h:210"><div class="finder-thumb-inner"></div></div>' +
+          '<span class="finder-label" contenteditable="true">untitled folder</span>';
+        host.querySelectorAll('.finder-icon-item.is-selected').forEach(function (x) {
+          x.classList.remove('is-selected');
+        });
+        if (host.id === 'finder-list' || host.classList.contains('finder-icon-view')) {
+          host.appendChild(n);
+        } else {
+          var grid = host.querySelector('.finder-icon-view, #finder-list') || host;
+          grid.appendChild(n);
+        }
+        var label = n.querySelector('.finder-label');
+        if (label) {
+          label.focus();
+          try {
+            document.execCommand('selectAll', false, null);
+          } catch (err) {}
+          label.addEventListener('keydown', function (ev) {
+            if (ev.key === 'Enter') {
+              ev.preventDefault();
+              label.blur();
+            }
+          });
+          label.addEventListener('blur', function () {
+            if (!(label.textContent || '').trim()) label.textContent = 'untitled folder';
+            sound('hero');
+          });
+        }
+        sound('pop');
+        if (global.MacShell && MacShell.notify) {
+          MacShell.notify('Finder', 'New Folder', 'untitled folder', 'now');
+        }
+      });
+    }
   }
 
   function showQuickLook(name) {

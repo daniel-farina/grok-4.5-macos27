@@ -149,6 +149,8 @@
       files: [
         { title: 'TV', kind: 'folder', hue: 320 },
         { title: 'Home Videos', kind: 'folder', hue: 240 },
+        { title: 'Demo Clip.mp4', kind: 'video', hue: 260 },
+        { title: 'Trailer.mov', kind: 'video', hue: 280 },
       ],
     },
     music: {
@@ -156,6 +158,8 @@
       crumbs: ['Macintosh HD', 'Users', 'User', 'Music'],
       files: [
         { title: 'Music', kind: 'folder', hue: 350 },
+        { title: 'Liquid Glass.m4a', kind: 'doc', hue: 300 },
+        { title: 'Focus Flow.mp3', kind: 'doc', hue: 320 },
       ],
     },
     pictures: {
@@ -163,7 +167,23 @@
       crumbs: ['Macintosh HD', 'Users', 'User', 'Pictures'],
       files: [
         { title: 'Photos Library', kind: 'folder', hue: 280 },
+        { title: 'Funny', kind: 'folder', hue: 40 },
         { title: 'Sample Photo.jpg', kind: 'shot', hue: 30 },
+        { title: 'funny-01.jpg', kind: 'shot', hue: 50 },
+        { title: 'funny-02.jpg', kind: 'shot', hue: 80 },
+        { title: 'funny-03.jpg', kind: 'shot', hue: 120 },
+        { title: 'Screenshot demo.png', kind: 'shot', hue: 220 },
+      ],
+    },
+    funny: {
+      title: 'Funny',
+      crumbs: ['Macintosh HD', 'Users', 'User', 'Pictures', 'Funny'],
+      files: [
+        { title: 'funny-01.jpg', kind: 'shot', hue: 10 },
+        { title: 'funny-05.jpg', kind: 'shot', hue: 50 },
+        { title: 'funny-10.jpg', kind: 'shot', hue: 90 },
+        { title: 'funny-15.jpg', kind: 'shot', hue: 140 },
+        { title: 'funny-20.jpg', kind: 'shot', hue: 200 },
       ],
     },
     icloud: {
@@ -634,6 +654,7 @@
         Movies: 'movies',
         Music: 'music',
         Pictures: 'pictures',
+        Funny: 'funny',
         'iCloud Drive': 'icloud',
         User: 'home',
         Users: 'home',

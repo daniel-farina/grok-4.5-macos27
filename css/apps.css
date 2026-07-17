@@ -2000,6 +2000,37 @@
   display: block;
   transition: transform 0.2s ease;
 }
+.photo-tile-img.is-favorite {
+  outline: 2px solid #ffd60a;
+  outline-offset: 2px;
+}
+.photo-tile-img.is-favorite::after {
+  content: '★';
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  color: #ffd60a;
+  font-size: 14px;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+}
+.photo-tile-img {
+  position: relative;
+}
+.photo-lb-fav {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 0, 0, 0.45);
+  color: #ffd60a;
+  font-size: 18px;
+  cursor: pointer;
+  z-index: 2;
+}
 .photo-tile-img:hover img {
   transform: scale(1.04);
 }
