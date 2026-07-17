@@ -3894,6 +3894,9 @@ html[data-theme='dark'] .iwork27-sep {
   overflow: hidden;
 }
 
+.iwork27-inspector.is-hidden {
+  display: none !important;
+}
 .iwork27-inspector {
   width: 200px;
   flex-shrink: 0;
