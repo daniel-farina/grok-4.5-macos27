@@ -12,6 +12,11 @@ Public commits track multi-minute interactive work on this virtual macOS 27 desk
 
 See `docs/LOOP_PRACTICE.md` for why we commit every loop.
 
+### 2026-07-17 / 18 (loop demo)
+- Reminders: inline New Reminder + live list counts
+- Freeform: place stickies, shapes, and text from tools; Share toast
+- Reinforced commit-as-you-go docs for multi-minute Grok 4.5 loops
+
 ### 2026-07-17
 - iPhone dock apps open Phone/Safari/Messages/Music; live status clock
 - Control Center brightness & volume persist in localStorage

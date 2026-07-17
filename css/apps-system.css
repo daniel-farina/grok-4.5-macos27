@@ -3551,8 +3551,13 @@ html[data-theme='dark'] .ff27-sep {
   border-radius: 50%;
   border: 1.5px solid rgba(255, 255, 255, 0.7);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
-  cursor: default;
+  cursor: pointer;
   padding: 0;
+}
+.ff27-swatch.is-active,
+.ff27-swatch.y.is-active {
+  outline: 2px solid #0a84ff;
+  outline-offset: 2px;
 }
 .ff27-swatch.y { background: #ffe566; }
 .ff27-swatch.p { background: #ff9ec8; }

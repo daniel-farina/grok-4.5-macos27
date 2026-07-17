@@ -2732,6 +2732,8 @@
       const wireChecks = () => {
         listEl.querySelectorAll('.reminder-item').forEach((row) => {
           const cb = row.querySelector('input[type="checkbox"]');
+          if (!cb || cb.dataset.chk) return;
+          cb.dataset.chk = '1';
           const text = row.querySelector('.rem-text');
           const listId = row.getAttribute('data-list');
           const idx = parseInt(row.getAttribute('data-idx'), 10);
@@ -2740,6 +2742,10 @@
             if (text) text.classList.toggle('done', cb.checked);
             if (itemsByList[listId] && itemsByList[listId][idx]) {
               itemsByList[listId][idx].done = cb.checked;
+            }
+            const cEl = el.querySelector(`.rem-list-item[data-rem-list="${listId}"] .rem-count`);
+            if (cEl && itemsByList[listId]) {
+              cEl.textContent = String(itemsByList[listId].filter((r) => !r.done).length);
             }
           });
         });
@@ -2759,6 +2765,67 @@
         });
       });
       wireChecks();
+
+      const updateCount = (listId) => {
+        const cEl = el.querySelector(`.rem-list-item[data-rem-list="${listId}"] .rem-count`);
+        if (!cEl || !itemsByList[listId]) return;
+        cEl.textContent = String(itemsByList[listId].filter((r) => !r.done).length);
+      };
+
+      const addBtn = el.querySelector('.rem-add');
+      if (addBtn && !addBtn.dataset.regWired) {
+        addBtn.dataset.regWired = '1';
+        addBtn.dataset.wired = '1';
+        addBtn.style.cursor = 'pointer';
+        addBtn.addEventListener('click', () => {
+          if (listEl.querySelector('.reminder-item.is-editing')) return;
+          const row = document.createElement('label');
+          row.className = 'reminder-item is-editing';
+          row.innerHTML =
+            '<input type="checkbox" disabled /><span class="rem-circle" aria-hidden="true"></span>' +
+            '<span class="rem-text"><input type="text" class="rem-inline-input" placeholder="New Reminder" maxlength="120" /></span>';
+          listEl.appendChild(row);
+          const input = row.querySelector('.rem-inline-input');
+          if (!input) return;
+          input.focus();
+          let done = false;
+          const commit = () => {
+            if (done) return;
+            done = true;
+            const t = (input.value || '').trim();
+            if (!t) {
+              row.remove();
+              return;
+            }
+            if (!itemsByList[active]) itemsByList[active] = [];
+            itemsByList[active].push({ t, done: false, note: '' });
+            const idx = itemsByList[active].length - 1;
+            row.classList.remove('is-editing');
+            row.setAttribute('data-list', active);
+            row.setAttribute('data-idx', String(idx));
+            row.innerHTML =
+              '<input type="checkbox" /><span class="rem-circle" aria-hidden="true"></span>' +
+              '<span class="rem-text"></span>';
+            row.querySelector('.rem-text').textContent = t;
+            wireChecks();
+            updateCount(active);
+            if (window.MacSounds && MacSounds.play) MacSounds.play('hero');
+            if (window.MacShell && MacShell.notify) {
+              MacShell.notify('Reminders', 'Added', t, 'now');
+            }
+          };
+          input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              commit();
+            } else if (e.key === 'Escape') {
+              done = true;
+              row.remove();
+            }
+          });
+          input.addEventListener('blur', () => setTimeout(commit, 80));
+        });
+      }
     },
   });
 

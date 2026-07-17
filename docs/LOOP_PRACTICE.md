@@ -7,12 +7,15 @@ On **each scheduled loop**, after meaningful code changes:
 2. **Push** to `origin/main` (`daniel-farina/grok-4.5-macos27`) so GitHub Pages and the public demo stay current.
 3. Do not batch many loops into one giant commit if intermediate work is already useful.
 
+Remember: **commit as you go on each loop** - one solid commit + push per productive loop.
+
 ## Why the continuous updates
-We started **shipping frequent commits/pushes** on the functional-fidelity loop to **demonstrate what else can be done when a loop runs longer than ~10 minutes** in Grok 4.5:
+We **started sending frequent commits and public updates** on the functional-fidelity loop to **demonstrate what else can be done if we spend more than ~10 minutes in a loop in Grok 4.5**:
 
 - Longer loops unlock multi-app wiring, real media assets, sounds, device simulators, and deeper interactivity.
 - Public history on GitHub shows incremental progress (not a single dump at the end).
 - Shareable Pages URL stays close to the latest demo quality.
+- Continuous shipping is the proof of multi-minute agent loops, not just a longer wait for one big PR.
 
 ## Cadence note
 Scheduler fires every 2 minutes, but each execution may do substantial work. Prefer **one solid commit per successful loop** over silence until the 3-hour job cap.

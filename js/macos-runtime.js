@@ -1239,41 +1239,111 @@
   function wireReminders(el) {
     if (!el || el.dataset.wiredExtra) return;
     el.dataset.wiredExtra = '1';
-    var list = el.querySelector('.reminders-list, .rem-list, #reminders-list');
     var main = el.querySelector('.reminders-main');
     if (!main) return;
-    if (!el.querySelector('.rem-add-row')) {
-      var row = document.createElement('div');
-      row.className = 'rem-add-row';
-      row.innerHTML =
-        '<button type="button" class="btn-primary rem-add-btn">+ New Reminder</button>';
-      main.appendChild(row);
-      row.querySelector('.rem-add-btn').addEventListener('click', function () {
-        var t = prompt('Reminder', 'New reminder');
-        if (!t) return;
-        var listEl = el.querySelector('.reminders-list, .rem-items, [class*="reminder-list"]') || main.querySelector('div:last-of-type');
-        var label = document.createElement('label');
-        label.className = 'reminder-item';
-        label.innerHTML =
-          '<input type="checkbox" /><span class="rem-circle"></span><span class="rem-text"></span>';
-        label.querySelector('.rem-text').textContent = t;
-        var host = el.querySelector('.reminders-items') || el.querySelector('.reminders-main > div:last-child');
-        if (host) host.appendChild(label);
-        else main.insertBefore(label, row);
-        label.querySelector('input').addEventListener('change', function () {
-          label.classList.toggle('is-done', label.querySelector('input').checked);
-          sound('pop');
-        });
-        sound('hero');
+    var listEl = el.querySelector('#rem-items, .reminder-list');
+    var titleEl = el.querySelector('#rem-title');
+    var activeList = 'today';
+
+    function refreshCounts() {
+      el.querySelectorAll('.rem-list-item[data-rem-list]').forEach(function (nav) {
+        var id = nav.getAttribute('data-rem-list');
+        var countEl = nav.querySelector('.rem-count');
+        if (!countEl) return;
+        if (id === activeList && listEl) {
+          var open = listEl.querySelectorAll('.reminder-item:not(.is-done)').length;
+          countEl.textContent = String(open);
+        } else if (id === 'all' && listEl) {
+          /* leave static unless on all list */
+        }
       });
+      var activeNav = el.querySelector('.rem-list-item.active .rem-count');
+      if (activeNav && listEl) {
+        activeNav.textContent = String(listEl.querySelectorAll('.reminder-item:not(.is-done)').length);
+      }
     }
-    el.querySelectorAll('.reminder-item input[type="checkbox"]').forEach(function (cb) {
-      if (cb.dataset.snd) return;
+
+    function wireItem(row) {
+      var cb = row.querySelector('input[type="checkbox"]');
+      if (!cb || cb.dataset.snd) return;
       cb.dataset.snd = '1';
       cb.addEventListener('change', function () {
+        row.classList.toggle('is-done', cb.checked);
+        var text = row.querySelector('.rem-text');
+        if (text) text.classList.toggle('done', cb.checked);
         sound(cb.checked ? 'tink' : 'pop');
+        refreshCounts();
+      });
+    }
+
+    function startInlineAdd() {
+      if (!listEl) return;
+      if (listEl.querySelector('.reminder-item.is-editing')) return;
+      var row = document.createElement('label');
+      row.className = 'reminder-item is-editing';
+      row.innerHTML =
+        '<input type="checkbox" disabled /><span class="rem-circle" aria-hidden="true"></span>' +
+        '<span class="rem-text"><input type="text" class="rem-inline-input" placeholder="New Reminder" maxlength="120" /></span>';
+      listEl.appendChild(row);
+      var input = row.querySelector('.rem-inline-input');
+      if (input) {
+        input.focus();
+        function commit() {
+          var t = (input.value || '').trim();
+          if (!t) {
+            row.remove();
+            return;
+          }
+          row.classList.remove('is-editing');
+          row.innerHTML =
+            '<input type="checkbox" /><span class="rem-circle" aria-hidden="true"></span>' +
+            '<span class="rem-text"></span>';
+          row.querySelector('.rem-text').textContent = t;
+          wireItem(row);
+          refreshCounts();
+          sound('hero');
+          if (global.MacShell && MacShell.notify) {
+            MacShell.notify('Reminders', 'Added', t, 'now');
+          }
+        }
+        input.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            commit();
+          } else if (e.key === 'Escape') {
+            row.remove();
+          }
+        });
+        input.addEventListener('blur', function () {
+          setTimeout(commit, 80);
+        });
+      }
+    }
+
+    /* Prefer registry onMount for + New Reminder; fallback if not wired */
+    var add = el.querySelector('.rem-add');
+    if (add && !add.dataset.wired && !add.dataset.regWired) {
+      add.dataset.wired = '1';
+      add.style.cursor = 'pointer';
+      add.addEventListener('click', startInlineAdd);
+    }
+
+    /* After sidebar switch, re-bind checkbox sounds and refresh counts */
+    el.querySelectorAll('.rem-list-item[data-rem-list]').forEach(function (nav) {
+      nav.addEventListener('click', function () {
+        activeList = nav.getAttribute('data-rem-list') || 'today';
+        setTimeout(function () {
+          listEl = el.querySelector('#rem-items, .reminder-list');
+          if (listEl) {
+            listEl.querySelectorAll('.reminder-item').forEach(wireItem);
+          }
+          refreshCounts();
+        }, 0);
       });
     });
+
+    el.querySelectorAll('.reminder-item').forEach(wireItem);
+    refreshCounts();
   }
 
   /* ── Preview: zoom + markup tools ───────────────────── */
@@ -1740,6 +1810,8 @@
     var canvas = el.querySelector('.ff27-canvas');
     var tool = 'select';
     var color = 'y';
+    var shapeCycle = ['rect', 'circle', 'diamond'];
+    var shapeIdx = 0;
     if (!canvas) return;
 
     el.querySelectorAll('.ff27-tool').forEach(function (btn) {
@@ -1761,6 +1833,9 @@
             : s.classList.contains('g')
               ? 'g'
               : 'y';
+        el.querySelectorAll('.ff27-swatch').forEach(function (x) {
+          x.classList.toggle('is-active', x === s);
+        });
         sound('pop');
       });
     });
@@ -1776,6 +1851,32 @@
       canvas.appendChild(sticky);
       makeDraggable(sticky);
       sound('hero');
+      return sticky;
+    }
+
+    function addShape(x, y) {
+      var kind = shapeCycle[shapeIdx % shapeCycle.length];
+      shapeIdx += 1;
+      var shape = document.createElement('div');
+      shape.className = 'ff27-shape ' + kind;
+      shape.style.left = x + 'px';
+      shape.style.top = y + 'px';
+      canvas.appendChild(shape);
+      makeDraggable(shape);
+      sound('pop');
+      return shape;
+    }
+
+    function addTextBox(x, y) {
+      var box = document.createElement('div');
+      box.className = 'ff27-text-box';
+      box.style.left = x + 'px';
+      box.style.top = y + 'px';
+      box.innerHTML = '<strong contenteditable="true">Label</strong><p class="muted" contenteditable="true">Double-click to edit</p>';
+      canvas.appendChild(box);
+      makeDraggable(box);
+      sound('hero');
+      return box;
     }
 
     function makeDraggable(node) {
@@ -1791,6 +1892,7 @@
         oy = e.clientY;
         sx = r.left - cr.left;
         sy = r.top - cr.top;
+        e.stopPropagation();
       });
       node.addEventListener('pointermove', function (e) {
         if (!drag) return;
@@ -1805,10 +1907,35 @@
     el.querySelectorAll('.ff27-sticky, .ff27-shape, .ff27-text-box').forEach(makeDraggable);
 
     canvas.addEventListener('dblclick', function (e) {
-      if (e.target.closest('.ff27-sticky, .ff27-shape, .ff27-text-box, .ff27-note')) return;
+      if (e.target.closest('.ff27-sticky, .ff27-shape, .ff27-text-box, .ff27-note, .ff27-ink')) return;
       var cr = canvas.getBoundingClientRect();
       addSticky(e.clientX - cr.left - 40, e.clientY - cr.top - 20, 'Sticky note');
     });
+
+    /* Single-click place when sticky/shapes/text tools active */
+    canvas.addEventListener('click', function (e) {
+      if (e.target.closest('.ff27-sticky, .ff27-shape, .ff27-text-box, .ff27-note, .ff27-ink')) return;
+      var cr = canvas.getBoundingClientRect();
+      var x = e.clientX - cr.left - 30;
+      var y = e.clientY - cr.top - 20;
+      if (tool.indexOf('sticky') >= 0) {
+        addSticky(x, y, 'New idea');
+      } else if (tool.indexOf('shape') >= 0) {
+        addShape(x, y);
+      } else if (tool === 't' || tool.indexOf('text') >= 0) {
+        addTextBox(x, y);
+      }
+    });
+
+    var share = el.querySelector('.ff27-btn');
+    if (share) {
+      share.addEventListener('click', function () {
+        sound('hero');
+        if (global.MacShell && MacShell.notify) {
+          MacShell.notify('Freeform', 'Shared', 'Board link copied (demo)', 'now');
+        }
+      });
+    }
 
     /* pen layer */
     var ink = document.createElement('canvas');

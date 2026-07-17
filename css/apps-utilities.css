@@ -1022,8 +1022,12 @@ html[data-theme='dark'] .rem-circle {
   color: #0a84ff;
   font-size: 14px;
   font-weight: 500;
-  cursor: default;
+  cursor: pointer;
   flex-shrink: 0;
+  user-select: none;
+}
+.rem-add:hover {
+  opacity: 0.85;
 }
 .rem-add-plus {
   width: 22px;
@@ -1036,6 +1040,20 @@ html[data-theme='dark'] .rem-circle {
   font-size: 16px;
   font-weight: 400;
   line-height: 1;
+}
+.rem-inline-input {
+  width: 100%;
+  border: none;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+  outline: none;
+  padding: 0;
+  margin: 0;
+}
+.reminder-item.is-editing {
+  background: rgba(10, 132, 255, 0.08);
+  border-radius: 8px;
 }
 
 /* Dark text fixes for shared muted in utilities */
