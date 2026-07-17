@@ -1113,9 +1113,48 @@
         break;
       case 'new-folder':
         openApp('finder');
+        if (global.MacShell && MacShell.notify) {
+          notify('Finder', 'New Folder', 'Untitled Folder (demo)', 'now');
+        }
         break;
       case 'about-app':
         showAboutThisMac();
+        break;
+      case 'empty-trash':
+        if (global.MacSounds && MacSounds.play) MacSounds.play('emptyTrash');
+        notify('Finder', 'Trash', 'Trash is empty', 'now');
+        break;
+      case 'force-quit':
+        if (global.WindowManager && WindowManager.getFocused) {
+          var fq = WindowManager.getFocused();
+          if (fq) WindowManager.closeApp(fq.appId);
+        }
+        break;
+      case 'hide':
+      case 'hide-app':
+        if (global.WindowManager) WindowManager.minimizeFocused && WindowManager.minimizeFocused();
+        break;
+      case 'show-all':
+        openMissionControl();
+        break;
+      case 'minimize-all':
+        if (global.WindowManager && WindowManager.getWindows) {
+          WindowManager.getWindows().forEach(function (w) {
+            if (WindowManager.minimize) WindowManager.minimize(w.id);
+          });
+        }
+        break;
+      case 'wallpaper':
+      case 'change-wallpaper':
+        openApp('wallpaper');
+        break;
+      case 'copy':
+      case 'cut':
+      case 'paste':
+      case 'select-all':
+        try {
+          document.execCommand(action === 'select-all' ? 'selectAll' : action);
+        } catch (e) {}
         break;
       case 'spotlight':
         toggleSpotlight();
@@ -1399,6 +1438,11 @@
           return;
         }
         tile.classList.toggle('is-active');
+        if (global.MacSounds && MacSounds.play) {
+          try {
+            MacSounds.play('pop');
+          } catch (err) {}
+        }
         var sub = tile.querySelector('.cc-sublabel');
         if (sub && (cc === 'wifi' || cc === 'bluetooth' || cc === 'airdrop' || cc === 'focus')) {
           var on = tile.classList.contains('is-active');
@@ -1409,8 +1453,29 @@
           } else if (cc === 'airdrop') sub.textContent = on ? 'Everyone' : 'Contacts Only';
           else if (cc === 'wifi') sub.textContent = on ? 'Home Network' : 'Off';
           else sub.textContent = on ? 'On' : 'Off';
+          try {
+            localStorage.setItem('macos-cc-' + cc, on ? '1' : '0');
+          } catch (err2) {}
         }
       });
+    });
+
+    /* Restore CC toggle state */
+    $$('#control-center [data-cc]').forEach(function (tile) {
+      var cc = tile.getAttribute('data-cc');
+      if (!cc || (cc !== 'wifi' && cc !== 'bluetooth' && cc !== 'airdrop' && cc !== 'focus')) return;
+      try {
+        var saved = localStorage.getItem('macos-cc-' + cc);
+        if (saved === null) return;
+        var on = saved === '1';
+        tile.classList.toggle('is-active', on);
+        var sub = tile.querySelector('.cc-sublabel');
+        if (!sub) return;
+        if (cc === 'focus') sub.textContent = on ? 'On' : 'Off';
+        else if (cc === 'airdrop') sub.textContent = on ? 'Everyone' : 'Contacts Only';
+        else if (cc === 'wifi') sub.textContent = on ? 'Home Network' : 'Off';
+        else sub.textContent = on ? 'On' : 'Off';
+      } catch (e) {}
     });
 
     // Mission Control backdrop click closes
@@ -1447,6 +1512,24 @@
         var v = 0.45 + (Number(brightness.value) / 100) * 0.55;
         var wall = $('#wallpaper') || document.documentElement;
         wall.style.filter = 'brightness(' + v + ')';
+      });
+    }
+
+    // Sound volume tick
+    var volume = $('#cc-volume') || document.querySelector('#control-center input[type="range"][data-cc="sound"], #control-center .cc-sound input, #cc-sound');
+    if (!volume) {
+      volume = document.querySelector('#control-center input[type="range"]:not(#cc-brightness)');
+    }
+    if (volume) {
+      var lastVolSound = 0;
+      volume.addEventListener('input', function () {
+        var now = Date.now();
+        if (now - lastVolSound > 90 && global.MacSounds && MacSounds.play) {
+          lastVolSound = now;
+          try {
+            MacSounds.play('volume');
+          } catch (e) {}
+        }
       });
     }
 

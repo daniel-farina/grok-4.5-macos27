@@ -654,6 +654,527 @@
     });
   }
 
+  /* ── Mail: select, folders, compose, send ───────────── */
+  function wireMail(el) {
+    if (!el || el.dataset.wired) return;
+    el.dataset.wired = '1';
+    var list = el.querySelector('.mail27-list');
+    var read = el.querySelector('.mail27-read');
+
+    function selectRow(row) {
+      el.querySelectorAll('.mail27-row').forEach(function (r) {
+        r.classList.remove('selected');
+      });
+      row.classList.add('selected');
+      row.classList.remove('unread');
+      var from = row.querySelector('.mail27-from');
+      var subject = row.querySelector('.mail27-subject');
+      var preview = row.querySelector('.mail27-preview');
+      var date = row.querySelector('.mail27-date');
+      if (!read) return;
+      var subEl = read.querySelector('.mail27-read-subject');
+      var nameEl = read.querySelector('.mail27-read-name');
+      var emailEl = read.querySelector('.mail27-read-email');
+      var av = read.querySelector('.mail27-read-avatar');
+      var dateEl = read.querySelector('.mail27-read-date');
+      var body = read.querySelector('.mail27-content');
+      if (subEl && subject) subEl.textContent = subject.textContent;
+      if (nameEl && from) nameEl.textContent = from.textContent;
+      if (av && from) av.textContent = from.textContent.charAt(0);
+      if (emailEl && from)
+        emailEl.textContent =
+          '<' + from.textContent.toLowerCase().replace(/\s+/g, '.') + '@example.com>';
+      if (dateEl && date) dateEl.textContent = date.textContent;
+      if (body && preview) {
+        body.innerHTML =
+          '<p>Hello,</p><p></p><p></p><p class="mail27-signoff">— ' +
+          (from ? from.textContent : 'Sender') +
+          '</p>';
+        body.querySelectorAll('p')[1].textContent = preview.textContent;
+      }
+      sound('pop');
+      var meta = el.querySelector('.mail27-list-meta');
+      if (meta) {
+        var n = el.querySelectorAll('.mail27-row.unread').length;
+        meta.textContent = n + ' Unread';
+      }
+    }
+
+    el.querySelectorAll('.mail27-row').forEach(function (row) {
+      row.addEventListener('click', function () {
+        selectRow(row);
+      });
+    });
+
+    el.querySelectorAll('.mail27-side-item').forEach(function (item) {
+      item.addEventListener('click', function () {
+        el.querySelectorAll('.mail27-side-item').forEach(function (i) {
+          i.classList.remove('active');
+        });
+        item.classList.add('active');
+        var name = item.getAttribute('data-folder') || 'Inbox';
+        var title = el.querySelector('.mail27-list-title');
+        if (title) title.textContent = name;
+        sound('tink');
+      });
+    });
+
+    var newBtn = el.querySelector('.mail27-tb.primary, .mail27-tb[title="New Message"]');
+    function openCompose(replyTo) {
+      var existing = el.querySelector('.mail-compose-modal');
+      if (existing) existing.remove();
+      var modal = document.createElement('div');
+      modal.className = 'mail-compose-modal';
+      modal.innerHTML =
+        '<div class="mail-compose-sheet">' +
+        '<div class="mail-compose-bar">' +
+        '<strong>New Message</strong>' +
+        '<button type="button" class="mail-compose-close" aria-label="Close">✕</button></div>' +
+        '<div class="mail-compose-fields">' +
+        '<label>To <input class="mail-c-to" value="' +
+        (replyTo || 'friend@example.com') +
+        '" /></label>' +
+        '<label>Subject <input class="mail-c-sub" value="' +
+        (replyTo ? 'Re: Hello' : '') +
+        '" placeholder="Subject" /></label>' +
+        '<textarea class="mail-c-body" placeholder="Write your message…">Hi,\n\n</textarea>' +
+        '</div>' +
+        '<div class="mail-compose-actions">' +
+        '<button type="button" class="btn-primary mail-c-send">Send</button>' +
+        '<button type="button" class="btn-glass mail-c-cancel">Cancel</button>' +
+        '</div></div>';
+      el.appendChild(modal);
+      modal.querySelector('.mail-compose-close').addEventListener('click', function () {
+        modal.remove();
+      });
+      modal.querySelector('.mail-c-cancel').addEventListener('click', function () {
+        modal.remove();
+      });
+      modal.querySelector('.mail-c-send').addEventListener('click', function () {
+        var sub = modal.querySelector('.mail-c-sub').value || '(no subject)';
+        var to = modal.querySelector('.mail-c-to').value || 'friend@example.com';
+        if (list) {
+          var row = document.createElement('div');
+          row.className = 'mail27-row';
+          row.innerHTML =
+            '<span class="mail27-dot" aria-hidden="true"></span>' +
+            '<div class="mail27-row-main"><div class="mail27-row-top">' +
+            '<span class="mail27-from">Me → ' +
+            to.split('@')[0] +
+            '</span><span class="mail27-date">Just now</span></div>' +
+            '<div class="mail27-subject">' +
+            sub.replace(/</g, '') +
+            '</div>' +
+            '<div class="mail27-preview">Sent from Mail</div></div>';
+          var head = list.querySelector('.mail27-list-head');
+          if (head && head.nextSibling) list.insertBefore(row, head.nextSibling);
+          else list.appendChild(row);
+          row.addEventListener('click', function () {
+            selectRow(row);
+          });
+        }
+        /* bump Sent count */
+        var sent = el.querySelector('.mail27-side-item[data-folder="Sent"] .mail27-side-count');
+        if (sent) sent.textContent = String((parseInt(sent.textContent, 10) || 0) + 1);
+        else {
+          var sentItem = el.querySelector('.mail27-side-item[data-folder="Sent"]');
+          if (sentItem && !sentItem.querySelector('.mail27-side-count')) {
+            var c = document.createElement('span');
+            c.className = 'mail27-side-count';
+            c.textContent = '1';
+            sentItem.appendChild(c);
+          }
+        }
+        modal.remove();
+        sound('messageSent');
+        if (global.MacShell && MacShell.notify) {
+          MacShell.notify('Mail', 'Message Sent', sub, 'now');
+        }
+      });
+      sound('pop');
+    }
+    if (newBtn) newBtn.addEventListener('click', function () {
+      openCompose('');
+    });
+    var reply = el.querySelector('.mail27-tb[title="Reply"]');
+    if (reply) {
+      reply.addEventListener('click', function () {
+        var from = el.querySelector('.mail27-row.selected .mail27-from');
+        openCompose(from ? from.textContent.toLowerCase().replace(/\s+/g, '.') + '@example.com' : '');
+      });
+    }
+    var trash = el.querySelector('.mail27-tb[title="Trash"]');
+    if (trash) {
+      trash.addEventListener('click', function () {
+        var row = el.querySelector('.mail27-row.selected');
+        if (row) {
+          row.remove();
+          sound('emptyTrash');
+        }
+      });
+    }
+    var getMail = el.querySelector('.mail27-tb[title="Get Mail"]');
+    if (getMail) {
+      getMail.addEventListener('click', function () {
+        sound('tink');
+        if (global.MacShell && MacShell.notify) {
+          MacShell.notify('Mail', 'No new mail', 'Your inbox is up to date', 'now');
+        }
+      });
+    }
+  }
+
+  /* ── Notes: new note, select, folders, format ───────── */
+  function wireNotes(el) {
+    if (!el || el.dataset.wired) return;
+    el.dataset.wired = '1';
+    var list = el.querySelector('.notes27-list');
+    var title = el.querySelector('.notes27-title');
+    var body = el.querySelector('.notes27-body-text');
+    var dateEl = el.querySelector('.notes27-date');
+
+    el.querySelectorAll('.notes27-item').forEach(function (item) {
+      item.addEventListener('click', function () {
+        el.querySelectorAll('.notes27-item').forEach(function (i) {
+          i.classList.remove('selected');
+        });
+        item.classList.add('selected');
+        var t = item.querySelector('.notes27-item-title');
+        var p = item.querySelector('.notes27-item-meta');
+        if (title && t) title.textContent = t.textContent;
+        if (body && p) {
+          var text = p.textContent.replace(/^\S+\s*/, '');
+          body.innerHTML = '<p></p>';
+          body.querySelector('p').textContent = text || 'Start typing…';
+        }
+        if (dateEl) dateEl.textContent = 'Today at ' + nowTime();
+        sound('pop');
+      });
+    });
+
+    el.querySelectorAll('.notes27-folder').forEach(function (f) {
+      f.addEventListener('click', function () {
+        el.querySelectorAll('.notes27-folder').forEach(function (x) {
+          x.classList.remove('active');
+        });
+        f.classList.add('active');
+        sound('tink');
+      });
+    });
+
+    var newBtn = el.querySelector('.notes27-tb-btn[title="New Note"]');
+    if (newBtn && list) {
+      newBtn.addEventListener('click', function () {
+        var item = document.createElement('div');
+        item.className = 'notes27-item selected';
+        item.innerHTML =
+          '<div class="notes27-item-title">New Note</div>' +
+          '<div class="notes27-item-meta"><span>Just now</span> Start typing…</div>';
+        el.querySelectorAll('.notes27-item').forEach(function (i) {
+          i.classList.remove('selected');
+        });
+        list.insertBefore(item, list.firstChild);
+        if (title) title.textContent = 'New Note';
+        if (body) body.innerHTML = '<p><br></p>';
+        if (dateEl) dateEl.textContent = 'Today at ' + nowTime();
+        item.addEventListener('click', function () {
+          el.querySelectorAll('.notes27-item').forEach(function (i) {
+            i.classList.remove('selected');
+          });
+          item.classList.add('selected');
+        });
+        if (title) title.focus();
+        sound('pop');
+      });
+    }
+
+    var del = el.querySelector('.notes27-tb-btn[title="Delete"]');
+    if (del) {
+      del.addEventListener('click', function () {
+        var sel = el.querySelector('.notes27-item.selected');
+        if (sel) {
+          sel.remove();
+          sound('emptyTrash');
+        }
+      });
+    }
+
+    el.querySelectorAll('.notes27-fmt').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var cmd = { B: 'bold', I: 'italic', U: 'underline' }[btn.textContent.trim()];
+        if (cmd) document.execCommand(cmd, false, null);
+        sound('tink');
+      });
+    });
+
+    if (title) {
+      title.addEventListener('input', function () {
+        var sel = el.querySelector('.notes27-item.selected .notes27-item-title');
+        if (sel) sel.textContent = title.textContent || 'New Note';
+      });
+    }
+  }
+
+  /* ── Calendar: view switch, today, add event ────────── */
+  function wireCalendar(el) {
+    if (!el || el.dataset.wired) return;
+    el.dataset.wired = '1';
+    el.querySelectorAll('.cal27-seg-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        el.querySelectorAll('.cal27-seg-btn').forEach(function (b) {
+          b.classList.remove('is-active');
+        });
+        btn.classList.add('is-active');
+        sound('pop');
+        if (global.MacShell && MacShell.notify) {
+          MacShell.notify('Calendar', btn.textContent + ' view', 'Showing ' + btn.textContent + ' layout', 'now');
+        }
+      });
+    });
+    var today = el.querySelector('.cal27-today');
+    if (today) {
+      today.addEventListener('click', function () {
+        el.querySelectorAll('.cal27-cell').forEach(function (c) {
+          c.classList.remove('today');
+        });
+        var cell = el.querySelector('.cal27-cell:not(.muted)');
+        /* highlight day 17 in sample month or first available */
+        el.querySelectorAll('.cal27-cell:not(.muted) .cal27-num').forEach(function (n) {
+          if (n.textContent.trim() === '17') {
+            n.closest('.cal27-cell').classList.add('today');
+          }
+        });
+        sound('tink');
+      });
+    }
+    var add = el.querySelector('.cal27-icon-btn.plus');
+    if (add) {
+      add.addEventListener('click', function () {
+        var name = prompt('Event title', 'New Event');
+        if (!name) return;
+        var cell = el.querySelector('.cal27-cell.today .cal27-evs') || el.querySelector('.cal27-cell:not(.muted) .cal27-evs');
+        if (cell) {
+          var ev = document.createElement('div');
+          ev.className = 'cal27-ev timed blue';
+          ev.innerHTML =
+            '<span class="cal27-ev-bar"></span><span class="cal27-ev-t"></span><span class="cal27-ev-time">Now</span>';
+          ev.querySelector('.cal27-ev-t').textContent = name;
+          cell.insertBefore(ev, cell.firstChild);
+          sound('hero');
+        }
+      });
+    }
+    el.querySelectorAll('.cal27-nav').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        sound('pop');
+      });
+    });
+  }
+
+  /* ── Maps: search, modes, zoom ──────────────────────── */
+  function wireMaps(el) {
+    if (!el || el.dataset.wired) return;
+    el.dataset.wired = '1';
+    var search = el.querySelector('.maps27-search');
+    var cardTitle = el.querySelector('.maps27-card-info strong');
+    var pin = el.querySelector('.maps27-pin');
+    function go(q) {
+      if (!q) return;
+      if (cardTitle) cardTitle.textContent = q;
+      if (pin) {
+        pin.style.left = 30 + Math.random() * 40 + '%';
+        pin.style.top = 30 + Math.random() * 40 + '%';
+      }
+      sound('pop');
+    }
+    if (search) {
+      search.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') go(search.value.trim());
+      });
+    }
+    var clear = el.querySelector('.maps27-search-clear');
+    if (clear && search) {
+      clear.addEventListener('click', function () {
+        search.value = '';
+        search.focus();
+      });
+    }
+    el.querySelectorAll('.maps27-mode').forEach(function (m) {
+      m.addEventListener('click', function () {
+        el.querySelectorAll('.maps27-mode').forEach(function (x) {
+          x.classList.remove('active');
+        });
+        m.classList.add('active');
+        sound('tink');
+      });
+    });
+    var canvas = el.querySelector('.maps27-canvas');
+    var scale = 1;
+    el.querySelectorAll('.maps27-ctrl').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var t = btn.getAttribute('title') || '';
+        if (t.indexOf('In') >= 0) scale = Math.min(2, scale + 0.15);
+        else if (t.indexOf('Out') >= 0) scale = Math.max(0.6, scale - 0.15);
+        if (canvas) canvas.style.transform = 'scale(' + scale + ')';
+        sound('volume');
+      });
+    });
+    el.querySelectorAll('.maps27-btn.primary, .maps27-chip.primary').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        sound('hero');
+        if (global.MacShell && MacShell.notify) {
+          MacShell.notify('Maps', 'Route', 'Directions started (demo)', 'now');
+        }
+      });
+    });
+  }
+
+  /* ── Music: play / pause / progress ─────────────────── */
+  function wireMusic(el) {
+    if (!el || el.dataset.wired) return;
+    el.dataset.wired = '1';
+    var playing = false;
+    var progress = el.querySelector('.mini-player .progress-bar, .mini-player-progress, .mp-progress, [class*="progress"]');
+    var playBtn =
+      el.querySelector('.mini-player button[title="Play"], .mp-play, .mini-player .play, .mini-player button:nth-child(2)');
+    /* find play-like control */
+    el.querySelectorAll('.mini-player button, .music-player button').forEach(function (b) {
+      var label = (b.getAttribute('title') || b.textContent || '').toLowerCase();
+      if (label.indexOf('play') >= 0 || label.indexOf('pause') >= 0 || b.textContent === '▶' || b.textContent === '❚❚') {
+        playBtn = playBtn || b;
+      }
+    });
+    var timer = null;
+    function toggle() {
+      playing = !playing;
+      if (playBtn) playBtn.textContent = playing ? '❚❚' : '▶';
+      sound(playing ? 'funk' : 'pop');
+      if (timer) clearInterval(timer);
+      if (playing) {
+        var bar = el.querySelector('.mini-player .fill, .mp-fill, .progress-fill');
+        var w = 0;
+        timer = setInterval(function () {
+          w = (w + 1) % 100;
+          if (bar) bar.style.width = w + '%';
+        }, 200);
+      }
+    }
+    if (playBtn) playBtn.addEventListener('click', toggle);
+    el.querySelectorAll('.album-card').forEach(function (card) {
+      card.addEventListener('dblclick', function () {
+        var t = card.querySelector('strong');
+        var a = card.querySelector('.muted');
+        var meta = el.querySelector('.mini-player strong, .mp-title, .mini-player .title');
+        var sub = el.querySelector('.mini-player .muted, .mp-artist');
+        if (meta && t) meta.textContent = t.textContent;
+        if (sub && a) sub.textContent = a.textContent;
+        playing = false;
+        toggle();
+      });
+      card.style.cursor = 'default';
+    });
+  }
+
+  /* ── Terminal extras ────────────────────────────────── */
+  function wireTerminal(el) {
+    if (!el || el.dataset.wiredExtra) return;
+    el.dataset.wiredExtra = '1';
+    var input = el.querySelector('#term-input');
+    var lines = el.querySelector('#term-lines');
+    if (!input || !lines) return;
+    /* enhance existing handler by capturing enter after */
+    input.addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter') return;
+      setTimeout(function () {
+        var last = lines.lastElementChild;
+        if (last && /command not found|not found/i.test(last.textContent || '')) {
+          sound('sosumi');
+        } else if (last) {
+          sound('tink');
+        }
+      }, 10);
+    });
+  }
+
+  /* ── Reminders: add new ─────────────────────────────── */
+  function wireReminders(el) {
+    if (!el || el.dataset.wiredExtra) return;
+    el.dataset.wiredExtra = '1';
+    var list = el.querySelector('.reminders-list, .rem-list, #reminders-list');
+    var main = el.querySelector('.reminders-main');
+    if (!main) return;
+    if (!el.querySelector('.rem-add-row')) {
+      var row = document.createElement('div');
+      row.className = 'rem-add-row';
+      row.innerHTML =
+        '<button type="button" class="btn-primary rem-add-btn">+ New Reminder</button>';
+      main.appendChild(row);
+      row.querySelector('.rem-add-btn').addEventListener('click', function () {
+        var t = prompt('Reminder', 'New reminder');
+        if (!t) return;
+        var listEl = el.querySelector('.reminders-list, .rem-items, [class*="reminder-list"]') || main.querySelector('div:last-of-type');
+        var label = document.createElement('label');
+        label.className = 'reminder-item';
+        label.innerHTML =
+          '<input type="checkbox" /><span class="rem-circle"></span><span class="rem-text"></span>';
+        label.querySelector('.rem-text').textContent = t;
+        var host = el.querySelector('.reminders-items') || el.querySelector('.reminders-main > div:last-child');
+        if (host) host.appendChild(label);
+        else main.insertBefore(label, row);
+        label.querySelector('input').addEventListener('change', function () {
+          label.classList.toggle('is-done', label.querySelector('input').checked);
+          sound('pop');
+        });
+        sound('hero');
+      });
+    }
+    el.querySelectorAll('.reminder-item input[type="checkbox"]').forEach(function (cb) {
+      if (cb.dataset.snd) return;
+      cb.dataset.snd = '1';
+      cb.addEventListener('change', function () {
+        sound(cb.checked ? 'tink' : 'pop');
+      });
+    });
+  }
+
+  /* ── Phone dialer ───────────────────────────────────── */
+  function wirePhone(el) {
+    if (!el || el.dataset.wired) return;
+    el.dataset.wired = '1';
+    /* if stub, inject dialer */
+    if (!el.querySelector('.phone-dialer')) {
+      el.innerHTML =
+        '<div class="phone-dialer">' +
+        '<div class="phone-display" id="phone-display"></div>' +
+        '<div class="phone-keys">' +
+        '123456789*0#'.split('').map(function (k) {
+          return '<button type="button" class="phone-key" data-k="' + k + '">' + k + '</button>';
+        }).join('') +
+        '</div>' +
+        '<button type="button" class="btn-primary phone-call">Call</button>' +
+        '<p class="muted center phone-status">Phone · Ready</p></div>';
+    }
+    var disp = el.querySelector('#phone-display, .phone-display');
+    el.querySelectorAll('.phone-key, .iapp-key').forEach(function (k) {
+      k.addEventListener('click', function () {
+        if (disp) disp.textContent = (disp.textContent || '') + (k.getAttribute('data-k') || k.textContent);
+        sound('volume');
+      });
+    });
+    var call = el.querySelector('.phone-call, .iapp-call');
+    if (call) {
+      call.addEventListener('click', function () {
+        var st = el.querySelector('.phone-status');
+        if (st) st.textContent = 'Calling ' + (disp && disp.textContent ? disp.textContent : '…') + '…';
+        sound('submarine');
+        setTimeout(function () {
+          if (st) st.textContent = 'Call ended';
+          sound('pop');
+        }, 2500);
+      });
+    }
+  }
+
   /* ── Patch AppRegistry apps ─────────────────────────── */
   function patchApps() {
     if (!global.AppRegistry || !global.AppRegistry.get) return;
@@ -857,6 +1378,14 @@
         if (id === 'photos') wirePhotos(body);
         if (id === 'iphone-mirroring') wireIphone(body);
         if (id === 'sidecar') wireSidecar(body);
+        if (id === 'mail') wireMail(body);
+        if (id === 'notes') wireNotes(body);
+        if (id === 'calendar') wireCalendar(body);
+        if (id === 'maps') wireMaps(body);
+        if (id === 'music') wireMusic(body);
+        if (id === 'terminal') wireTerminal(body);
+        if (id === 'reminders') wireReminders(body);
+        if (id === 'phone') wirePhone(body);
         if (id === 'system-settings') {
           wireSoundButtons(body);
           enhanceSoundPane(body);
