@@ -5508,6 +5508,83 @@
     }
     if (emptyBtn) emptyBtn.addEventListener('click', emptyTrash);
 
+    /* Get Info for selected item */
+    function showGetInfo() {
+      var sel =
+        el.querySelector('.finder-icon-item.is-selected') ||
+        el.querySelector('.finder-list-row.is-selected');
+      var label =
+        (sel && (sel.querySelector('.finder-label') || sel.querySelector('.fl-title'))) || null;
+      var name = label ? label.textContent.trim() : 'Untitled';
+      var existing = el.querySelector('.finder-get-info');
+      if (existing) existing.remove();
+      var panel = document.createElement('div');
+      panel.className = 'finder-get-info glass';
+      panel.innerHTML =
+        '<div class="finder-gi-head"><strong>Info</strong>' +
+        '<button type="button" class="finder-gi-close" aria-label="Close">✕</button></div>' +
+        '<div class="finder-gi-body">' +
+        '<div class="finder-gi-name"></div>' +
+        '<p class="muted">Kind: Document · Size: 128 KB · Created: Today</p>' +
+        '<p class="muted">Where: Macintosh HD ▸ Users ▸ user ▸ Desktop</p>' +
+        '<p class="muted">Modified: Just now · Shared: No</p></div>';
+      panel.querySelector('.finder-gi-name').textContent = name;
+      el.appendChild(panel);
+      panel.querySelector('.finder-gi-close').addEventListener('click', function () {
+        panel.remove();
+      });
+      sound('pop');
+    }
+    var infoBtn = el.querySelector('.tb-glass-btn[title="Get Info"], [data-get-info]');
+    if (infoBtn && !infoBtn.dataset.giWired) {
+      infoBtn.dataset.giWired = '1';
+      infoBtn.addEventListener('click', showGetInfo);
+    }
+    el.addEventListener('keydown', function (e) {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'i') {
+        e.preventDefault();
+        showGetInfo();
+      }
+    });
+
+    /* Duplicate selected (⌘D style via button) */
+    if (!el.querySelector('[data-duplicate]')) {
+      var tbDup = el.querySelector('.finder-toolbar .tb-right, .finder-toolbar');
+      if (tbDup) {
+        var dup = document.createElement('button');
+        dup.type = 'button';
+        dup.className = 'tb-glass-btn';
+        dup.title = 'Duplicate';
+        dup.setAttribute('data-duplicate', '1');
+        dup.textContent = 'Duplicate';
+        tbDup.appendChild(dup);
+        dup.addEventListener('click', function () {
+          var sel = el.querySelector('.finder-icon-item.is-selected');
+          var host =
+            el.querySelector('#finder-list') ||
+            el.querySelector('.finder-icon-view') ||
+            el.querySelector('#finder-content');
+          if (!sel || !host) {
+            sound('sosumi');
+            return;
+          }
+          var clone = sel.cloneNode(true);
+          clone.classList.add('is-selected');
+          sel.classList.remove('is-selected');
+          var lab = clone.querySelector('.finder-label');
+          if (lab) lab.textContent = (lab.textContent || 'Item') + ' copy';
+          host.appendChild(clone);
+          clone.addEventListener('click', function () {
+            host.querySelectorAll('.finder-icon-item').forEach(function (x) {
+              x.classList.remove('is-selected');
+            });
+            clone.classList.add('is-selected');
+          });
+          sound('hero');
+        });
+      }
+    }
+
     /* New Folder toolbar */
     var newFolder = el.querySelector('.tb-glass-btn[title="New Folder"], [data-new-folder]');
     if (!newFolder) {
@@ -6020,6 +6097,48 @@
         sound(tog.classList.contains('on') ? 'hero' : 'tink');
       });
     });
+    /* Add Alarm */
+    if (!el.querySelector('#clock-add-alarm')) {
+      var alarmPanel = el.querySelector('[data-panel="alarms"]') || el;
+      var addAl = document.createElement('button');
+      addAl.type = 'button';
+      addAl.className = 'btn-primary';
+      addAl.id = 'clock-add-alarm';
+      addAl.textContent = '+ Alarm';
+      addAl.style.cssText = 'margin:12px';
+      alarmPanel.appendChild(addAl);
+      addAl.addEventListener('click', function () {
+        var row = document.createElement('div');
+        row.className = 'alarm-row';
+        var h = 6 + Math.floor(Math.random() * 12);
+        var m = Math.random() > 0.5 ? '00' : '30';
+        var ampm = h >= 12 ? 'PM' : 'AM';
+        var hh = h > 12 ? h - 12 : h;
+        row.innerHTML =
+          '<div><div class="alarm-time">' +
+          hh +
+          ':' +
+          m +
+          '<span class="wc-ampm"> ' +
+          ampm +
+          '</span></div>' +
+          '<div class="alarm-label">New Alarm</div></div>' +
+          '<label class="toggle on"><span></span></label>';
+        alarmPanel.insertBefore(row, addAl);
+        var tog = row.querySelector('.toggle');
+        if (tog) {
+          tog.addEventListener('click', function (e) {
+            e.stopPropagation();
+            tog.classList.toggle('on');
+            sound(tog.classList.contains('on') ? 'hero' : 'tink');
+          });
+        }
+        sound('hero');
+        if (global.MacShell && MacShell.notify) {
+          MacShell.notify('Clock', 'Alarm added', hh + ':' + m + ' ' + ampm, 'now');
+        }
+      });
+    }
   }
 
   /* ── iWork: Pages / Numbers / Keynote ───────────────── */
@@ -7144,6 +7263,39 @@
         sound('tink');
       });
     });
+    if (!el.querySelector('#sc-new')) {
+      var host = el.querySelector('.sc-list, .shortcuts-list, .app-main') || el;
+      var neu = document.createElement('button');
+      neu.type = 'button';
+      neu.className = 'btn-primary';
+      neu.id = 'sc-new';
+      neu.textContent = '+ Shortcut';
+      neu.style.cssText = 'margin:10px';
+      host.insertBefore(neu, host.firstChild);
+      neu.addEventListener('click', function () {
+        var card = document.createElement('div');
+        card.className = 'sc-card settings-card glass';
+        card.style.cssText = 'padding:12px;margin:8px;display:flex;align-items:center;gap:10px';
+        card.innerHTML =
+          '<div style="flex:1"><strong contenteditable="true">New Shortcut</strong>' +
+          '<div class="muted">Custom · demo</div></div>' +
+          '<button type="button" class="btn-primary sc-run" data-sc="New Shortcut">Run</button>';
+        host.appendChild(card);
+        var run = card.querySelector('.sc-run');
+        run.addEventListener('click', function () {
+          run.textContent = '…';
+          sound('pop');
+          setTimeout(function () {
+            run.textContent = 'Run';
+            sound('hero');
+            if (global.MacShell && MacShell.notify) {
+              MacShell.notify('Shortcuts', 'Finished', 'New Shortcut', 'now');
+            }
+          }, 600);
+        });
+        sound('hero');
+      });
+    }
   }
 
   /* ── Voice Memos ────────────────────────────────────── */
@@ -8366,6 +8518,56 @@
       var keys = el.querySelectorAll('.gb-key');
       if (keys[i]) keys[i].click();
     });
+    /* Metronome / record arm */
+    if (!el.querySelector('#gb-metro')) {
+      var bar = el.querySelector('.gb-toolbar, .app-toolbar') || el;
+      var metro = document.createElement('button');
+      metro.type = 'button';
+      metro.className = 'btn-glass';
+      metro.id = 'gb-metro';
+      metro.textContent = 'Metronome';
+      bar.appendChild(metro);
+      var metroOn = false;
+      var metroIv = null;
+      metro.addEventListener('click', function () {
+        metroOn = !metroOn;
+        metro.classList.toggle('is-active', metroOn);
+        if (metroIv) clearInterval(metroIv);
+        if (metroOn) {
+          metroIv = setInterval(function () {
+            if (!el.isConnected) {
+              clearInterval(metroIv);
+              return;
+            }
+            sound('volume');
+          }, 500);
+          sound('tink');
+        } else sound('pop');
+      });
+      var rec = document.createElement('button');
+      rec.type = 'button';
+      rec.className = 'btn-primary';
+      rec.id = 'gb-record';
+      rec.textContent = '● Record';
+      bar.appendChild(rec);
+      rec.addEventListener('click', function () {
+        var on = rec.classList.toggle('is-recording');
+        rec.textContent = on ? '■ Stop' : '● Record';
+        if (on) {
+          setPlay(true);
+          sound('purr');
+          if (global.MacShell && MacShell.notify) {
+            MacShell.notify('GarageBand', 'Recording', 'Demo track armed', 'now');
+          }
+        } else {
+          setPlay(false);
+          sound('hero');
+          if (global.MacShell && MacShell.notify) {
+            MacShell.notify('GarageBand', 'Saved', 'Recording to Library (demo)', 'now');
+          }
+        }
+      });
+    }
   }
 
   /* ── iMovie ─────────────────────────────────────────── */

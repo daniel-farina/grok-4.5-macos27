@@ -1028,3 +1028,51 @@ html[data-theme='light'] .finder-search-wrap {
 .finder-search::placeholder {
   opacity: 0.45;
 }
+
+/* Get Info panel */
+.finder-get-info {
+  position: absolute;
+  right: 24px;
+  top: 72px;
+  z-index: 30;
+  width: min(280px, 90%);
+  border-radius: 14px;
+  padding: 0;
+  overflow: hidden;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.35);
+  border: 0.5px solid rgba(255, 255, 255, 0.12);
+  background: rgba(40, 36, 48, 0.96);
+  color: #fff;
+}
+html[data-theme='light'] .finder-get-info {
+  background: rgba(255, 255, 255, 0.98);
+  color: #1d1d1f;
+  border-color: rgba(0, 0, 0, 0.08);
+}
+.finder-gi-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-bottom: 0.5px solid rgba(128, 128, 128, 0.25);
+}
+.finder-gi-close {
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-size: 14px;
+  opacity: 0.7;
+}
+.finder-gi-body {
+  padding: 12px 14px 16px;
+  font-size: 13px;
+}
+.finder-gi-name {
+  font-weight: 600;
+  font-size: 15px;
+  margin-bottom: 8px;
+}
+.window[data-app='finder'] .window-content {
+  position: relative;
+}
