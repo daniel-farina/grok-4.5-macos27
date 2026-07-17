@@ -2117,6 +2117,27 @@
         }
       });
     }
+    /* Mark Unread */
+    if (!el.querySelector('#mail-unread')) {
+      var tb = el.querySelector('.mail27-tb-left, .mail27-toolbar') || el;
+      var un = document.createElement('button');
+      un.type = 'button';
+      un.className = 'mail27-tb icon';
+      un.id = 'mail-unread';
+      un.title = 'Mark Unread';
+      un.textContent = '●';
+      tb.appendChild(un);
+      un.addEventListener('click', function () {
+        var row = el.querySelector('.mail27-row.selected');
+        if (!row) {
+          sound('sosumi');
+          return;
+        }
+        row.classList.add('unread');
+        applyMailFilters();
+        sound('tink');
+      });
+    }
   }
 
   /* ── Notes: new note, select, folders, format ───────── */
@@ -2253,6 +2274,39 @@
       btn.addEventListener('click', function () {
         var cmd = { B: 'bold', I: 'italic', U: 'underline' }[btn.textContent.trim()];
         if (cmd) document.execCommand(cmd, false, null);
+        sound('tink');
+      });
+    });
+
+    var share = el.querySelector('.notes27-tb-btn[title="Share"]');
+    if (share && !share.dataset.shareWired) {
+      share.dataset.shareWired = '1';
+      share.addEventListener('click', function () {
+        var t = title ? title.textContent : 'Note';
+        var plain = body ? (body.innerText || '').trim().slice(0, 200) : '';
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(t + '\n\n' + plain).catch(function () {});
+        }
+        sound('hero');
+        if (global.MacShell && MacShell.notify) {
+          MacShell.notify('Notes', 'Shared', t + ' · copied', 'now');
+        }
+      });
+    }
+
+    /* Checklist insert */
+    el.querySelectorAll('.notes27-fmt').forEach(function (btn) {
+      if (btn.textContent.trim() !== '☑' || btn.dataset.chk) return;
+      btn.dataset.chk = '1';
+      btn.addEventListener('click', function () {
+        if (body) {
+          body.focus();
+          document.execCommand(
+            'insertHTML',
+            false,
+            '<div>☐ Checklist item</div>'
+          );
+        }
         sound('tink');
       });
     });
