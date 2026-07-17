@@ -196,9 +196,43 @@
     },
   };
 
+  /* Aliases for classic / System Settings names */
+  var ALIASES = {
+    Blow: 'blow',
+    Glass: 'glass',
+    Hero: 'hero',
+    Sosumi: 'sosumi',
+    Pop: 'pop',
+    Tink: 'tink',
+    Purr: 'purr',
+    Submarine: 'submarine',
+    Funk: 'funk',
+    Boop: 'pop',
+    Ping: 'tink',
+    Basso: 'sosumi',
+    Bottle: 'glass',
+    Frog: 'pop',
+    Morse: 'tink',
+    PingPong: 'tink',
+    SosumiAlert: 'sosumi',
+    alert: 'sosumi',
+    trash: 'emptyTrash',
+    empty: 'emptyTrash',
+    send: 'messageSent',
+    receive: 'messageReceived',
+    click: 'pop',
+    success: 'hero',
+    error: 'sosumi',
+  };
+
   function play(name) {
     unlock();
-    var fn = SOUNDS[name] || SOUNDS.pop;
+    var key = name;
+    if (ALIASES[name]) key = ALIASES[name];
+    else if (typeof name === 'string' && ALIASES[name.charAt(0).toUpperCase() + name.slice(1)]) {
+      key = ALIASES[name.charAt(0).toUpperCase() + name.slice(1)];
+    }
+    var fn = SOUNDS[key] || SOUNDS[name] || SOUNDS.pop;
     try {
       fn();
     } catch (e) {
@@ -209,6 +243,7 @@
   global.MacSounds = {
     play: play,
     names: Object.keys(SOUNDS),
+    aliases: Object.keys(ALIASES),
     unlock: unlock,
   };
 })(typeof window !== 'undefined' ? window : globalThis);

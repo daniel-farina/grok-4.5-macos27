@@ -724,9 +724,12 @@
     var items = [
       { key: 'hd', id: 'finder', label: 'Macintosh HD', kind: 'drive' },
       { key: 'apps', id: 'finder', label: 'Applications', kind: 'folder', nav: 'apps' },
+      { key: 'docs', id: 'finder', label: 'Documents', kind: 'folder', nav: 'docs' },
       { key: 'safari', id: 'safari', label: 'Safari', kind: 'app' },
       { key: 'photos', id: 'photos', label: 'Photos', kind: 'app' },
+      { key: 'messages', id: 'messages', label: 'Messages', kind: 'app' },
       { key: 'notes', id: 'notes', label: 'Notes', kind: 'app' },
+      { key: 'music', id: 'music', label: 'Music', kind: 'app' },
       { key: 'trash', id: 'trash', label: 'Trash', kind: 'trash' },
     ];
     var pos = loadDesktopIconPositions();
@@ -1320,8 +1323,13 @@
       btn.addEventListener('click', function () {
         hideLaunchpad();
         openApp(btn.getAttribute('data-app'));
+        if (global.MacSounds && MacSounds.play) MacSounds.play('pop');
       });
     });
+    if (apps.length && q) {
+      var first = grid.querySelector('.launchpad-app');
+      if (first) first.classList.add('is-focused');
+    }
   }
 
   /* ── Mission Control ───────────────────────────────── */
@@ -1847,29 +1855,19 @@
         break;
       case 'new-folder':
         openApp('finder');
-        if (global.MacShell && MacShell.notify) {
-          notify('Finder', 'New Folder', 'Untitled Folder (demo)', 'now');
-        }
+        setTimeout(function () {
+          document.dispatchEvent(new CustomEvent('finder:new-folder'));
+        }, 120);
         break;
       case 'about-app':
         showAboutThisMac();
         break;
       case 'empty-trash':
-        if (confirm('Are you sure you want to permanently erase the items in the Trash?')) {
-          try {
-            var fw =
-              global.WindowManager &&
-              WindowManager.getWindowByAppId &&
-              WindowManager.getWindowByAppId('finder');
-            var fbody = fw && fw.el && fw.el.querySelector('.window-content, .finder-app');
-            if (fbody && typeof fbody._finderShow === 'function') {
-              /* clear via re-show after emptying data if exposed */
-            }
-            document.dispatchEvent(new CustomEvent('finder:empty-trash'));
-          } catch (err) {}
-          if (global.MacSounds && MacSounds.play) MacSounds.play('emptyTrash');
-          notify('Finder', 'Trash', 'Trash is empty', 'now');
-        }
+        try {
+          document.dispatchEvent(new CustomEvent('finder:empty-trash'));
+        } catch (err) {}
+        if (global.MacSounds && MacSounds.play) MacSounds.play('emptyTrash');
+        notify('Finder', 'Trash', 'Trash is empty', 'now', { force: true });
         break;
       case 'force-quit':
         showForceQuit();
@@ -2519,19 +2517,50 @@
       });
     }
 
-    // Launchpad search
+    // Launchpad search + keyboard
     var lpSearch = $('#launchpad-search');
     if (lpSearch) {
       lpSearch.addEventListener('input', function () {
         renderLaunchpadGrid(lpSearch.value);
       });
+      lpSearch.addEventListener('keydown', function (e) {
+        var grid = $('#launchpad-grid');
+        if (!grid) return;
+        var apps = $$('.launchpad-app', grid);
+        if (!apps.length) return;
+        var active = grid.querySelector('.launchpad-app.is-focused');
+        var idx = active ? apps.indexOf(active) : -1;
+        if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+          e.preventDefault();
+          idx = Math.min(apps.length - 1, idx + 1);
+        } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+          e.preventDefault();
+          idx = Math.max(0, idx - 1);
+        } else if (e.key === 'Enter') {
+          e.preventDefault();
+          if (active) active.click();
+          else if (apps[0]) apps[0].click();
+          return;
+        } else if (e.key === 'Escape') {
+          hideLaunchpad();
+          return;
+        } else {
+          return;
+        }
+        apps.forEach(function (a) {
+          a.classList.remove('is-focused');
+        });
+        if (apps[idx]) {
+          apps[idx].classList.add('is-focused');
+          apps[idx].scrollIntoView({ block: 'nearest' });
+        }
+      });
     }
     var lp = $('#launchpad');
     if (lp) {
       lp.addEventListener('click', function (e) {
-        // optional: don't close on empty click (macOS stays open)
-        if (e.target === lp) {
-          // keep open
+        if (e.target === lp || e.target.classList.contains('launchpad-backdrop')) {
+          hideLaunchpad();
         }
       });
     }

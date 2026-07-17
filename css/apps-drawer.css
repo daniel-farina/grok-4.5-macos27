@@ -370,6 +370,13 @@ html[data-theme='light'] #launchpad-grid::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.08) !important;
 }
 
+#launchpad .launchpad-app.is-focused {
+  outline: 2px solid rgba(255, 255, 255, 0.9);
+  outline-offset: 6px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
 #launchpad .launchpad-app:active {
   transform: scale(0.94) !important;
   background: rgba(255, 255, 255, 0.12) !important;

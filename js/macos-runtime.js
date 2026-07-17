@@ -3699,52 +3699,63 @@
         tb.appendChild(newFolder);
       }
     }
+    function createNewFolder() {
+      var host =
+        el.querySelector('#finder-list') ||
+        el.querySelector('.finder-icon-view') ||
+        el.querySelector('#finder-content');
+      if (!host) return;
+      var n = document.createElement('div');
+      n.className = 'finder-icon-item is-selected is-new-folder';
+      n.innerHTML =
+        '<div class="finder-thumb kind-folder" style="--h:210"><div class="finder-thumb-inner"></div></div>' +
+        '<span class="finder-label" contenteditable="true">untitled folder</span>';
+      host.querySelectorAll('.finder-icon-item.is-selected').forEach(function (x) {
+        x.classList.remove('is-selected');
+      });
+      if (host.id === 'finder-list' || host.classList.contains('finder-icon-view')) {
+        host.appendChild(n);
+      } else {
+        var grid = host.querySelector('.finder-icon-view, #finder-list') || host;
+        grid.appendChild(n);
+      }
+      var label = n.querySelector('.finder-label');
+      if (label) {
+        label.focus();
+        try {
+          document.execCommand('selectAll', false, null);
+        } catch (err) {}
+        label.addEventListener('keydown', function (ev) {
+          if (ev.key === 'Enter') {
+            ev.preventDefault();
+            label.blur();
+          }
+        });
+        label.addEventListener('blur', function () {
+          if (!(label.textContent || '').trim()) label.textContent = 'untitled folder';
+          sound('hero');
+        });
+      }
+      sound('pop');
+      if (global.MacShell && MacShell.notify) {
+        MacShell.notify('Finder', 'New Folder', 'untitled folder', 'now');
+      }
+    }
+
     if (newFolder && !newFolder.dataset.nfWired) {
       newFolder.dataset.nfWired = '1';
       newFolder.addEventListener('click', function (e) {
         e.stopPropagation();
-        var host =
-          el.querySelector('#finder-list') ||
-          el.querySelector('.finder-icon-view') ||
-          el.querySelector('#finder-content');
-        if (!host) return;
-        var n = document.createElement('div');
-        n.className = 'finder-icon-item is-selected is-new-folder';
-        n.innerHTML =
-          '<div class="finder-thumb kind-folder" style="--h:210"><div class="finder-thumb-inner"></div></div>' +
-          '<span class="finder-label" contenteditable="true">untitled folder</span>';
-        host.querySelectorAll('.finder-icon-item.is-selected').forEach(function (x) {
-          x.classList.remove('is-selected');
-        });
-        if (host.id === 'finder-list' || host.classList.contains('finder-icon-view')) {
-          host.appendChild(n);
-        } else {
-          var grid = host.querySelector('.finder-icon-view, #finder-list') || host;
-          grid.appendChild(n);
-        }
-        var label = n.querySelector('.finder-label');
-        if (label) {
-          label.focus();
-          try {
-            document.execCommand('selectAll', false, null);
-          } catch (err) {}
-          label.addEventListener('keydown', function (ev) {
-            if (ev.key === 'Enter') {
-              ev.preventDefault();
-              label.blur();
-            }
-          });
-          label.addEventListener('blur', function () {
-            if (!(label.textContent || '').trim()) label.textContent = 'untitled folder';
-            sound('hero');
-          });
-        }
-        sound('pop');
-        if (global.MacShell && MacShell.notify) {
-          MacShell.notify('Finder', 'New Folder', 'untitled folder', 'now');
-        }
+        createNewFolder();
       });
     }
+    document.addEventListener('finder:new-folder', function onNewFolder() {
+      if (!el.isConnected) {
+        document.removeEventListener('finder:new-folder', onNewFolder);
+        return;
+      }
+      createNewFolder();
+    });
   }
 
   function showQuickLook(name) {
