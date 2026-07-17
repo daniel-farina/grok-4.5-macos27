@@ -1325,6 +1325,22 @@
       { id: 'cmd:wallpaper', name: 'Change Wallpaper', sub: 'Desktop', action: function () { cycleWallpaper(); } },
       { id: 'cmd:dark', name: 'Toggle Dark Mode', sub: 'Appearance', action: function () { cycleAppearance(); } },
       { id: 'cmd:forcequit', name: 'Force Quit…', sub: '⌥⌘Esc', action: function () { showForceQuit(); } },
+      { id: 'cmd:siri', name: 'Ask Siri', sub: 'Assistant', action: function () { openApp('siri'); } },
+      { id: 'cmd:facetime', name: 'FaceTime', sub: 'Video call', action: function () { openApp('facetime'); } },
+      { id: 'cmd:iphone', name: 'iPhone Mirroring', sub: 'Continuity', action: function () { openApp('iphone-mirroring'); } },
+      { id: 'cmd:sidecar', name: 'Sidecar', sub: 'iPad display', action: function () { openApp('sidecar'); } },
+      { id: 'cmd:maps', name: 'Maps', sub: 'Directions', action: function () { openApp('maps'); } },
+      { id: 'cmd:music', name: 'Music', sub: 'Play', action: function () { openApp('music'); } },
+      { id: 'cmd:photos', name: 'Photos', sub: 'Library', action: function () { openApp('photos'); } },
+      { id: 'cmd:terminal', name: 'Terminal', sub: 'Shell', action: function () { openApp('terminal'); } },
+      { id: 'cmd:finder', name: 'Finder', sub: 'Files', action: function () { openApp('finder'); } },
+      { id: 'cmd:nc', name: 'Notification Center', sub: 'System', action: function () {
+        var nc = document.getElementById('notification-center');
+        if (nc) {
+          if (typeof showOverlay === 'function') showOverlay(nc);
+          else nc.classList.add('is-open');
+        }
+      } },
     ];
     if (!q) return [];
     return cmds.filter(function (c) {

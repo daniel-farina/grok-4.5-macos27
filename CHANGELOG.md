@@ -13,6 +13,7 @@ Public commits track multi-minute interactive work on this virtual macOS 27 desk
 See `docs/LOOP_PRACTICE.md` for why we commit every loop.
 
 ### 2026-07-17 / 18 (loop demo)
+- Calendar delete events; Find My tabs; Font Book add/remove; Spotlight Continuity
 - Safari bookmarks; Migration progress; Directory Bind; DVD chapters; Home levels
 - Maps directions + drop pin; Keychain/Audio MIDI/ColorSync; Voice Memos delete
 - Image Capture import; AirPort bases; BT send flow; Weather cities; iWork save; SI copy

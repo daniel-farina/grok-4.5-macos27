@@ -2252,14 +2252,50 @@
       }
       gridEl.innerHTML = html;
       if (titleEl) titleEl.textContent = monthNames[month] + ' ' + year;
-      /* click day to select */
+      /* sample events for current month demo */
+      if (year === 2026 && month === 3) {
+        var cells = gridEl.querySelectorAll('.cal27-cell:not(.muted)');
+        [9, 16, 16, 22].forEach(function (day, i) {
+          var cell = cells[day - 1];
+          if (!cell) return;
+          var slot = cell.querySelector('.cal27-evs');
+          if (!slot) return;
+          var names = ['Design Review', 'Team Sync', 'Ship Demo', 'WWDC Watch'];
+          var ev = document.createElement('div');
+          ev.className = 'cal27-ev timed ' + (i % 2 ? 'orange' : 'blue');
+          ev.innerHTML =
+            '<span class="cal27-ev-bar"></span><span class="cal27-ev-t"></span><span class="cal27-ev-time">10:00</span>';
+          ev.querySelector('.cal27-ev-t').textContent = names[i] || 'Event';
+          slot.appendChild(ev);
+        });
+      }
+      /* click day to select; dblclick to add; click event to select */
       gridEl.querySelectorAll('.cal27-cell:not(.muted)').forEach(function (cell) {
-        cell.addEventListener('click', function () {
+        cell.addEventListener('click', function (e) {
+          if (e.target.closest('.cal27-ev')) return;
           gridEl.querySelectorAll('.cal27-cell').forEach(function (c) {
             c.classList.remove('is-selected');
           });
           cell.classList.add('is-selected');
           sound('tink');
+        });
+        cell.addEventListener('dblclick', function () {
+          gridEl.querySelectorAll('.cal27-cell').forEach(function (c) {
+            c.classList.remove('is-selected');
+          });
+          cell.classList.add('is-selected');
+          if (add) add.click();
+        });
+      });
+      gridEl.querySelectorAll('.cal27-ev').forEach(function (ev) {
+        ev.style.cursor = 'pointer';
+        ev.addEventListener('click', function (e) {
+          e.stopPropagation();
+          gridEl.querySelectorAll('.cal27-ev').forEach(function (x) {
+            x.classList.remove('is-selected');
+          });
+          ev.classList.add('is-selected');
+          sound('pop');
         });
       });
     }
@@ -2293,12 +2329,25 @@
     }
     function addEventToCell(name, cell) {
       if (!cell) return;
+      var slot = cell.querySelector('.cal27-evs') || cell;
       var ev = document.createElement('div');
-      ev.className = 'cal27-ev timed blue';
+      ev.className = 'cal27-ev timed blue is-selected';
       ev.innerHTML =
         '<span class="cal27-ev-bar"></span><span class="cal27-ev-t"></span><span class="cal27-ev-time">Now</span>';
       ev.querySelector('.cal27-ev-t').textContent = name;
-      cell.insertBefore(ev, cell.firstChild);
+      slot.insertBefore(ev, slot.firstChild);
+      el.querySelectorAll('.cal27-ev').forEach(function (x) {
+        if (x !== ev) x.classList.remove('is-selected');
+      });
+      ev.style.cursor = 'pointer';
+      ev.addEventListener('click', function (e) {
+        e.stopPropagation();
+        el.querySelectorAll('.cal27-ev').forEach(function (x) {
+          x.classList.remove('is-selected');
+        });
+        ev.classList.add('is-selected');
+        sound('pop');
+      });
       sound('hero');
       if (global.MacShell && MacShell.notify) {
         MacShell.notify('Calendar', 'Event added', name, 'now');
@@ -2309,10 +2358,9 @@
     if (add) {
       add.addEventListener('click', function () {
         var cell =
-          el.querySelector('.cal27-cell.is-selected .cal27-evs') ||
-          el.querySelector('.cal27-cell.today .cal27-evs') ||
-          el.querySelector('.cal27-cell:not(.muted) .cal27-evs');
-        /* inline sheet instead of prompt */
+          el.querySelector('.cal27-cell.is-selected') ||
+          el.querySelector('.cal27-cell.today') ||
+          el.querySelector('.cal27-cell:not(.muted)');
         var existing = el.querySelector('.cal-new-event');
         if (existing) {
           existing.remove();
@@ -2351,6 +2399,38 @@
         }
       });
     }
+    /* Delete selected event */
+    el.tabIndex = 0;
+    el.addEventListener('keydown', function (e) {
+      if (e.key !== 'Backspace' && e.key !== 'Delete') return;
+      if (e.target.tagName === 'INPUT' || e.target.isContentEditable) return;
+      var sel = el.querySelector('.cal27-ev.is-selected');
+      if (sel) {
+        e.preventDefault();
+        sel.remove();
+        sound('emptyTrash');
+      }
+    });
+    if (!el.querySelector('#cal-delete-ev')) {
+      var tb = el.querySelector('.cal27-toolbar, .cal27-tb') || el;
+      var delEv = document.createElement('button');
+      delEv.type = 'button';
+      delEv.className = 'btn-glass';
+      delEv.id = 'cal-delete-ev';
+      delEv.title = 'Delete Event';
+      delEv.textContent = 'Delete';
+      delEv.style.cssText = 'margin-left:6px';
+      tb.appendChild(delEv);
+      delEv.addEventListener('click', function () {
+        var sel = el.querySelector('.cal27-ev.is-selected');
+        if (!sel) {
+          sound('sosumi');
+          return;
+        }
+        sel.remove();
+        sound('emptyTrash');
+      });
+    }
     var navs = el.querySelectorAll('.cal27-nav');
     if (navs[0]) {
       navs[0].addEventListener('click', function () {
@@ -2374,22 +2454,8 @@
         sound('pop');
       });
     }
-    /* initial: keep dense April sample until first nav */
-    el.querySelectorAll('.cal27-cell:not(.muted)').forEach(function (cell) {
-      cell.addEventListener('click', function () {
-        el.querySelectorAll('.cal27-cell').forEach(function (c) {
-          c.classList.remove('is-selected');
-        });
-        cell.classList.add('is-selected');
-      });
-      cell.addEventListener('dblclick', function () {
-        el.querySelectorAll('.cal27-cell').forEach(function (c) {
-          c.classList.remove('is-selected');
-        });
-        cell.classList.add('is-selected');
-        if (add) add.click();
-      });
-    });
+    /* use rendered month with events (re-binds after nav) */
+    renderMonth();
 
     /* mini agenda: click sidebar events */
     el.querySelectorAll('.cal27-agenda-item, .cal27-side-ev, .cal27-upcoming li').forEach(function (item) {
@@ -2795,6 +2861,32 @@
 
     el.querySelectorAll('.reminder-item').forEach(wireItem);
     refreshCounts();
+
+    if (!el.querySelector('#rem-clear-done')) {
+      var bar = el.querySelector('.reminders-toolbar, .rem-toolbar, .rem-add') || el;
+      var host = bar.parentNode || el;
+      var clearDone = document.createElement('button');
+      clearDone.type = 'button';
+      clearDone.className = 'btn-glass';
+      clearDone.id = 'rem-clear-done';
+      clearDone.textContent = 'Clear Completed';
+      clearDone.style.cssText = 'margin:6px';
+      host.appendChild(clearDone);
+      clearDone.addEventListener('click', function () {
+        listEl = el.querySelector('#rem-items, .reminder-list');
+        if (!listEl) return;
+        var n = 0;
+        listEl.querySelectorAll('.reminder-item.is-done, .reminder-item').forEach(function (row) {
+          var cb = row.querySelector('input[type="checkbox"]');
+          if (row.classList.contains('is-done') || (cb && cb.checked)) {
+            row.remove();
+            n++;
+          }
+        });
+        refreshCounts();
+        sound(n ? 'emptyTrash' : 'sosumi');
+      });
+    }
   }
 
   /* ── Preview: zoom + markup tools ───────────────────── */
@@ -7415,6 +7507,19 @@
           t.classList.remove('active');
         });
         tab.classList.add('active');
+        var label = (tab.textContent || '').toLowerCase();
+        el.querySelectorAll('.fm-row, .fm-pin').forEach(function (n, i) {
+          var kind = (n.getAttribute('data-kind') || n.getAttribute('data-type') || '').toLowerCase();
+          var show = true;
+          if (label.indexOf('people') >= 0 || label.indexOf('person') >= 0) {
+            show = kind === 'person' || kind === 'people' || i % 3 === 0;
+          } else if (label.indexOf('item') >= 0) {
+            show = kind === 'item' || kind === 'airtag' || i % 3 === 1;
+          } else if (label.indexOf('device') >= 0 || label.indexOf('me') >= 0) {
+            show = !kind || kind === 'device' || i % 3 === 2 || i < 3;
+          }
+          n.style.display = show ? '' : 'none';
+        });
         sound('tink');
       });
     });
@@ -7422,6 +7527,12 @@
     if (play) {
       play.addEventListener('click', function () {
         sound('sosumi');
+        if (global.MacSounds && MacSounds.note) {
+          MacSounds.note(880, 0.15);
+          setTimeout(function () {
+            MacSounds.note(660, 0.2);
+          }, 180);
+        }
         if (global.MacShell && MacShell.notify) {
           MacShell.notify(
             'Find My',
@@ -7918,6 +8029,64 @@
           var f = (btn.getAttribute('data-font') || btn.textContent || '').toLowerCase();
           btn.style.display = !q || f.indexOf(q) >= 0 ? '' : 'none';
         });
+      });
+    }
+    if (!el.querySelector('#fb-install')) {
+      var list = el.querySelector('.fb-list, #fb-list') || el;
+      var bar = el.querySelector('.fb-toolbar, .app-toolbar') || el;
+      var install = document.createElement('button');
+      install.type = 'button';
+      install.className = 'btn-primary';
+      install.id = 'fb-install';
+      install.textContent = '+ Add Font';
+      install.style.cssText = 'margin:8px';
+      bar.appendChild(install);
+      install.addEventListener('click', function () {
+        var fonts = ['Avenir', 'Courier New', 'Palatino', 'Trebuchet MS', 'Verdana'];
+        var f = fonts[Math.floor(Math.random() * fonts.length)];
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'fb-font active';
+        btn.setAttribute('data-font', f);
+        btn.textContent = f;
+        el.querySelectorAll('.fb-font').forEach(function (b) {
+          b.classList.remove('active');
+        });
+        list.appendChild(btn);
+        btn.addEventListener('click', function () {
+          el.querySelectorAll('.fb-font').forEach(function (b) {
+            b.classList.remove('active');
+          });
+          btn.classList.add('active');
+          if (name) name.textContent = f;
+          if (preview) {
+            preview.style.fontFamily = '"' + f + '", system-ui, sans-serif';
+            preview.textContent =
+              (customSample || 'Sample') +
+              ' — The quick brown fox jumps over the lazy dog 0123456789';
+          }
+          sound('pop');
+        });
+        btn.click();
+        sound('hero');
+        if (global.MacShell && MacShell.notify) {
+          MacShell.notify('Font Book', 'Installed', f + ' (demo)', 'now');
+        }
+      });
+      var remove = document.createElement('button');
+      remove.type = 'button';
+      remove.className = 'btn-glass';
+      remove.id = 'fb-remove';
+      remove.textContent = 'Remove';
+      bar.appendChild(remove);
+      remove.addEventListener('click', function () {
+        var active = el.querySelector('.fb-font.active');
+        if (!active) {
+          sound('sosumi');
+          return;
+        }
+        active.remove();
+        sound('emptyTrash');
       });
     }
   }

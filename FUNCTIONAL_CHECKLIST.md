@@ -3,9 +3,9 @@
 Job started: 2026-07-17T20:55:45Z · Cancel after ~3h · `scheduler_delete 019f71def611`
 
 ## This loop
-- [x] Safari: bookmarks sidebar + add bookmark (persisted)
-- [x] Migration animated transfer; Directory Utility Bind; DVD chapters
-- [x] Home light/climate levels; Photos people/places/screenshots filters
+- [x] Calendar: renderMonth + sample events, delete selected, dblclick add
+- [x] Find My: tab filters + richer play sound; Reminders clear completed
+- [x] Font Book add/remove; Spotlight more Continuity/app commands
 - [x] Audit ALL PASS
 
 ## Process
