@@ -283,11 +283,38 @@
       var card = e.target.closest('.notification-card');
       if (dismiss && card) {
         e.preventDefault();
-        card.remove();
-        if (!list.querySelector('.notification-card')) {
-          list.innerHTML = '<p class="muted nc-empty" style="padding:16px">No Notifications</p>';
-        }
+        e.stopPropagation();
+        card.classList.add('is-dismissing');
+        setTimeout(function () {
+          card.remove();
+          if (!list.querySelector('.notification-card')) {
+            list.innerHTML = '<p class="muted nc-empty" style="padding:16px">No Notifications</p>';
+          }
+        }, 180);
+        if (global.MacSounds && MacSounds.play) MacSounds.play('pop');
         return;
+      }
+      if (card && !dismiss) {
+        var appEl = card.querySelector('.notification-app');
+        var appName = appEl ? appEl.textContent : '';
+        var openMap = {
+          Messages: 'messages',
+          Mail: 'mail',
+          Calendar: 'calendar',
+          Music: 'music',
+          Photos: 'photos',
+          Safari: 'safari',
+          Reminders: 'reminders',
+          FaceTime: 'facetime',
+          Weather: 'weather',
+          Clock: 'clock',
+        };
+        var id = openMap[appName];
+        if (id) {
+          hideOverlay($('#notification-center'));
+          openApp(id);
+          if (global.MacSounds && MacSounds.play) MacSounds.play('pop');
+        }
       }
     });
     // Ensure sample cards have dismiss
@@ -382,6 +409,24 @@
           if (global.MacSounds && MacSounds.play) MacSounds.play('tink');
         });
       });
+    }
+
+    // Live clock widget
+    var clockW = root.querySelector('.widget-clock, [data-widget="clock"]');
+    if (clockW) {
+      var timeEl =
+        clockW.querySelector('.widget-clock-time, .widget-time, .clock-time') ||
+        clockW.querySelector('strong');
+      var dateEl = clockW.querySelector('.widget-clock-date, .widget-date, .muted');
+      function tickClock() {
+        var now = new Date();
+        if (timeEl) timeEl.textContent = formatWidgetTime(now);
+        if (dateEl && /day|date|week/i.test(dateEl.textContent + 'date')) {
+          dateEl.textContent = formatDateLong(now);
+        }
+      }
+      tickClock();
+      setInterval(tickClock, 15000);
     }
   }
 
@@ -620,8 +665,47 @@
         if (global.MacSounds && MacSounds.play) MacSounds.play('pop');
       });
     }
-    card.addEventListener('click', function () {
+    card.addEventListener('click', function (e) {
+      if (e.target.closest('.notification-dismiss')) return;
       card.classList.remove('is-new');
+      /* Open related app when possible */
+      var appName = (app || '').toLowerCase();
+      var openMap = {
+        messages: 'messages',
+        mail: 'mail',
+        calendar: 'calendar',
+        music: 'music',
+        photos: 'photos',
+        safari: 'safari',
+        finder: 'finder',
+        reminders: 'reminders',
+        clock: 'clock',
+        weather: 'weather',
+        facetime: 'facetime',
+        phone: 'phone',
+        'app store': 'appstore',
+        spotlight: null,
+        focus: null,
+        macos: null,
+        desktop: null,
+      };
+      var id = openMap[appName];
+      if (!id) {
+        /* fuzzy */
+        if (/message|imessage/i.test(appName)) id = 'messages';
+        else if (/mail/i.test(appName)) id = 'mail';
+        else if (/calendar|event/i.test(appName)) id = 'calendar';
+        else if (/music|podcast/i.test(appName)) id = 'music';
+        else if (/photo/i.test(appName)) id = 'photos';
+        else if (/safari|browser/i.test(appName)) id = 'safari';
+        else if (/setting/i.test(appName)) id = 'system-settings';
+        else if (/iphone|continuity/i.test(appName)) id = 'iphone-mirroring';
+      }
+      if (id) {
+        hideOverlay($('#notification-center'));
+        openApp(id);
+        if (global.MacSounds && MacSounds.play) MacSounds.play('pop');
+      }
     });
     // Cap list length
     while (list.querySelectorAll('.notification-card').length > 12) {
@@ -1670,7 +1754,24 @@
           if (global.MacSounds && MacSounds.play) MacSounds.play('pop');
         }
       });
+      thumb.addEventListener('dblclick', function (e) {
+        e.stopPropagation();
+        var id = thumb.getAttribute('data-window-id');
+        var app = thumb.getAttribute('data-app');
+        if (global.WindowManager && id && WindowManager.close) {
+          WindowManager.close(id);
+        } else if (app && global.WindowManager && WindowManager.closeApp) {
+          WindowManager.closeApp(app);
+        }
+        applyStageManagerLayout();
+        if (global.MacSounds && MacSounds.play) MacSounds.play('emptyTrash');
+      });
+      thumb.title = (thumb.getAttribute('title') || '') + ' · Double-click to close';
     });
+    /* Persist stage manager preference */
+    try {
+      localStorage.setItem('macos-stage-manager', stageManagerOn ? '1' : '0');
+    } catch (e) {}
 
     // Keep focused window in main stage area (nudge if needed)
     if (focused && focused.el && !focused.maximized) {
@@ -1970,13 +2071,10 @@
         flashSleep();
         break;
       case 'restart':
-        if (confirm('Are you sure you want to restart your computer?')) location.reload();
+        showPowerDialog('restart');
         break;
       case 'shutdown':
-        if (confirm('Are you sure you want to shut down your computer?')) {
-          document.body.innerHTML =
-            '<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#000;color:#fff;font:15px/1.4 -apple-system,system-ui,sans-serif">You can now close this tab.</div>';
-        }
+        showPowerDialog('shutdown');
         break;
       case 'lock':
       case 'logout':
@@ -2258,18 +2356,73 @@
 
   function flashSleep() {
     var ov = document.createElement('div');
-    ov.style.cssText =
-      'position:fixed;inset:0;background:#000;z-index:99999;opacity:0;transition:opacity .5s ease';
+    ov.className = 'power-sleep-overlay';
+    ov.innerHTML = '<div class="power-sleep-hint">Click or press any key to wake</div>';
     document.body.appendChild(ov);
     requestAnimationFrame(function () {
-      ov.style.opacity = '1';
+      ov.classList.add('is-on');
     });
-    setTimeout(function () {
-      ov.style.opacity = '0';
+    if (global.MacSounds && MacSounds.play) MacSounds.play('purr');
+    function wake() {
+      ov.classList.remove('is-on');
+      document.removeEventListener('keydown', wake);
+      ov.removeEventListener('click', wake);
       setTimeout(function () {
         if (ov.parentNode) ov.parentNode.removeChild(ov);
-      }, 500);
-    }, 1400);
+        notify('macOS', 'Awake', 'Display woke from sleep', 'now');
+        if (global.MacSounds && MacSounds.play) MacSounds.play('boot');
+      }, 400);
+    }
+    setTimeout(function () {
+      ov.addEventListener('click', wake);
+      document.addEventListener('keydown', wake);
+    }, 600);
+  }
+
+  function showPowerDialog(kind) {
+    var existing = document.getElementById('power-dialog');
+    if (existing) existing.remove();
+    var isRestart = kind === 'restart';
+    var ov = document.createElement('div');
+    ov.id = 'power-dialog';
+    ov.className = 'power-dialog-overlay';
+    ov.innerHTML =
+      '<div class="power-dialog-panel glass">' +
+      '<h2>' +
+      (isRestart ? 'Are you sure you want to restart your computer now?' : 'Are you sure you want to shut down your computer now?') +
+      '</h2>' +
+      '<p class="muted">Any open apps will be quit (demo).</p>' +
+      '<div class="power-dialog-actions">' +
+      '<button type="button" class="btn-glass" id="power-cancel">Cancel</button>' +
+      '<button type="button" class="btn-primary" id="power-ok">' +
+      (isRestart ? 'Restart' : 'Shut Down') +
+      '</button></div></div>';
+    document.body.appendChild(ov);
+    ov.querySelector('#power-cancel').addEventListener('click', function () {
+      ov.remove();
+    });
+    ov.querySelector('#power-ok').addEventListener('click', function () {
+      if (isRestart) {
+        ov.innerHTML = '<div class="power-dialog-panel glass"><p style="text-align:center;margin:24px">Restarting…</p></div>';
+        if (global.MacSounds && MacSounds.play) MacSounds.play('boot');
+        setTimeout(function () {
+          location.reload();
+        }, 900);
+      } else {
+        document.body.innerHTML =
+          '<div class="shutdown-end"><div class="shutdown-logo"></div><p>You can now close this tab.</p><button type="button" class="btn-glass" id="shutdown-reload">Start Up</button></div>';
+        var btn = document.getElementById('shutdown-reload');
+        if (btn) {
+          btn.addEventListener('click', function () {
+            location.reload();
+          });
+        }
+      }
+    });
+    ov.addEventListener('click', function (e) {
+      if (e.target === ov) ov.remove();
+    });
+    if (global.MacSounds && MacSounds.play) MacSounds.play('sosumi');
   }
 
   function showLockScreen(mode) {
@@ -2298,8 +2451,9 @@
       '</div>' +
       '<form class="lock-form" id="lock-form">' +
       '<input type="password" class="lock-pass" id="lock-pass" placeholder="Enter Password" autocomplete="off" />' +
-      '<p class="lock-hint">Any password · click or press Return</p>' +
+      '<p class="lock-hint">Any password · Return to unlock · or swipe up</p>' +
       '</form>' +
+      '<div class="lock-swipe" id="lock-swipe" aria-hidden="true">⌃ Swipe up to unlock</div>' +
       '<p class="lock-mode muted">' +
       escapeHtml(mode || 'Lock Screen') +
       '</p>' +
@@ -2321,11 +2475,22 @@
       if (global.MacSounds && MacSounds.play) MacSounds.play('boot');
       setTimeout(function () {
         if (ov.parentNode) ov.parentNode.removeChild(ov);
-        notify('macOS', 'Welcome Back', 'Session unlocked', 'now');
+        notify('macOS', 'Welcome Back', 'Session unlocked', 'now', { force: true });
       }, 450);
     }
     var form = ov.querySelector('#lock-form');
     if (form) form.addEventListener('submit', unlock);
+    var swipe = ov.querySelector('#lock-swipe');
+    if (swipe) swipe.addEventListener('click', unlock);
+    /* pointer swipe up */
+    var startY = null;
+    ov.addEventListener('pointerdown', function (e) {
+      startY = e.clientY;
+    });
+    ov.addEventListener('pointerup', function (e) {
+      if (startY != null && startY - e.clientY > 80) unlock();
+      startY = null;
+    });
     ov.addEventListener('click', function (e) {
       if (e.target === ov || e.target.classList.contains('lock-bg') || e.target.classList.contains('lock-content')) {
         var input = ov.querySelector('#lock-pass');
@@ -3226,6 +3391,11 @@
       applyAppearance(appearancePref, { notify: false });
       wireSystemAppearanceListener();
       loadRecentApps();
+      try {
+        if (localStorage.getItem('macos-stage-manager') === '1') {
+          setStageManager(true);
+        }
+      } catch (e) {}
       renderDock();
       renderDesktopIcons();
       renderRecentAppsMenu();

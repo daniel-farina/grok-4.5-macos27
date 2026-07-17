@@ -4020,3 +4020,88 @@ html[data-theme='light'] .kbd-panel {
   text-overflow: ellipsis;
   opacity: 0.9;
 }
+
+/* Power / sleep / shutdown dialogs */
+.power-sleep-overlay {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  z-index: 99999;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 48px;
+  cursor: pointer;
+}
+.power-sleep-overlay.is-on { opacity: 1; }
+.power-sleep-hint {
+  color: rgba(255, 255, 255, 0.55);
+  font: 13px/1.4 -apple-system, system-ui, sans-serif;
+  letter-spacing: 0.02em;
+}
+.power-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.power-dialog-panel {
+  width: min(400px, 92vw);
+  padding: 22px 22px 18px;
+  border-radius: 16px;
+  background: rgba(44, 44, 46, 0.92);
+  color: #fff;
+  border: 0.5px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.4);
+}
+.power-dialog-panel h2 {
+  margin: 0 0 10px;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+.power-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 18px;
+}
+.shutdown-end {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  height: 100vh;
+  background: #000;
+  color: #fff;
+  font: 15px/1.4 -apple-system, system-ui, sans-serif;
+}
+.shutdown-logo {
+  font-size: 48px;
+  opacity: 0.9;
+}
+.lock-swipe {
+  margin-top: 20px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 12px;
+  cursor: pointer;
+  user-select: none;
+}
+.notification-card.is-dismissing {
+  opacity: 0;
+  transform: translateX(24px);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+.notification-card {
+  cursor: pointer;
+}

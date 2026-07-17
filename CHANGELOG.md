@@ -13,9 +13,9 @@ Public commits track multi-minute interactive work on this virtual macOS 27 desk
 See `docs/LOOP_PRACTICE.md` for why we commit every loop.
 
 ### 2026-07-17 / 18 (loop demo)
-- Spotlight commands + calc; ⌘Tab switcher HUD; Mission Control keys
-- Force Quit double-click; Launchpad keys; sound aliases; desktop icons
-- Photos favorites; Finder New Folder; Safari tabs; and more
+- Sleep/wake, Restart/Shutdown dialogs, Lock swipe-up unlock
+- NC open-app-on-click; Stage Manager persist + close thumbs
+- Spotlight commands; ⌘Tab HUD; Mission Control keys; Force Quit
 - Commit-as-you-go for multi-minute Grok 4.5 loops
 
 ### 2026-07-17
