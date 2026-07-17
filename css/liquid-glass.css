@@ -3391,3 +3391,73 @@ body.stage-manager-on .window.is-active:not(.is-minimized):not(.is-staged),
     animation: none !important;
   }
 }
+
+/* Desktop icons */
+#desktop-icons {
+  position: absolute;
+  inset: var(--menubar-height, 28px) 12px 90px auto;
+  width: 100px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 8px;
+  z-index: 2;
+  pointer-events: none;
+}
+.desktop-icon {
+  pointer-events: auto;
+  border: none;
+  background: transparent;
+  color: #fff;
+  width: 88px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  cursor: default;
+  padding: 6px 4px;
+  border-radius: 8px;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.55);
+}
+.desktop-icon.is-selected {
+  background: rgba(10, 132, 255, 0.35);
+}
+.desktop-icon-img {
+  width: 56px;
+  height: 48px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+.desktop-icon-img.kind-drive {
+  background: linear-gradient(180deg, #d0d0d5, #8e8e93);
+}
+.desktop-icon-img.kind-folder {
+  background: linear-gradient(180deg, #7ec8ff, #2b7fd4);
+}
+.desktop-icon-img.kind-trash {
+  background: linear-gradient(180deg, #6e6e73, #3a3a3c);
+}
+.desktop-icon-img.kind-app {
+  background: transparent;
+  box-shadow: none;
+  width: 52px;
+  height: 52px;
+}
+.desktop-icon-img.kind-app svg,
+.desktop-icon-img.kind-app img {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+}
+.desktop-icon-label {
+  font-size: 11px;
+  font-weight: 500;
+  text-align: center;
+  max-width: 86px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

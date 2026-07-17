@@ -433,6 +433,78 @@
     syncRunningFromWindows();
   }
 
+  function renderDesktopIcons() {
+    var host = $('#desktop-icons');
+    if (!host) return;
+    var items = [
+      { id: 'finder', label: 'Macintosh HD', kind: 'drive' },
+      { id: 'finder', label: 'Applications', kind: 'folder', nav: 'apps' },
+      { id: 'safari', label: 'Safari', kind: 'app' },
+      { id: 'photos', label: 'Photos', kind: 'app' },
+      { id: 'notes', label: 'Notes', kind: 'app' },
+      { id: 'trash', label: 'Trash', kind: 'trash' },
+    ];
+    host.innerHTML = items
+      .map(function (it, i) {
+        return (
+          '<button type="button" class="desktop-icon" data-open="' +
+          escapeHtml(it.id) +
+          '" data-nav="' +
+          escapeHtml(it.nav || '') +
+          '" style="--i:' +
+          i +
+          '">' +
+          '<div class="desktop-icon-img kind-' +
+          escapeHtml(it.kind) +
+          '">' +
+          (it.kind === 'app' ? iconHtml(it.id) : '') +
+          '</div>' +
+          '<span class="desktop-icon-label">' +
+          escapeHtml(it.label) +
+          '</span></button>'
+        );
+      })
+      .join('');
+    $$('.desktop-icon', host).forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        $$('.desktop-icon', host).forEach(function (b) {
+          b.classList.remove('is-selected');
+        });
+        btn.classList.add('is-selected');
+      });
+      btn.addEventListener('dblclick', function () {
+        var app = btn.getAttribute('data-open');
+        var nav = btn.getAttribute('data-nav');
+        if (app === 'trash') {
+          openApp('finder');
+          setTimeout(function () {
+            var win =
+              global.WindowManager &&
+              WindowManager.getWindowByAppId &&
+              WindowManager.getWindowByAppId('finder');
+            var body = win && win.el && win.el.querySelector('.window-content');
+            var item = body && body.querySelector('.finder-sb-item[data-nav="trash"]');
+            if (item) item.click();
+          }, 100);
+        } else if (nav) {
+          openApp('finder');
+          setTimeout(function () {
+            var win =
+              global.WindowManager &&
+              WindowManager.getWindowByAppId &&
+              WindowManager.getWindowByAppId('finder');
+            var body = win && win.el && win.el.querySelector('.window-content');
+            var item = body && body.querySelector('.finder-sb-item[data-nav="' + nav + '"]');
+            if (item) item.click();
+          }, 100);
+        } else {
+          openApp(app);
+        }
+        if (global.MacSounds && MacSounds.play) MacSounds.play('pop');
+      });
+    });
+  }
+
   function wireDockInteractions(dock) {
     var items = $$('.dock-item', dock);
 
@@ -456,7 +528,21 @@
 
     items.forEach(function (item) {
       function activate() {
-        openApp(item.getAttribute('data-app'));
+        var appId = item.getAttribute('data-app');
+        if (appId === 'trash') {
+          openApp('finder');
+          setTimeout(function () {
+            var win =
+              global.WindowManager &&
+              WindowManager.getWindowByAppId &&
+              WindowManager.getWindowByAppId('finder');
+            var body = win && win.el && win.el.querySelector('.window-content');
+            var t = body && body.querySelector('.finder-sb-item[data-nav="trash"]');
+            if (t) t.click();
+          }, 100);
+          return;
+        }
+        openApp(appId);
       }
       item.addEventListener('click', activate);
       item.addEventListener('keydown', function (e) {
@@ -464,6 +550,55 @@
           e.preventDefault();
           activate();
         }
+      });
+      item.addEventListener('contextmenu', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var appId = item.getAttribute('data-app');
+        showDockContextMenu(e.clientX, e.clientY, appId);
+      });
+    });
+  }
+
+  function showDockContextMenu(x, y, appId) {
+    var menu = $('#context-menu');
+    if (!menu) return;
+    var name = titleFor(appId);
+    menu.innerHTML =
+      '<div class="context-item" data-action="dock-open" data-app="' +
+      escapeHtml(appId) +
+      '">Open ' +
+      escapeHtml(name) +
+      '</div>' +
+      (runningApps[appId]
+        ? '<div class="context-item" data-action="dock-quit" data-app="' +
+          escapeHtml(appId) +
+          '">Quit</div>'
+        : '') +
+      '<div class="context-separator"></div>' +
+      '<div class="context-item" data-action="dock-show-finder" data-app="' +
+      escapeHtml(appId) +
+      '">Show in Finder</div>';
+    menu.style.left = x + 'px';
+    menu.style.top = y + 'px';
+    showOverlay(menu);
+    $$('[data-action]', menu).forEach(function (el) {
+      el.addEventListener('click', function () {
+        var a = el.getAttribute('data-action');
+        var id = el.getAttribute('data-app');
+        hideOverlay(menu);
+        if (a === 'dock-open') openApp(id);
+        if (a === 'dock-quit' && global.WindowManager) {
+          WindowManager.closeApp(id);
+          syncRunningFromWindows();
+        }
+        if (a === 'dock-show-finder') {
+          openApp('finder');
+          setTimeout(function () {
+            finderGo('apps');
+          }, 100);
+        }
+        if (global.MacSounds && MacSounds.play) MacSounds.play('pop');
       });
     });
   }
@@ -1148,8 +1283,8 @@
         openMissionControl();
         break;
       case 'minimize-all':
-        if (global.WindowManager && WindowManager.getWindows) {
-          WindowManager.getWindows().forEach(function (w) {
+        if (global.WindowManager && WindowManager.getOpenWindows) {
+          WindowManager.getOpenWindows().forEach(function (w) {
             if (WindowManager.minimize) WindowManager.minimize(w.id);
           });
         }
@@ -1803,6 +1938,29 @@
         e.preventDefault();
         WindowManager.minimizeFocused();
         syncRunningFromWindows();
+      } else if (key === 'n' || key === 'N') {
+        if (typing) return;
+        e.preventDefault();
+        openApp('finder');
+      } else if (key === ',' || e.code === 'Comma') {
+        if (typing) return;
+        e.preventDefault();
+        openApp('system-settings');
+      } else if (key === 'h' || key === 'H') {
+        if (typing) return;
+        e.preventDefault();
+        if (e.altKey) {
+          handleMenuAction('hide-others');
+        } else {
+          handleMenuAction('hide');
+        }
+      } else if (key === '1' || key === '2' || key === '3' || key === '4') {
+        if (typing) return;
+        var views = { '1': 'icons', '2': 'list', '3': 'columns', '4': 'gallery' };
+        if (views[key]) {
+          e.preventDefault();
+          finderSetView(views[key]);
+        }
       }
     });
 
@@ -1845,6 +2003,7 @@
       applyAppearance(appearancePref, { notify: false });
       wireSystemAppearanceListener();
       renderDock();
+      renderDesktopIcons();
       wireEvents();
       updateClock();
       if (clockTimer) clearInterval(clockTimer);
@@ -1853,7 +2012,10 @@
       if ($('#widget-time')) updateClock();
       setActiveApp('Finder');
       // Ensure dock shows all registry dock apps after AppRegistry may load
-      if (global.AppRegistry) renderDock();
+      if (global.AppRegistry) {
+        renderDock();
+        renderDesktopIcons();
+      }
 
       if (options.skipBoot) {
         bootDone = true;

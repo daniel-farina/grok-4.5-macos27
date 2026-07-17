@@ -2,13 +2,12 @@
 
 Job started: 2026-07-17T20:55:45Z · Cancel after ~3h · `scheduler_delete 019f71def611`
 
-## Latest
-- [x] Menu bar: View as Icons/List/Columns/Gallery
-- [x] Menu: Path Bar / Status Bar toggle
-- [x] Go → Home / Desktop / Downloads (+ Documents/Apps)
-- [x] Edit Undo/Redo, Hide Others, Bring All to Front
-- [x] Help → Tips; Wi‑Fi/Battery open Control Center
-- [x] All prior app interactivity retained
+## This loop
+- [x] Desktop icons (HD, Applications, Safari, Photos, Notes, Trash) — select + double-click open
+- [x] Dock Trash opens Finder Trash; dock right-click Open/Quit/Show in Finder
+- [x] View menu: as Gallery + Empty Trash
+- [x] Minimize All uses getOpenWindows (fixed)
+- [x] Keyboard: ⌘N Finder, ⌘, Settings, ⌘H hide, ⌥⌘H hide others, ⌘1–4 Finder views
 
 ## Process
 - Commit + push each loop (`docs/LOOP_PRACTICE.md`)
