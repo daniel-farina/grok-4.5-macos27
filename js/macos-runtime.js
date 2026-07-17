@@ -3027,11 +3027,57 @@
   function wireAppStore(el) {
     if (!el || el.dataset.wired) return;
     el.dataset.wired = '1';
-    el.querySelectorAll('.btn-get').forEach(function (btn) {
+    var nameToId = {
+      pages: 'pages',
+      numbers: 'numbers',
+      keynote: 'keynote',
+      freeform: 'freeform',
+      garageband: 'garageband',
+      imovie: 'imovie',
+      'final cut': 'imovie',
+      xcode: 'terminal',
+      'pixelmator': 'preview',
+      'logic pro': 'garageband',
+      notes: 'notes',
+      reminders: 'reminders',
+      calendar: 'calendar',
+      photos: 'photos',
+      music: 'music',
+      podcasts: 'podcasts',
+      books: 'books',
+      news: 'news',
+      stocks: 'stocks',
+      weather: 'weather',
+      maps: 'maps',
+      safari: 'safari',
+      mail: 'mail',
+      messages: 'messages',
+      chess: 'chess',
+      games: 'games',
+    };
+    function resolveApp(title) {
+      var t = (title || '').toLowerCase();
+      var keys = Object.keys(nameToId);
+      for (var i = 0; i < keys.length; i++) {
+        if (t.indexOf(keys[i]) >= 0) return nameToId[keys[i]];
+      }
+      return null;
+    }
+    el.querySelectorAll('.btn-get, .game-play').forEach(function (btn) {
       btn.addEventListener('click', function () {
+        if (btn.classList.contains('is-installed') || btn.textContent === 'OPEN') {
+          var row = btn.closest('.store-row, .game-card, .store-card');
+          var title = row && row.querySelector('strong');
+          var id = resolveApp(title ? title.textContent : '');
+          sound('pop');
+          if (id && global.MacShell && MacShell.openApp) MacShell.openApp(id);
+          else if (global.MacShell && MacShell.notify) {
+            MacShell.notify('App Store', 'Open', title ? title.textContent : 'App', 'now');
+          }
+          return;
+        }
         if (btn.dataset.busy) return;
         btn.dataset.busy = '1';
-        var label = btn.textContent;
         btn.textContent = '…';
         sound('pop');
         var n = 0;
@@ -3042,11 +3088,17 @@
             clearInterval(t);
             btn.textContent = 'OPEN';
             btn.classList.add('is-installed');
+            btn.dataset.busy = '';
             sound('hero');
             if (global.MacShell && MacShell.notify) {
-              var name = btn.closest('.store-row');
-              var title = name && name.querySelector('strong');
-              MacShell.notify('App Store', 'Download Complete', title ? title.textContent : 'App', 'now');
+              var name = btn.closest('.store-row, .game-card, .store-card');
+              var titleEl = name && name.querySelector('strong');
+              MacShell.notify(
+                'App Store',
+                'Download Complete',
+                titleEl ? titleEl.textContent : 'App',
+                'now'
+              );
             }
           }
         }, 180);
@@ -3059,8 +3111,21 @@
         });
         item.classList.add('active');
         sound('tink');
+        var section = item.textContent.trim();
+        var head = el.querySelector('.store-hero h2, .app-main h2, .store-section-title');
+        if (head) head.textContent = section;
       });
     });
+    var search = el.querySelector('.search-field, input[type="search"]');
+    if (search) {
+      search.addEventListener('input', function () {
+        var q = search.value.toLowerCase();
+        el.querySelectorAll('.store-row, .game-card').forEach(function (row) {
+          var t = (row.textContent || '').toLowerCase();
+          row.style.display = !q || t.indexOf(q) >= 0 ? '' : 'none';
+        });
+      });
+    }
   }
 
   /* ── Activity Monitor: select process + tabs ────────── */
@@ -4160,37 +4225,43 @@
   function wireIWork(el) {
     if (!el || el.dataset.wired) return;
     el.dataset.wired = '1';
+    var page = el.querySelector('.pages27-page, [contenteditable="true"]');
+    if (page && !page.getAttribute('contenteditable')) page.setAttribute('contenteditable', 'true');
+
+    function fmt(cmd, val) {
+      if (page) page.focus();
+      try {
+        document.execCommand(cmd, false, val || null);
+      } catch (e) {}
+      sound('tink');
+    }
+
     el.querySelectorAll('.iwork27-icon-btn[title="Bold"]').forEach(function (b) {
       b.addEventListener('click', function () {
-        document.execCommand('bold');
+        fmt('bold');
         b.classList.toggle('active');
-        sound('tink');
       });
     });
     el.querySelectorAll('.iwork27-icon-btn[title="Italic"]').forEach(function (b) {
       b.addEventListener('click', function () {
-        document.execCommand('italic');
+        fmt('italic');
         b.classList.toggle('active');
-        sound('tink');
       });
     });
     el.querySelectorAll('.iwork27-icon-btn[title="Underline"]').forEach(function (b) {
       b.addEventListener('click', function () {
-        document.execCommand('underline');
+        fmt('underline');
         b.classList.toggle('active');
-        sound('tink');
       });
     });
     el.querySelectorAll('.iwork27-icon-btn[title="Undo"]').forEach(function (b) {
       b.addEventListener('click', function () {
-        document.execCommand('undo');
-        sound('pop');
+        fmt('undo');
       });
     });
     el.querySelectorAll('.iwork27-icon-btn[title="Redo"]').forEach(function (b) {
       b.addEventListener('click', function () {
-        document.execCommand('redo');
-        sound('pop');
+        fmt('redo');
       });
     });
     el.querySelectorAll('.iwork27-style').forEach(function (s) {
@@ -4199,6 +4270,11 @@
           x.classList.remove('active');
         });
         s.classList.add('active');
+        var style = (s.textContent || '').trim();
+        if (style === 'Title') fmt('formatBlock', 'h1');
+        else if (style === 'Heading') fmt('formatBlock', 'h2');
+        else if (style === 'Body') fmt('formatBlock', 'p');
+        else if (style === 'Caption') fmt('formatBlock', 'p');
         sound('tink');
       });
     });
@@ -4211,8 +4287,9 @@
         sound('pop');
       });
     });
-    /* Numbers cells */
+    /* Numbers cells editable */
     el.querySelectorAll('.num27-sheet td').forEach(function (td) {
+      if (!td.getAttribute('contenteditable')) td.setAttribute('contenteditable', 'true');
       td.addEventListener('focus', function () {
         el.querySelectorAll('.num27-sheet td').forEach(function (c) {
           c.classList.remove('active');
@@ -4224,16 +4301,33 @@
           e.preventDefault();
           td.blur();
           sound('tink');
+        } else if (e.key === 'Tab') {
+          e.preventDefault();
+          var cells = Array.prototype.slice.call(el.querySelectorAll('.num27-sheet td'));
+          var i = cells.indexOf(td);
+          var next = cells[i + (e.shiftKey ? -1 : 1)];
+          if (next) next.focus();
         }
+      });
+      td.addEventListener('input', function () {
+        td.classList.add('is-edited');
       });
     });
     /* Keynote slides */
+    var knSlide = 0;
     el.querySelectorAll('.kn27-slide, .keynote-slide, [data-slide]').forEach(function (slide, i) {
       slide.addEventListener('click', function () {
         el.querySelectorAll('.kn27-slide, .keynote-slide, [data-slide]').forEach(function (s) {
           s.classList.remove('active', 'is-active');
         });
         slide.classList.add('active');
+        knSlide = i;
+        var stage = el.querySelector('.kn27-stage, .keynote-stage, .iwork27-canvas');
+        var title = slide.querySelector('strong, .kn27-slide-title');
+        if (stage && title) {
+          var h = stage.querySelector('h1, .kn27-title');
+          if (h) h.textContent = title.textContent;
+        }
         sound('pop');
       });
     });
@@ -4241,9 +4335,34 @@
       if (btn.dataset.iwork) return;
       btn.dataset.iwork = '1';
       var label = (btn.textContent || '').trim();
-      if (label === 'Share' || label === 'Play') {
+      if (label === 'Insert') {
+        btn.addEventListener('click', function () {
+          if (page) {
+            page.focus();
+            document.execCommand(
+              'insertHTML',
+              false,
+              '<p><em>Inserted block · ' + new Date().toLocaleTimeString() + '</em></p>'
+            );
+          }
+          sound('hero');
+        });
+      } else if (label === 'Format') {
+        btn.addEventListener('click', function () {
+          var insp = el.querySelector('.iwork27-inspector');
+          if (insp) insp.classList.toggle('is-hidden');
+          sound('tink');
+        });
+      } else if (label === 'Share' || label === 'Play') {
         btn.addEventListener('click', function () {
           sound(label === 'Play' ? 'hero' : 'messageSent');
+          if (label === 'Play') {
+            var slides = el.querySelectorAll('.kn27-slide, .keynote-slide, [data-slide]');
+            if (slides.length) {
+              knSlide = (knSlide + 1) % slides.length;
+              slides[knSlide].click();
+            }
+          }
           if (global.MacShell && MacShell.notify) {
             MacShell.notify(
               label === 'Play' ? 'Keynote' : 'iWork',

@@ -2137,6 +2137,12 @@
       case 'app-store':
         openApp('appstore');
         break;
+      case 'continuity-iphone':
+        openApp('iphone-mirroring');
+        break;
+      case 'continuity-sidecar':
+        openApp('sidecar');
+        break;
       case 'sleep':
         flashSleep();
         break;
