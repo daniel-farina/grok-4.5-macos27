@@ -3144,18 +3144,17 @@
   function wireGenericList(el) {
     if (!el || el.dataset.wiredGeneric) return;
     el.dataset.wiredGeneric = '1';
-    el.querySelectorAll('.app-list-row, .simple-row, .app-sidebar-item').forEach(function (row) {
-      row.style.cursor = 'default';
+    var appId = el.getAttribute('data-simple-app') || '';
+    el.querySelectorAll('.app-list-row, .simple-row').forEach(function (row) {
+      row.style.cursor = 'pointer';
       row.addEventListener('click', function () {
-        var parent = row.parentElement;
-        if (parent) {
-          parent.querySelectorAll('.app-list-row, .simple-row, .app-sidebar-item').forEach(function (r) {
-            r.classList.remove('active', 'is-selected', 'selected');
-          });
-        }
-        row.classList.add(row.classList.contains('app-sidebar-item') ? 'active' : 'is-selected');
-        row.classList.add('active');
-        var title = row.getAttribute('data-title') || (row.querySelector('strong') && row.querySelector('strong').textContent);
+        el.querySelectorAll('.app-list-row, .simple-row').forEach(function (r) {
+          r.classList.remove('active', 'is-selected', 'selected');
+        });
+        row.classList.add('is-selected', 'active');
+        var title =
+          row.getAttribute('data-title') ||
+          (row.querySelector('strong') && row.querySelector('strong').textContent);
         var sub = row.getAttribute('data-sub') || '';
         var meta = row.getAttribute('data-meta') || '';
         var dt = el.querySelector('.simple-detail-title');
@@ -3165,6 +3164,19 @@
         if (ds) ds.textContent = sub || 'Selected';
         if (dm) dm.textContent = meta;
         sound('pop');
+      });
+      row.addEventListener('dblclick', function () {
+        runSimplePrimary(el, appId, row);
+      });
+    });
+    el.querySelectorAll('.app-sidebar-item').forEach(function (row) {
+      row.style.cursor = 'pointer';
+      row.addEventListener('click', function () {
+        el.querySelectorAll('.app-sidebar-item').forEach(function (r) {
+          r.classList.remove('active');
+        });
+        row.classList.add('active');
+        sound('tink');
       });
     });
     var search = el.querySelector('.simple-search, .search-field');
@@ -3182,25 +3194,89 @@
       btn.addEventListener('click', function () {
         var act = btn.getAttribute('data-action');
         var sel = el.querySelector('.simple-row.is-selected, .app-list-row.is-selected');
-        var name = sel && (sel.getAttribute('data-title') || sel.textContent);
-        sound(act === 'primary' ? 'hero' : 'tink');
-        if (global.MacShell && MacShell.notify) {
-          MacShell.notify(
-            el.getAttribute('data-simple-app') || 'App',
-            act === 'primary' ? 'Open' : 'Refresh',
-            name || 'Done',
-            'now'
-          );
+        if (act === 'primary') {
+          runSimplePrimary(el, appId, sel);
+          return;
         }
-      });
-    });
-    el.querySelectorAll('button, .btn-primary, .btn-glass').forEach(function (btn) {
-      if (btn.dataset.snd || btn.classList.contains('simple-action') || btn.classList.contains('simple-row')) return;
-      btn.dataset.snd = '1';
-      btn.addEventListener('click', function () {
+        /* refresh */
         sound('tink');
+        if (global.MacShell && MacShell.notify) {
+          MacShell.notify(appId || 'App', 'Refreshed', 'List updated (demo)', 'now');
+        }
+        el.querySelectorAll('.simple-row, .app-list-row').forEach(function (r) {
+          r.style.display = '';
+        });
+        var s = el.querySelector('.simple-search');
+        if (s) s.value = '';
       });
     });
+  }
+
+  function runSimplePrimary(el, appId, sel) {
+    var name =
+      (sel && (sel.getAttribute('data-title') || (sel.querySelector('strong') && sel.querySelector('strong').textContent))) ||
+      'Item';
+    sound('hero');
+    var openMap = {
+      games: 'chess',
+      chess: 'chess',
+      screenshot: null,
+      siri: 'siri',
+      tips: 'tips',
+      'photo-booth': 'photo-booth',
+      'image-capture': 'image-capture',
+      'image-playground': 'image-playground',
+      console: 'console',
+      passwords: 'passwords',
+      'find-my': 'find-my',
+      journal: 'journal',
+      shortcuts: 'shortcuts',
+      'time-machine': 'time-machine',
+      'system-information': 'system-information',
+      'print-center': 'print-center',
+      quicktime: 'quicktime',
+      'voice-memos': 'voice-memos',
+      garageband: 'garageband',
+      imovie: 'imovie',
+      automator: 'automator',
+      'script-editor': 'script-editor',
+      grapher: 'grapher',
+      'keychain-access': 'keychain-access',
+      'airport-utility': 'airport-utility',
+      'audio-midi-setup': 'audio-midi-setup',
+      'bluetooth-file-exchange': 'bluetooth-file-exchange',
+      colorsync: 'colorsync',
+      'digital-color-meter': 'digital-color-meter',
+      'directory-utility': 'directory-utility',
+      'dvd-player': 'dvd-player',
+      'migration-assistant': 'migration-assistant',
+      'boot-camp': 'boot-camp',
+      'voiceover-utility': 'voiceover-utility',
+      'font-book': 'font-book',
+      dictionary: 'dictionary',
+      home: 'home',
+      stickies: 'stickies',
+      magnifier: 'magnifier',
+      phone: 'phone',
+    };
+    if (appId === 'screenshot' && global.MacShell && MacShell.captureScreenshot) {
+      MacShell.captureScreenshot('full');
+      return;
+    }
+    if (appId === 'games' && /chess/i.test(name) && global.MacShell && MacShell.openApp) {
+      MacShell.openApp('chess');
+      return;
+    }
+    if (global.MacShell && MacShell.notify) {
+      MacShell.notify(appId || 'App', 'Open', name, 'now');
+    }
+    /* Re-open specialized UI if bulk stub was used */
+    if (openMap[appId] && global.AppRegistry && AppRegistry.get) {
+      var app = AppRegistry.get(appId);
+      if (app && typeof app.open === 'function') {
+        /* already in app - primary just confirms */
+      }
+    }
   }
 
   /* ── Image Capture ──────────────────────────────────── */

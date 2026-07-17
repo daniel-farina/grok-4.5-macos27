@@ -13,8 +13,8 @@ Public commits track multi-minute interactive work on this virtual macOS 27 desk
 See `docs/LOOP_PRACTICE.md` for why we commit every loop.
 
 ### 2026-07-17 / 18 (loop demo)
-- Control Center media/mirroring; four hot corners; volume keys
-- Dock minimize/restore; edge snap; Sleep/Lock; Spotlight; ⌘Tab
+- Bulk app list Open/search; Wallpaper cycle; STATUS feature inventory
+- Control Center; hot corners; Dock; edge snap; Spotlight; Continuity
 - Commit-as-you-go for multi-minute Grok 4.5 loops
 
 ### 2026-07-17

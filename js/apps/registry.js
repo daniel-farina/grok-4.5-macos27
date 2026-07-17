@@ -4969,6 +4969,7 @@ Save stores a demo document name from the first line.</div>
       </div>`;
     },
     onMount(el) {
+      const names = ['macOS 27 Default', 'Liquid Glass', 'Crystal Mist'];
       el.querySelectorAll('[data-wallpaper-index]').forEach((btn) => {
         btn.addEventListener('click', () => {
           const i = Number(btn.getAttribute('data-wallpaper-index'));
@@ -4982,10 +4983,26 @@ Save stores a demo document name from the first line.</div>
           }
           el.querySelectorAll('.wallpaper-option').forEach((b) => {
             b.style.outline = '';
+            b.classList.remove('is-selected');
           });
           btn.style.outline = '2px solid #0a84ff';
           btn.style.outlineOffset = '2px';
+          btn.classList.add('is-selected');
+          if (global.MacSounds && MacSounds.play) MacSounds.play('hero');
+          if (global.MacShell && MacShell.notify) {
+            MacShell.notify('Wallpaper', 'Desktop Picture', names[i] || 'Changed', 'now');
+          }
         });
+      });
+      const cycle = document.createElement('button');
+      cycle.type = 'button';
+      cycle.className = 'btn-primary';
+      cycle.textContent = 'Cycle Wallpaper';
+      cycle.style.cssText = 'margin:0 auto 16px;display:block';
+      el.appendChild(cycle);
+      cycle.addEventListener('click', () => {
+        if (global.MacShell && MacShell.cycleWallpaper) MacShell.cycleWallpaper();
+        if (global.MacSounds && MacSounds.play) MacSounds.play('pop');
       });
     },
   });
