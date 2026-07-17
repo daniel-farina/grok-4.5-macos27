@@ -13,6 +13,7 @@ Public commits track multi-minute interactive work on this virtual macOS 27 desk
 See `docs/LOOP_PRACTICE.md` for why we commit every loop.
 
 ### 2026-07-17 / 18 (loop demo)
+- Messages search/compose; Contacts search + groups + detail; Calendar dblclick events; News topics
 - Mail search + Flag/Archive/Trash folders; Notes folder filter + search
 - FaceTime timer/mute/camera; Siri open-app intents; Continuity handoff pill
 - QuickTime seek + record; Phone; Games; Safari Reading List

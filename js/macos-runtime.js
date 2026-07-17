@@ -65,27 +65,123 @@
       });
     }
 
+    function activateConvo(convo) {
+      if (!list || !convo) return;
+      list.querySelectorAll('.msg27-convo').forEach(function (c) {
+        c.classList.remove('active');
+      });
+      convo.classList.add('active');
+      convo.classList.remove('unread');
+      var badge = convo.querySelector('.msg27-badge');
+      if (badge) badge.remove();
+      var name = convo.querySelector('.msg27-name');
+      var header = el.querySelector('.msg27-header-name');
+      var avatar = el.querySelector('.msg27-header-avatar');
+      if (name && header) header.textContent = name.textContent;
+      if (avatar && name) avatar.textContent = name.textContent.charAt(0);
+      var hue = convo.querySelector('.msg27-avatar');
+      if (hue && avatar) {
+        avatar.style.setProperty('--msg-hue', hue.style.getPropertyValue('--msg-hue') || '210');
+      }
+      if (bubbles) {
+        bubbles.innerHTML =
+          '<div class="msg27-bubble-row them"><div class="bubble them">Hey! How can I help?</div></div>';
+      }
+      sound('pop');
+    }
+
     if (list) {
       list.querySelectorAll('.msg27-convo').forEach(function (convo) {
         convo.addEventListener('click', function () {
+          activateConvo(convo);
+        });
+      });
+    }
+
+    var search = el.querySelector('.msg27-search');
+    if (search && list) {
+      function filterConvos() {
+        var q = (search.value || '').toLowerCase().trim();
+        list.querySelectorAll('.msg27-convo').forEach(function (c) {
+          var text = (c.textContent || '').toLowerCase();
+          c.style.display = !q || text.indexOf(q) >= 0 ? '' : 'none';
+        });
+      }
+      search.addEventListener('input', filterConvos);
+      search.addEventListener('search', filterConvos);
+    }
+
+    var compose = el.querySelector('.msg27-compose');
+    if (compose && list) {
+      compose.addEventListener('click', function () {
+        var existing = el.querySelector('.msg-new-sheet');
+        if (existing) {
+          existing.remove();
+          return;
+        }
+        var sheet = document.createElement('div');
+        sheet.className = 'msg-new-sheet';
+        sheet.innerHTML =
+          '<strong>New Message</strong>' +
+          '<input type="text" class="msg-new-name" placeholder="Contact name" maxlength="40" value="Friend" />' +
+          '<div class="msg-new-actions">' +
+          '<button type="button" class="btn-glass msg-new-cancel">Cancel</button>' +
+          '<button type="button" class="btn-primary msg-new-ok">Create</button></div>';
+        el.appendChild(sheet);
+        var nameIn = sheet.querySelector('.msg-new-name');
+        if (nameIn) {
+          nameIn.focus();
+          nameIn.select();
+        }
+        function createConvo() {
+          var n = ((nameIn && nameIn.value) || 'Friend').trim() || 'Friend';
+          sheet.remove();
+          var row = document.createElement('div');
+          row.className = 'msg27-convo active';
+          var hue = Math.floor(Math.random() * 360);
+          row.innerHTML =
+            '<span class="msg27-avatar" style="--msg-hue:' +
+            hue +
+            '">' +
+            n.charAt(0).toUpperCase() +
+            '</span>' +
+            '<div class="msg27-convo-main"><div class="msg27-convo-top">' +
+            '<span class="msg27-name"></span><span class="msg27-time">Now</span></div>' +
+            '<div class="msg27-prev">New conversation</div></div>';
+          row.querySelector('.msg27-name').textContent = n;
           list.querySelectorAll('.msg27-convo').forEach(function (c) {
             c.classList.remove('active');
           });
-          convo.classList.add('active');
-          convo.classList.remove('unread');
-          var badge = convo.querySelector('.msg27-badge');
-          if (badge) badge.remove();
-          var name = convo.querySelector('.msg27-name');
-          var header = el.querySelector('.msg27-header-name');
-          var avatar = el.querySelector('.msg27-header-avatar');
-          if (name && header) header.textContent = name.textContent;
-          if (avatar && name) avatar.textContent = name.textContent.charAt(0);
-          var hue = convo.querySelector('.msg27-avatar');
-          if (hue && avatar) {
-            avatar.style.setProperty('--msg-hue', hue.style.getPropertyValue('--msg-hue') || '210');
-          }
-          sound('pop');
+          list.insertBefore(row, list.firstChild);
+          row.addEventListener('click', function () {
+            activateConvo(row);
+          });
+          activateConvo(row);
+          if (input) input.focus();
+          sound('hero');
+        }
+        sheet.querySelector('.msg-new-ok').addEventListener('click', createConvo);
+        sheet.querySelector('.msg-new-cancel').addEventListener('click', function () {
+          sheet.remove();
         });
+        if (nameIn) {
+          nameIn.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              createConvo();
+            } else if (e.key === 'Escape') sheet.remove();
+          });
+        }
+      });
+    }
+
+    var plus = el.querySelector('.msg27-plus');
+    if (plus) {
+      plus.addEventListener('click', function () {
+        sound('tink');
+        if (global.MacShell && MacShell.notify) {
+          MacShell.notify('Messages', 'Apps', 'Photos · Memoji · Stickers (demo)', 'now');
+        }
       });
     }
   }
@@ -1989,6 +2085,25 @@
         });
         cell.classList.add('is-selected');
       });
+      cell.addEventListener('dblclick', function () {
+        el.querySelectorAll('.cal27-cell').forEach(function (c) {
+          c.classList.remove('is-selected');
+        });
+        cell.classList.add('is-selected');
+        if (add) add.click();
+      });
+    });
+
+    /* mini agenda: click sidebar events */
+    el.querySelectorAll('.cal27-agenda-item, .cal27-side-ev, .cal27-upcoming li').forEach(function (item) {
+      item.style.cursor = 'pointer';
+      item.addEventListener('click', function () {
+        el.querySelectorAll('.cal27-agenda-item, .cal27-side-ev, .cal27-upcoming li').forEach(function (x) {
+          x.classList.remove('is-selected');
+        });
+        item.classList.add('is-selected');
+        sound('tink');
+      });
     });
   }
 
@@ -2784,6 +2899,26 @@
     if (!el || el.dataset.wired) return;
     el.dataset.wired = '1';
     var people = {};
+    function fillContactDetail(row) {
+      var name = row.querySelector('.ct27-row-name');
+      var n = name ? name.textContent : 'Contact';
+      var av = row.querySelector('.ct27-row-av');
+      var dName = el.querySelector('.ct27-name');
+      var dAv = el.querySelector('.ct27-avatar');
+      var dSub = el.querySelector('.ct27-sub');
+      if (dName) dName.textContent = n;
+      if (dAv && av) {
+        dAv.textContent = av.textContent;
+        dAv.style.setProperty('--h', av.style.getPropertyValue('--h') || '200');
+      }
+      var title = row.getAttribute('data-title') || '';
+      var company = row.getAttribute('data-company') || '';
+      if (dSub) dSub.textContent = [title, company].filter(Boolean).join(' · ') || 'Contact';
+      var fields = el.querySelectorAll('.ct27-field-value');
+      if (fields[0] && row.getAttribute('data-phone')) fields[0].textContent = row.getAttribute('data-phone');
+      if (fields[1] && row.getAttribute('data-email')) fields[1].textContent = row.getAttribute('data-email');
+    }
+
     el.querySelectorAll('.ct27-row').forEach(function (row) {
       var name = row.querySelector('.ct27-row-name');
       if (name) people[name.textContent] = row;
@@ -2792,15 +2927,7 @@
           r.classList.remove('active');
         });
         row.classList.add('active');
-        var n = name ? name.textContent : 'Contact';
-        var av = row.querySelector('.ct27-row-av');
-        var dName = el.querySelector('.ct27-name');
-        var dAv = el.querySelector('.ct27-avatar');
-        if (dName) dName.textContent = n;
-        if (dAv && av) {
-          dAv.textContent = av.textContent;
-          dAv.style.setProperty('--h', av.style.getPropertyValue('--h') || '200');
-        }
+        fillContactDetail(row);
         sound('pop');
       });
     });
@@ -2891,9 +3018,37 @@
           x.classList.remove('active');
         });
         g.classList.add('active');
+        var label = (g.textContent || '').toLowerCase();
+        el.querySelectorAll('.ct27-row').forEach(function (row, idx) {
+          var grp = (row.getAttribute('data-group') || '').toLowerCase();
+          var show = true;
+          if (label.indexOf('all') >= 0 || label.indexOf('icloud') >= 0) show = true;
+          else if (label.indexOf('favorite') >= 0) show = grp === 'favorites' || idx < 2;
+          else if (label.indexOf('work') >= 0) show = grp === 'work' || idx % 3 === 0;
+          else if (label.indexOf('personal') >= 0) show = grp === 'personal' || idx % 3 !== 0;
+          else if (grp) show = label.indexOf(grp) >= 0;
+          row.style.display = show ? '' : 'none';
+        });
         sound('tink');
       });
     });
+
+    var ctSearch = el.querySelector('.ct27-search');
+    if (ctSearch) {
+      function filterContacts() {
+        var q = (ctSearch.value || '').toLowerCase().trim();
+        el.querySelectorAll('.ct27-row').forEach(function (row) {
+          if (row.classList.contains('is-editing')) {
+            row.style.display = '';
+            return;
+          }
+          var text = (row.textContent || '').toLowerCase();
+          row.style.display = !q || text.indexOf(q) >= 0 ? '' : 'none';
+        });
+      }
+      ctSearch.addEventListener('input', filterContacts);
+      ctSearch.addEventListener('search', filterContacts);
+    }
   }
 
   /* ── Stocks range chips + mild live tick ────────────── */
@@ -5635,23 +5790,51 @@
         body: 'Soft gradients and crystal textures show off menu bar translucency and dock glass in macOS 27.',
       },
     ];
-    el.querySelectorAll('.news-item').forEach(function (item) {
+    function showArticle(idx, item) {
+      el.querySelectorAll('.news-item').forEach(function (i) {
+        i.classList.remove('is-active');
+      });
+      if (item) item.classList.add('is-active');
+      var a = articles[idx] || articles[0];
+      var title = el.querySelector('#news-title');
+      var by = el.querySelector('#news-byline');
+      var body = el.querySelector('#news-body');
+      if (title) title.textContent = a.t;
+      if (by) by.textContent = a.b;
+      if (body) body.textContent = a.body;
+      sound('pop');
+    }
+    el.querySelectorAll('.news-item').forEach(function (item, i) {
+      if (!item.getAttribute('data-news')) item.setAttribute('data-news', String(i));
       item.addEventListener('click', function () {
-        el.querySelectorAll('.news-item').forEach(function (i) {
-          i.classList.remove('is-active');
-        });
-        item.classList.add('is-active');
-        var idx = parseInt(item.getAttribute('data-news'), 10) || 0;
-        var a = articles[idx] || articles[0];
-        var title = el.querySelector('#news-title');
-        var by = el.querySelector('#news-byline');
-        var body = el.querySelector('#news-body');
-        if (title) title.textContent = a.t;
-        if (by) by.textContent = a.b;
-        if (body) body.textContent = a.body;
-        sound('pop');
+        var idx = parseInt(item.getAttribute('data-news'), 10);
+        if (isNaN(idx)) idx = i;
+        showArticle(idx, item);
       });
     });
+    el.querySelectorAll('.news-topic, .news-sb-item, .news-channel').forEach(function (topic) {
+      topic.addEventListener('click', function () {
+        el.querySelectorAll('.news-topic, .news-sb-item, .news-channel').forEach(function (t) {
+          t.classList.remove('active', 'is-active');
+        });
+        topic.classList.add('active');
+        topic.classList.add('is-active');
+        var label = (topic.textContent || 'Today').trim();
+        var head = el.querySelector('.news-section-title, .news-list-head, #news-section');
+        if (head) head.textContent = label;
+        sound('tink');
+      });
+    });
+    var newsSearch = el.querySelector('.news-search, input[type="search"]');
+    if (newsSearch) {
+      newsSearch.addEventListener('input', function () {
+        var q = (newsSearch.value || '').toLowerCase().trim();
+        el.querySelectorAll('.news-item').forEach(function (item) {
+          var text = (item.textContent || '').toLowerCase();
+          item.style.display = !q || text.indexOf(q) >= 0 ? '' : 'none';
+        });
+      });
+    }
   }
 
   /* ── Books reader ───────────────────────────────────── */

@@ -2678,7 +2678,7 @@
             lastLetter = p.letter;
             letter = `<div class="ct27-letter">${p.letter}</div>`;
           }
-          return `${letter}<div class="ct27-row${i === 0 ? ' active' : ''}">
+          return `${letter}<div class="ct27-row${i === 0 ? ' active' : ''}" data-phone="${p.phone}" data-email="${p.email}" data-title="${p.title}" data-company="${p.company}" data-group="${i < 2 ? 'favorites' : i % 3 === 0 ? 'work' : 'personal'}">
             <span class="ct27-row-av" style="--h:${p.hue}">${p.initials}</span>
             <span class="ct27-row-name">${p.name}</span>
           </div>`;
