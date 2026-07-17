@@ -39,12 +39,27 @@
       bubbles.scrollTop = bubbles.scrollHeight;
       input.value = '';
       sound('messageSent');
-      /* Simulated reply */
+      /* Typing indicator then reply */
+      var typing = document.createElement('div');
+      typing.className = 'msg27-bubble-row them msg27-typing';
+      typing.innerHTML = '<div class="bubble them muted">…</div>';
+      bubbles.appendChild(typing);
+      bubbles.scrollTop = bubbles.scrollHeight;
+      var replies = [
+        'Got it! 👍',
+        'Sounds good.',
+        'On it!',
+        'Thanks for the update.',
+        'Ha — nice 😄',
+        'Will check and reply later.',
+      ];
       setTimeout(function () {
+        if (typing.parentNode) typing.remove();
         var reply = document.createElement('div');
         reply.className = 'msg27-bubble-row them';
         reply.innerHTML = '<div class="bubble them"></div>';
-        reply.querySelector('.bubble').textContent = 'Got it! 👍';
+        reply.querySelector('.bubble').textContent =
+          replies[Math.floor(Math.random() * replies.length)];
         bubbles.appendChild(reply);
         bubbles.scrollTop = bubbles.scrollHeight;
         sound('messageReceived');
@@ -855,6 +870,45 @@
           var title = (t.getAttribute('data-title') || '').toLowerCase();
           t.style.display = !q || title.indexOf(q) >= 0 ? '' : 'none';
         });
+      });
+    }
+
+    /* Slideshow from library */
+    if (!el.querySelector('#photos-slideshow')) {
+      var head = el.querySelector('.photos-section-head, .photos-toolbar') || el;
+      var ss = document.createElement('button');
+      ss.type = 'button';
+      ss.className = 'btn-glass';
+      ss.id = 'photos-slideshow';
+      ss.textContent = '▶ Slideshow';
+      ss.style.cssText = 'margin-left:8px';
+      head.appendChild(ss);
+      var ssIv = null;
+      ss.addEventListener('click', function () {
+        var vis = visibleTiles();
+        if (!vis.length) {
+          sound('sosumi');
+          return;
+        }
+        if (ssIv) {
+          clearInterval(ssIv);
+          ssIv = null;
+          ss.textContent = '▶ Slideshow';
+          sound('pop');
+          return;
+        }
+        openAt(0);
+        ss.textContent = '■ Stop';
+        sound('hero');
+        ssIv = setInterval(function () {
+          if (!el.isConnected || !lb || lb.hidden) {
+            clearInterval(ssIv);
+            ssIv = null;
+            ss.textContent = '▶ Slideshow';
+            return;
+          }
+          openAt(idx + 1);
+        }, 2500);
       });
     }
   }
