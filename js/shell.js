@@ -1302,6 +1302,7 @@
         if (global.WindowManager && id) {
           WindowManager.focus(id);
           applyStageManagerLayout();
+          if (global.MacSounds && MacSounds.play) MacSounds.play('pop');
         }
       });
     });
@@ -1407,7 +1408,7 @@
         break;
       case 'lock':
       case 'logout':
-        flashSleep();
+        showLockScreen(action === 'logout' ? 'Log Out' : 'Lock Screen');
         break;
       case 'close':
         if (global.WindowManager) WindowManager.closeFocused();
@@ -1447,10 +1448,7 @@
         }
         break;
       case 'force-quit':
-        if (global.WindowManager && WindowManager.getFocused) {
-          var fq = WindowManager.getFocused();
-          if (fq) WindowManager.closeApp(fq.appId);
-        }
+        showForceQuit();
         break;
       case 'hide':
       case 'hide-app':
@@ -1672,6 +1670,146 @@
         if (ov.parentNode) ov.parentNode.removeChild(ov);
       }, 500);
     }, 1400);
+  }
+
+  function showLockScreen(mode) {
+    closeAllOverlays();
+    var existing = document.getElementById('lock-screen');
+    if (existing) existing.remove();
+    var ov = document.createElement('div');
+    ov.id = 'lock-screen';
+    ov.setAttribute('role', 'dialog');
+    ov.setAttribute('aria-label', mode || 'Lock Screen');
+    ov.innerHTML =
+      '<div class="lock-bg"></div>' +
+      '<div class="lock-content">' +
+      '<div class="lock-time" id="lock-time"></div>' +
+      '<div class="lock-date" id="lock-date"></div>' +
+      '<div class="lock-user">' +
+      '<div class="lock-avatar">👤</div>' +
+      '<div class="lock-name">User</div>' +
+      '</div>' +
+      '<form class="lock-form" id="lock-form">' +
+      '<input type="password" class="lock-pass" id="lock-pass" placeholder="Enter Password" autocomplete="off" />' +
+      '<p class="lock-hint">Any password · click or press Return</p>' +
+      '</form>' +
+      '<p class="lock-mode muted">' +
+      escapeHtml(mode || 'Lock Screen') +
+      '</p>' +
+      '</div>';
+    document.body.appendChild(ov);
+    var tick = function () {
+      var now = new Date();
+      var t = ov.querySelector('#lock-time');
+      var d = ov.querySelector('#lock-date');
+      if (t) t.textContent = formatWidgetTime(now);
+      if (d) d.textContent = formatDateLong(now);
+    };
+    tick();
+    var iv = setInterval(tick, 1000);
+    function unlock(e) {
+      if (e) e.preventDefault();
+      clearInterval(iv);
+      ov.classList.add('is-unlocking');
+      if (global.MacSounds && MacSounds.play) MacSounds.play('boot');
+      setTimeout(function () {
+        if (ov.parentNode) ov.parentNode.removeChild(ov);
+        notify('macOS', 'Welcome Back', 'Session unlocked', 'now');
+      }, 450);
+    }
+    var form = ov.querySelector('#lock-form');
+    if (form) form.addEventListener('submit', unlock);
+    ov.addEventListener('click', function (e) {
+      if (e.target === ov || e.target.classList.contains('lock-bg') || e.target.classList.contains('lock-content')) {
+        var input = ov.querySelector('#lock-pass');
+        if (input) input.focus();
+      }
+    });
+    setTimeout(function () {
+      var input = ov.querySelector('#lock-pass');
+      if (input) input.focus();
+    }, 100);
+    if (global.MacSounds && MacSounds.play) MacSounds.play('purr');
+  }
+
+  function showForceQuit() {
+    var existing = document.getElementById('force-quit');
+    if (existing) existing.remove();
+    var apps = [];
+    if (global.WindowManager && WindowManager.getOpenWindows) {
+      var seen = {};
+      WindowManager.getOpenWindows().forEach(function (w) {
+        if (!seen[w.appId]) {
+          seen[w.appId] = true;
+          apps.push({ id: w.appId, name: w.title || titleFor(w.appId) });
+        }
+      });
+    }
+    if (!apps.length) {
+      apps = [{ id: 'finder', name: 'Finder' }];
+    }
+    var ov = document.createElement('div');
+    ov.id = 'force-quit';
+    ov.className = 'force-quit-overlay';
+    ov.innerHTML =
+      '<div class="force-quit-panel glass">' +
+      '<h2>Force Quit Applications</h2>' +
+      '<p class="muted">If an app is not responding, select it and click Force Quit.</p>' +
+      '<div class="force-quit-list" id="fq-list">' +
+      apps
+        .map(function (a) {
+          return (
+            '<button type="button" class="fq-row" data-app="' +
+            escapeHtml(a.id) +
+            '">' +
+            '<span class="fq-icon">' +
+            iconHtml(a.id) +
+            '</span><span class="fq-name">' +
+            escapeHtml(a.name) +
+            '</span></button>'
+          );
+        })
+        .join('') +
+      '</div>' +
+      '<div class="force-quit-actions">' +
+      '<button type="button" class="btn-glass" id="fq-cancel">Cancel</button>' +
+      '<button type="button" class="btn-primary" id="fq-quit" disabled>Force Quit</button>' +
+      '</div></div>';
+    document.body.appendChild(ov);
+    var selected = null;
+    $$('.fq-row', ov).forEach(function (row) {
+      row.addEventListener('click', function () {
+        $$('.fq-row', ov).forEach(function (r) {
+          r.classList.remove('is-selected');
+        });
+        row.classList.add('is-selected');
+        selected = row.getAttribute('data-app');
+        var btn = ov.querySelector('#fq-quit');
+        if (btn) btn.disabled = !selected;
+        if (global.MacSounds && MacSounds.play) MacSounds.play('pop');
+      });
+    });
+    var cancel = ov.querySelector('#fq-cancel');
+    if (cancel) {
+      cancel.addEventListener('click', function () {
+        ov.remove();
+      });
+    }
+    var quit = ov.querySelector('#fq-quit');
+    if (quit) {
+      quit.addEventListener('click', function () {
+        if (selected && global.WindowManager) {
+          WindowManager.closeApp(selected);
+          syncRunningFromWindows();
+          if (global.MacSounds && MacSounds.play) MacSounds.play('emptyTrash');
+          notify('Force Quit', titleFor(selected), 'Application forced to quit', 'now');
+        }
+        ov.remove();
+      });
+    }
+    ov.addEventListener('click', function (e) {
+      if (e.target === ov) ov.remove();
+    });
   }
 
   function showContextMenu(x, y) {
@@ -2091,6 +2229,17 @@
       }
 
       if (key === 'Escape') {
+        var lock = document.getElementById('lock-screen');
+        var fq = document.getElementById('force-quit');
+        if (fq) {
+          e.preventDefault();
+          fq.remove();
+          return;
+        }
+        if (lock) {
+          /* stay locked — require password */
+          return;
+        }
         if (isOpen($('#spotlight')) || isOpen($('#launchpad')) ||
             isOpen($('#mission-control')) ||
             isOpen($('#control-center')) || isOpen($('#notification-center')) ||
@@ -2099,6 +2248,13 @@
           closeAllOverlays();
           return;
         }
+      }
+
+      /* ⌥⌘Esc Force Quit */
+      if (meta && e.altKey && (key === 'Escape' || e.code === 'Escape')) {
+        e.preventDefault();
+        showForceQuit();
+        return;
       }
 
       if (!meta || !global.WindowManager) return;
@@ -2240,6 +2396,8 @@
     },
 
     openApp: openApp,
+    showLockScreen: showLockScreen,
+    showForceQuit: showForceQuit,
     openLaunchpad: openLaunchpad,
     closeLaunchpad: hideLaunchpad,
     toggleLaunchpad: toggleLaunchpad,
