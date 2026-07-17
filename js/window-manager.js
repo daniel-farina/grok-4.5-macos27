@@ -243,6 +243,10 @@
         state.x = clamp(ox + (e.clientX - sx), -state.width + 100, bounds.width - 80);
         state.y = clamp(oy + (e.clientY - sy), bounds.top, bounds.height - 40);
         applyGeometry(state);
+        var edge = 28;
+        el.classList.toggle('is-snap-left', e.clientX <= bounds.left + edge);
+        el.classList.toggle('is-snap-right', e.clientX >= bounds.left + bounds.width - edge);
+        el.classList.toggle('is-snap-top', e.clientY <= bounds.top + edge);
       }
       if (resizing && rStart) {
         var dx = e.clientX - rStart.x;
@@ -287,26 +291,44 @@
       if (dragging) {
         dragging = false;
         el.classList.remove('is-dragging');
-        /* Edge snap (half-screen) when released near left/right edge */
+        /* Edge snap (half-screen) when released near left/right/bottom edge */
         if (!state.maximized && e) {
           var bounds = desktopBounds();
           var edge = 28;
+          var snapped = false;
           if (e.clientX <= bounds.left + edge) {
-            state.x = bounds.left;
-            state.y = bounds.top;
-            state.width = Math.floor(bounds.width / 2) - 6;
-            state.height = bounds.height;
+            state.x = bounds.left + 4;
+            state.y = bounds.top + 4;
+            state.width = Math.floor(bounds.width / 2) - 10;
+            state.height = bounds.height - 8;
             applyGeometry(state);
+            snapped = true;
           } else if (e.clientX >= bounds.left + bounds.width - edge) {
-            state.width = Math.floor(bounds.width / 2) - 6;
-            state.x = bounds.left + bounds.width - state.width;
-            state.y = bounds.top;
-            state.height = bounds.height;
+            state.width = Math.floor(bounds.width / 2) - 10;
+            state.x = bounds.left + bounds.width - state.width - 4;
+            state.y = bounds.top + 4;
+            state.height = bounds.height - 8;
             applyGeometry(state);
+            snapped = true;
           } else if (e.clientY <= bounds.top + edge) {
             /* top edge → maximize */
             WindowManager.maximize(state.id);
+            snapped = true;
+          } else if (e.clientY >= window.innerHeight - edge - 20) {
+            /* bottom edge → centered full height-ish */
+            state.width = Math.min(bounds.width - 48, Math.max(state.width, Math.floor(bounds.width * 0.72)));
+            state.height = bounds.height - 16;
+            state.x = bounds.left + Math.floor((bounds.width - state.width) / 2);
+            state.y = bounds.top + 8;
+            applyGeometry(state);
+            snapped = true;
           }
+          if (snapped && global.MacSounds && MacSounds.play) {
+            try {
+              MacSounds.play('tink');
+            } catch (err) {}
+          }
+          el.classList.remove('is-snap-left', 'is-snap-right', 'is-snap-top');
         }
       }
       if (resizing) {

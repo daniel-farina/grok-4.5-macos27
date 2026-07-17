@@ -196,6 +196,29 @@
   var batteryPercent = 100;
   var batteryTimer = null;
 
+  function wireMenubarClock() {
+    var btn = $('#menubar-clock');
+    if (!btn || btn.dataset.clockWired) return;
+    btn.dataset.clockWired = '1';
+    btn.addEventListener('contextmenu', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      var text = ($('#clock-text') && $('#clock-text').textContent) || formatClock(new Date());
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).catch(function () {});
+      }
+      notify('Clock', 'Copied', text, 'now');
+      if (global.MacSounds && MacSounds.play) MacSounds.play('tink');
+    });
+    btn.addEventListener('dblclick', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      openApp('clock');
+      if (global.MacSounds && MacSounds.play) MacSounds.play('pop');
+    });
+    btn.title = 'Notification Center · Double-click Clock · Right-click to copy';
+  }
+
   function updateClock() {
     var now = new Date();
     var el = $('#clock-text');
@@ -1010,6 +1033,23 @@
           }, 100);
           return;
         }
+        /* macOS-like: if app focused → minimize; if minimized/other → restore/focus */
+        if (global.WindowManager && runningApps[appId]) {
+          var win = WindowManager.getWindowByAppId && WindowManager.getWindowByAppId(appId);
+          var focused = WindowManager.getFocused && WindowManager.getFocused();
+          if (win && win.minimized) {
+            WindowManager.restore(win.id);
+            WindowManager.focus(win.id);
+            if (global.MacSounds && MacSounds.play) MacSounds.play('pop');
+            return;
+          }
+          if (win && focused && focused.appId === appId && !win.minimized) {
+            WindowManager.minimize(win.id);
+            bounceDock(appId);
+            if (global.MacSounds && MacSounds.play) MacSounds.play('tink');
+            return;
+          }
+        }
         openApp(appId);
       }
       item.addEventListener('click', activate);
@@ -1032,21 +1072,31 @@
     var menu = $('#context-menu');
     if (!menu) return;
     var name = titleFor(appId);
+    var isTrash = appId === 'trash';
     menu.innerHTML =
-      '<div class="context-item" data-action="dock-open" data-app="' +
-      escapeHtml(appId) +
-      '">Open ' +
-      escapeHtml(name) +
-      '</div>' +
-      (runningApps[appId]
+      (isTrash
+        ? '<div class="context-item" data-action="dock-open-trash">Open Trash</div>' +
+          '<div class="context-item" data-action="empty-trash">Empty Trash</div>'
+        : '<div class="context-item" data-action="dock-open" data-app="' +
+          escapeHtml(appId) +
+          '">Open ' +
+          escapeHtml(name) +
+          '</div>') +
+      (runningApps[appId] && !isTrash
         ? '<div class="context-item" data-action="dock-quit" data-app="' +
           escapeHtml(appId) +
-          '">Quit</div>'
+          '">Quit</div>' +
+          '<div class="context-item" data-action="dock-hide" data-app="' +
+          escapeHtml(appId) +
+          '">Hide</div>'
         : '') +
       '<div class="context-separator"></div>' +
-      '<div class="context-item" data-action="dock-show-finder" data-app="' +
-      escapeHtml(appId) +
-      '">Show in Finder</div>';
+      (isTrash
+        ? ''
+        : '<div class="context-item" data-action="dock-show-finder" data-app="' +
+          escapeHtml(appId) +
+          '">Show in Finder</div>') +
+      '<div class="context-item" data-action="dock-options">Options</div>';
     menu.style.left = x + 'px';
     menu.style.top = y + 'px';
     showOverlay(menu);
@@ -1056,15 +1106,35 @@
         var id = el.getAttribute('data-app');
         hideOverlay(menu);
         if (a === 'dock-open') openApp(id);
+        if (a === 'dock-open-trash') {
+          openApp('finder');
+          setTimeout(function () {
+            var win =
+              global.WindowManager &&
+              WindowManager.getWindowByAppId &&
+              WindowManager.getWindowByAppId('finder');
+            var body = win && win.el && win.el.querySelector('.window-content');
+            var t = body && body.querySelector('.finder-sb-item[data-nav="trash"]');
+            if (t) t.click();
+          }, 100);
+        }
+        if (a === 'empty-trash') handleMenuAction('empty-trash');
         if (a === 'dock-quit' && global.WindowManager) {
           WindowManager.closeApp(id);
           syncRunningFromWindows();
+        }
+        if (a === 'dock-hide' && global.WindowManager) {
+          var w = WindowManager.getWindowByAppId && WindowManager.getWindowByAppId(id);
+          if (w) WindowManager.minimize(w.id);
         }
         if (a === 'dock-show-finder') {
           openApp('finder');
           setTimeout(function () {
             finderGo('apps');
           }, 100);
+        }
+        if (a === 'dock-options') {
+          notify('Dock', 'Options', 'Keep in Dock · Open at Login (demo)', 'now');
         }
         if (global.MacSounds && MacSounds.play) MacSounds.play('pop');
       });
@@ -2803,20 +2873,36 @@
       totalMs += s.t;
     });
 
+    var finished = false;
+    function finishBoot() {
+      if (finished) return;
+      finished = true;
+      overlay.classList.add('is-done');
+      setTimeout(function () {
+        if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+        bootDone = true;
+        if (global.MacSounds && MacSounds.play) {
+          try {
+            MacSounds.play('boot');
+          } catch (e) {}
+        }
+        if (cb) cb();
+      }, 450);
+    }
+    /* Click or Escape skips remaining boot animation */
+    overlay.addEventListener('click', finishBoot);
+    document.addEventListener('keydown', function onBootKey(e) {
+      if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') {
+        finishBoot();
+        document.removeEventListener('keydown', onBootKey);
+      }
+    });
+
     function step() {
+      if (finished) return;
       if (i >= stages.length) {
         setTimeout(function () {
-          overlay.classList.add('is-done');
-          setTimeout(function () {
-            if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
-            bootDone = true;
-            if (global.MacSounds && MacSounds.play) {
-              try {
-                MacSounds.play('boot');
-              } catch (e) {}
-            }
-            if (cb) cb();
-          }, 650);
+          finishBoot();
         }, 180);
         return;
       }
@@ -3400,6 +3486,7 @@
       renderDesktopIcons();
       renderRecentAppsMenu();
       wireEvents();
+      wireMenubarClock();
       updateClock();
       if (clockTimer) clearInterval(clockTimer);
       clockTimer = setInterval(updateClock, 1000);
