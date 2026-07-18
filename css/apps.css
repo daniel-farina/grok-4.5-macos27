@@ -664,7 +664,18 @@
   flex: 1;
   overflow: auto;
   min-height: 0;
-  padding-bottom: 12px;
+  /* Keep last album titles clear of the mini-player */
+  padding: 0 0 16px;
+}
+.music-app .music-main {
+  /* Ensure column flex so scroll region + player don't overlap */
+  overflow: hidden;
+}
+.music-app .mini-player {
+  position: relative;
+  z-index: 2;
+  flex-shrink: 0;
+  margin-top: auto;
 }
 .music-section {
   margin-top: 4px;
@@ -1577,6 +1588,41 @@
     var(--surface-card, rgba(250, 250, 252, 0.65)) !important;
   border-color: var(--border-glass, rgba(255, 255, 255, 0.55)) !important;
   color: var(--color-text, #1d1d1f) !important;
+}
+html[data-theme='dark'] .mini-player,
+html[data-theme='dark'] .mini-player.glass {
+  background:
+    linear-gradient(180deg, rgba(60, 60, 65, 0.92), rgba(40, 40, 44, 0.88)),
+    rgba(30, 30, 32, 0.9) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  color: rgba(255, 255, 255, 0.92) !important;
+  border-top-color: rgba(255, 255, 255, 0.1) !important;
+}
+html[data-theme='dark'] .mini-player .np-btn {
+  color: rgba(255, 255, 255, 0.85);
+}
+html[data-theme='dark'] .mini-player .np-play {
+  background: rgba(255, 255, 255, 0.12);
+}
+html[data-theme='dark'] .mini-player .np-time {
+  color: rgba(255, 255, 255, 0.45);
+}
+html[data-theme='dark'] .mini-player .np-bar,
+html[data-theme='dark'] .mini-player .np-vol-bar {
+  background: rgba(255, 255, 255, 0.15);
+}
+html[data-theme='dark'] .mini-player .np-vol-bar .np-bar-fill {
+  background: rgba(255, 255, 255, 0.55);
+}
+html[data-theme='dark'] .music-app {
+  background: rgba(28, 28, 30, 0.92);
+}
+html[data-theme='dark'] .music-sidebar {
+  background: rgba(36, 36, 38, 0.85);
+  border-right-color: rgba(255, 255, 255, 0.08);
+}
+html[data-theme='dark'] .music-main {
+  background: rgba(22, 22, 24, 0.5);
 }
 .sb-section-label {
   color: var(--color-text-tertiary, rgba(0, 0, 0, 0.4)) !important;

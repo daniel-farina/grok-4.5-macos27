@@ -482,6 +482,7 @@ ol {
 }
 
 .menubar-item {
+  font-size: 13px;
   display: inline-flex;
   align-items: center;
   justify-content: center;

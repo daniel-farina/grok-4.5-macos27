@@ -5,16 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="macOS 27 Liquid Glass - Virtual Desktop" />
   <title>macOS 27</title>
-  <link rel="stylesheet" href="css/liquid-glass.css?v=1784327405" />
-  <link rel="stylesheet" href="css/apps.css?v=1784327405" />
-  <link rel="stylesheet" href="css/tahoe-match.css?v=1784327405" />
-  <link rel="stylesheet" href="css/theme.css?v=1784327405" />
-  <link rel="stylesheet" href="css/finder-27.css?v=1784327405" />
-  <link rel="stylesheet" href="css/control-center.css?v=1784327405" />
-  <link rel="stylesheet" href="css/apps-drawer.css?v=1784327405" />
-  <link rel="stylesheet" href="css/safari-27.css?v=1784327405" />
-  <link rel="stylesheet" href="css/apps-system.css?v=1784327405" />
-  <link rel="stylesheet" href="css/apps-utilities.css?v=1784327405" />
+  <link rel="stylesheet" href="css/liquid-glass.css?v=1784327506" />
+  <link rel="stylesheet" href="css/apps.css?v=1784327506" />
+  <link rel="stylesheet" href="css/tahoe-match.css?v=1784327506" />
+  <link rel="stylesheet" href="css/theme.css?v=1784327506" />
+  <link rel="stylesheet" href="css/finder-27.css?v=1784327506" />
+  <link rel="stylesheet" href="css/control-center.css?v=1784327506" />
+  <link rel="stylesheet" href="css/apps-drawer.css?v=1784327506" />
+  <link rel="stylesheet" href="css/safari-27.css?v=1784327506" />
+  <link rel="stylesheet" href="css/apps-system.css?v=1784327506" />
+  <link rel="stylesheet" href="css/apps-utilities.css?v=1784327506" />
   <script>
     /* Apply theme ASAP to avoid FOUC — mirrors MacShell appearance logic */
     (function () {
@@ -120,10 +120,22 @@
                 <span>New Folder</span>
                 <span class="shortcut">⇧⌘N</span>
               </div>
+              <div class="menu-dropdown-item" data-action="open" role="menuitem">
+                <span>Open</span>
+                <span class="shortcut">⌘O</span>
+              </div>
+              <div class="menu-dropdown-item" data-action="get-info" role="menuitem">
+                <span>Get Info</span>
+                <span class="shortcut">⌘I</span>
+              </div>
               <div class="menu-separator" role="separator"></div>
               <div class="menu-dropdown-item" data-action="close" role="menuitem">
                 <span>Close Window</span>
                 <span class="shortcut">⌘W</span>
+              </div>
+              <div class="menu-dropdown-item" data-action="close" role="menuitem">
+                <span>Close All Windows</span>
+                <span class="shortcut">⌥⌘W</span>
               </div>
             </div>
           </div>
@@ -634,12 +646,12 @@
   -->
 
   <!-- Scripts: classic order, no bundler -->
-  <script src="js/icons.js?v=1784327405"></script>
-  <script src="js/window-manager.js?v=1784327405"></script>
-  <script src="js/sounds.js?v=1784327405"></script>
-  <script src="js/shell.js?v=1784327405"></script>
-  <script src="js/apps/registry.js?v=1784327405"></script>
-  <script src="js/macos-runtime.js?v=1784327405"></script>
-  <script src="js/main.js?v=1784327405"></script>
+  <script src="js/icons.js?v=1784327506"></script>
+  <script src="js/window-manager.js?v=1784327506"></script>
+  <script src="js/sounds.js?v=1784327506"></script>
+  <script src="js/shell.js?v=1784327506"></script>
+  <script src="js/apps/registry.js?v=1784327506"></script>
+  <script src="js/macos-runtime.js?v=1784327506"></script>
+  <script src="js/main.js?v=1784327506"></script>
 </body>
 </html>

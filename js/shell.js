@@ -872,7 +872,7 @@
   function renderDesktopIcons() {
     var host = $('#desktop-icons');
     if (!host) return;
-    /* Trash is Dock-only (Tahoe). Keep desktop icons above the dock. */
+    /* Dock carries Notes/Calendar/Trash — desktop stays a short right column */
     var items = [
       { key: 'hd', id: 'finder', label: 'Macintosh HD', kind: 'drive', nav: 'drive' },
       { key: 'apps', id: 'finder', label: 'Applications', kind: 'folder', nav: 'apps' },
@@ -881,8 +881,6 @@
       { key: 'safari', id: 'safari', label: 'Safari', kind: 'app' },
       { key: 'photos', id: 'photos', label: 'Photos', kind: 'app' },
       { key: 'messages', id: 'messages', label: 'Messages', kind: 'app' },
-      { key: 'notes', id: 'notes', label: 'Notes', kind: 'app' },
-      { key: 'calendar', id: 'calendar', label: 'Calendar', kind: 'app' },
     ];
     var pos = loadDesktopIconPositions();
     host.classList.add('is-freeform');
@@ -2329,6 +2327,14 @@
         break;
       case 'new-window':
         openApp('finder');
+        break;
+      case 'open':
+        /* Open selected desktop icon or Finder */
+        (function () {
+          var sel = document.querySelector('.desktop-icon.is-selected');
+          if (sel && typeof openDesktopIcon === 'function') openDesktopIcon(sel);
+          else openApp('finder');
+        })();
         break;
       case 'new-folder':
         openApp('finder');
