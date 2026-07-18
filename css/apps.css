@@ -664,8 +664,13 @@
   flex: 1;
   overflow: auto;
   min-height: 0;
-  /* Keep last album titles clear of the mini-player */
-  padding: 0 0 16px;
+  /* Breathing room so last row titles aren't clipped at player edge */
+  padding: 0 0 28px;
+  scroll-padding-bottom: 12px;
+}
+.music-section:last-child {
+  margin-bottom: 8px;
+  padding-bottom: 8px;
 }
 .music-app .music-main {
   /* Ensure column flex so scroll region + player don't overlap */
