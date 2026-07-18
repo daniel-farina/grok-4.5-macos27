@@ -101,11 +101,11 @@
       '<path ' + W + ' d="M42 26l10-6v24l-10-6V26z"/>'
     ),
 
-    calendar: makeIcon('calendar', ['#ff3b30', '#ff3b30'],
-      '<rect x="12" y="16" width="40" height="36" rx="4" ' + W + '/>' +
-      '<rect x="12" y="16" width="40" height="10" rx="4" fill="#ff3b30"/>' +
-      '<rect x="12" y="22" width="40" height="4" fill="#ff3b30"/>' +
-      '<text x="32" y="46" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="20" font-weight="600" fill="#ff3b30">17</text>'
+    calendar: makeIcon('calendar', ['#ffffff', '#f2f2f7'],
+      '<rect x="12" y="16" width="40" height="36" rx="5" fill="#fff"/>' +
+      '<path fill="#ff3b30" d="M12 16h40a5 5 0 0 1 5 5v5H7v-5a5 5 0 0 1 5-5z"/>' +
+      '<circle cx="20" cy="18" r="1.6" fill="#fff" opacity="0.95"/><circle cx="44" cy="18" r="1.6" fill="#fff" opacity="0.95"/>' +
+      '<text x="32" y="47" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="20" font-weight="700" fill="#1d1d1f">17</text>'
     ),
 
     contacts: makeIcon('contacts', ['#8e8e93', '#636366'],

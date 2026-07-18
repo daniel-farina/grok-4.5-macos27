@@ -12,6 +12,11 @@ Public commits track multi-minute interactive work on this virtual macOS 27 desk
 
 See `docs/LOOP_PRACTICE.md` for why we commit every loop.
 
+### 2026-07-18
+- Desktop icons open reliably (single-click + Finder nav retry)
+- Calendar Day/Week/Month/Year views
+- Dock icon crispness + calendar icon; full app audit doc
+
 ### 2026-07-17 / 18 (loop demo)
 - Messages typing/varied replies; Photos slideshow
 - Mail Mark Unread; Notes Share; STATUS interactive map refresh

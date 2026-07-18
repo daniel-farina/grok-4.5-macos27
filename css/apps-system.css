@@ -4588,3 +4588,130 @@ html[data-theme='dark'] .num27-tab.active {
 .cal27-cell.is-selected .cal27-num {
   font-weight: 700;
 }
+
+/* Calendar Day / Week / Year views */
+.cal27-day-view,
+.cal27-week-view {
+  display: block !important;
+  overflow: auto;
+  grid-template-columns: none !important;
+  height: 100%;
+}
+.cal27-day-list,
+.cal27-week-body {
+  display: flex;
+  flex-direction: column;
+}
+.cal27-day-row,
+.cal27-week-row {
+  display: flex;
+  min-height: 44px;
+  border-bottom: 0.5px solid rgba(128, 128, 128, 0.2);
+}
+.cal27-day-time,
+.cal27-week-time {
+  width: 64px;
+  flex-shrink: 0;
+  font-size: 11px;
+  opacity: 0.55;
+  padding: 6px 8px;
+  text-align: right;
+}
+.cal27-day-slot,
+.cal27-week-cell {
+  flex: 1;
+  min-width: 0;
+  padding: 2px 4px;
+  border-left: 0.5px solid rgba(128, 128, 128, 0.12);
+  cursor: pointer;
+}
+.cal27-week-head {
+  display: grid;
+  grid-template-columns: 64px repeat(7, 1fr);
+  border-bottom: 0.5px solid rgba(128, 128, 128, 0.25);
+  position: sticky;
+  top: 0;
+  background: inherit;
+  z-index: 1;
+}
+.cal27-week-head::before {
+  content: '';
+}
+.cal27-week-day-h {
+  text-align: center;
+  padding: 8px 4px;
+  font-size: 12px;
+}
+.cal27-week-day-h strong {
+  display: block;
+}
+.cal27-week-row {
+  display: grid;
+  grid-template-columns: 64px repeat(7, 1fr);
+}
+.cal27-week-cell.has-ev {
+  background: rgba(10, 132, 255, 0.06);
+}
+.cal27-year-view {
+  display: grid !important;
+  grid-template-columns: repeat(4, 1fr) !important;
+  gap: 12px !important;
+  padding: 12px !important;
+  overflow: auto;
+  height: auto !important;
+}
+.cal27-year-month {
+  border: 0.5px solid rgba(128, 128, 128, 0.2);
+  border-radius: 12px;
+  background: rgba(128, 128, 128, 0.06);
+  padding: 10px;
+  cursor: pointer;
+  color: inherit;
+  text-align: left;
+}
+.cal27-year-month.is-current {
+  outline: 2px solid #0a84ff;
+}
+.cal27-year-mname {
+  font-weight: 600;
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+.cal27-year-mini {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1px;
+  font-size: 9px;
+  opacity: 0.75;
+}
+.cal27-year-mini span {
+  text-align: center;
+  padding: 2px 0;
+  border-radius: 3px;
+}
+.cal27-year-mini span.has-ev {
+  background: rgba(10, 132, 255, 0.25);
+  color: #0a84ff;
+  font-weight: 600;
+}
+.cal27-year-mini span.is-sel {
+  background: #0a84ff;
+  color: #fff;
+}
+.cal27-cell.is-selected {
+  background: rgba(10, 132, 255, 0.12);
+}
+.cal27-ev.is-selected {
+  outline: 1px solid #fff;
+}
+.cal27-ev.is-block {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 8px;
+  border-radius: 8px;
+  margin: 2px 0;
+}
+.cal27-ev.blue { background: #0a84ff; }
+.cal27-ev.orange { background: #ff9f0a; }
+.cal27-ev.green { background: #30d158; color: #003d1a; }
+.cal27-ev.purple { background: #bf5af2; }

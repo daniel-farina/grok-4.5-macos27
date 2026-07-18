@@ -800,15 +800,17 @@ html.dock-mag-off .dock-item[data-magnify] {
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: visible;
+  overflow: hidden;
   /* Magnify with transform only (no layout reflow → tray stays put) */
-  transform: scale(var(--scale, 1));
+  transform: translateZ(0) scale(var(--scale, 1));
   transform-origin: bottom center;
   transition: transform 160ms cubic-bezier(0.22, 1, 0.36, 1);
   will-change: transform;
   font-size: 28px;
   line-height: 1;
   flex-shrink: 0;
+  backface-visibility: hidden;
+  -webkit-font-smoothing: antialiased;
   /* Optional floor reflection — off by default (--dock-reflect: 0) */
   -webkit-box-reflect: below 1px
     linear-gradient(
@@ -822,7 +824,8 @@ html.dock-mag-off .dock-item[data-magnify] {
   height: 100%;
   display: block;
   border-radius: 22%;
-  filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.2));
+  shape-rendering: geometricPrecision;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.18));
 }
 
 .dock-icon img {
@@ -3450,26 +3453,22 @@ body.stage-manager-on .window.is-active:not(.is-minimized):not(.is-staged),
   place-items: center;
   box-shadow: 0 4px 12px rgba(0,0,0,0.3);
 }
-.desktop-icon-img.kind-drive {
-  background: linear-gradient(180deg, #d0d0d5, #8e8e93);
-}
-.desktop-icon-img.kind-folder {
-  background: linear-gradient(180deg, #7ec8ff, #2b7fd4);
-}
-.desktop-icon-img.kind-trash {
-  background: linear-gradient(180deg, #6e6e73, #3a3a3c);
-}
+.desktop-icon-img.kind-drive,
+.desktop-icon-img.kind-folder,
+.desktop-icon-img.kind-trash,
 .desktop-icon-img.kind-app {
   background: transparent;
   box-shadow: none;
   width: 52px;
   height: 52px;
 }
-.desktop-icon-img.kind-app svg,
-.desktop-icon-img.kind-app img {
+.desktop-icon-img svg,
+.desktop-icon-img img {
   width: 52px;
   height: 52px;
   border-radius: 12px;
+  display: block;
+  shape-rendering: geometricPrecision;
 }
 .desktop-icon-label {
   font-size: 11px;

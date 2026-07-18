@@ -2406,10 +2406,25 @@
       'November',
       'December',
     ];
+    var weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     var year = 2026;
     var month = 3; /* April 0-based */
+    var selectedDay = 17;
+    var viewMode = 'Month';
     var titleEl = el.querySelector('.cal27-month-title');
+    var gridWrap = el.querySelector('.cal27-grid-wrap');
     var gridEl = el.querySelector('.cal27-grid');
+    var weekdaysEl = el.querySelector('.cal27-weekdays');
+    var sampleEvents = {
+      /* month-day -> list */
+      '3-9': [{ t: 'Design Review', time: '10:00', c: 'blue' }],
+      '3-16': [
+        { t: 'Team Sync', time: '10:00', c: 'blue' },
+        { t: 'Ship Demo', time: '14:00', c: 'orange' },
+      ],
+      '3-17': [{ t: 'Focus Time', time: '09:00', c: 'green' }],
+      '3-22': [{ t: 'WWDC Watch', time: '11:00', c: 'purple' }],
+    };
 
     function daysInMonth(y, m) {
       return new Date(y, m + 1, 0).getDate();
@@ -2417,8 +2432,53 @@
     function startPad(y, m) {
       return new Date(y, m, 1).getDay();
     }
+    function eventsFor(y, m, d) {
+      var key = m + '-' + d;
+      var list = sampleEvents[key] ? sampleEvents[key].slice() : [];
+      if (y === 2026 && m === 3 && d === selectedDay && !list.length) {
+        list.push({ t: 'Selected day', time: 'All day', c: 'blue' });
+      }
+      return list;
+    }
+    function bindDayCell(cell, dayNum) {
+      cell.addEventListener('click', function (e) {
+        if (e.target.closest('.cal27-ev')) return;
+        selectedDay = dayNum;
+        el.querySelectorAll('.cal27-cell').forEach(function (c) {
+          c.classList.remove('is-selected');
+        });
+        cell.classList.add('is-selected');
+        sound('tink');
+      });
+      cell.addEventListener('dblclick', function () {
+        selectedDay = dayNum;
+        cell.classList.add('is-selected');
+        if (add) add.click();
+      });
+      cell.querySelectorAll('.cal27-ev').forEach(function (ev) {
+        ev.style.cursor = 'pointer';
+        ev.addEventListener('click', function (e) {
+          e.stopPropagation();
+          el.querySelectorAll('.cal27-ev').forEach(function (x) {
+            x.classList.remove('is-selected');
+          });
+          ev.classList.add('is-selected');
+          sound('pop');
+        });
+      });
+    }
+
     function renderMonth() {
       if (!gridEl) return;
+      if (weekdaysEl) {
+        weekdaysEl.style.display = '';
+        weekdaysEl.innerHTML = weekdays
+          .map(function (d) {
+            return '<div class="cal27-wd">' + d + '</div>';
+          })
+          .join('');
+      }
+      gridEl.className = 'cal27-grid';
       var dim = daysInMonth(year, month);
       var pad = startPad(year, month);
       var prevDim = daysInMonth(year, month === 0 ? 11 : month - 1);
@@ -2435,14 +2495,31 @@
       for (var d = 1; d <= dim; d++) {
         var isToday =
           today.getFullYear() === year && today.getMonth() === month && today.getDate() === d;
-        /* demo highlight: day 17 in April 2026 sample */
         if (year === 2026 && month === 3 && d === 17) isToday = true;
+        var isSel = d === selectedDay;
+        var evs = eventsFor(year, month, d);
+        var evHtml = evs
+          .map(function (e) {
+            return (
+              '<div class="cal27-ev timed ' +
+              (e.c || 'blue') +
+              '"><span class="cal27-ev-bar"></span><span class="cal27-ev-t"></span>' +
+              (e.time ? '<span class="cal27-ev-time">' + e.time + '</span>' : '') +
+              '</div>'
+            );
+          })
+          .join('');
         html +=
           '<div class="cal27-cell' +
           (isToday ? ' today' : '') +
+          (isSel ? ' is-selected' : '') +
+          '" data-day="' +
+          d +
           '"><div class="cal27-num">' +
           d +
-          '</div><div class="cal27-evs"></div></div>';
+          '</div><div class="cal27-evs">' +
+          evHtml +
+          '</div></div>';
       }
       var total = pad + dim;
       var next = 1;
@@ -2458,52 +2535,178 @@
       }
       gridEl.innerHTML = html;
       if (titleEl) titleEl.textContent = monthNames[month] + ' ' + year;
-      /* sample events for current month demo */
-      if (year === 2026 && month === 3) {
-        var cells = gridEl.querySelectorAll('.cal27-cell:not(.muted)');
-        [9, 16, 16, 22].forEach(function (day, i) {
-          var cell = cells[day - 1];
-          if (!cell) return;
-          var slot = cell.querySelector('.cal27-evs');
-          if (!slot) return;
-          var names = ['Design Review', 'Team Sync', 'Ship Demo', 'WWDC Watch'];
-          var ev = document.createElement('div');
-          ev.className = 'cal27-ev timed ' + (i % 2 ? 'orange' : 'blue');
-          ev.innerHTML =
-            '<span class="cal27-ev-bar"></span><span class="cal27-ev-t"></span><span class="cal27-ev-time">10:00</span>';
-          ev.querySelector('.cal27-ev-t').textContent = names[i] || 'Event';
-          slot.appendChild(ev);
-        });
-      }
-      /* click day to select; dblclick to add; click event to select */
       gridEl.querySelectorAll('.cal27-cell:not(.muted)').forEach(function (cell) {
-        cell.addEventListener('click', function (e) {
-          if (e.target.closest('.cal27-ev')) return;
-          gridEl.querySelectorAll('.cal27-cell').forEach(function (c) {
-            c.classList.remove('is-selected');
-          });
-          cell.classList.add('is-selected');
-          sound('tink');
+        var dayNum = parseInt(cell.getAttribute('data-day'), 10) || 1;
+        cell.querySelectorAll('.cal27-ev-t').forEach(function (tEl, idx) {
+          var evs = eventsFor(year, month, dayNum);
+          if (evs[idx]) tEl.textContent = evs[idx].t;
         });
-        cell.addEventListener('dblclick', function () {
-          gridEl.querySelectorAll('.cal27-cell').forEach(function (c) {
-            c.classList.remove('is-selected');
+        bindDayCell(cell, dayNum);
+      });
+    }
+
+    function renderWeek() {
+      if (!gridEl) return;
+      if (weekdaysEl) weekdaysEl.style.display = 'none';
+      gridEl.className = 'cal27-grid cal27-week-view';
+      var start = new Date(year, month, selectedDay || 1);
+      start.setDate(start.getDate() - start.getDay());
+      var hours = [];
+      for (var h = 8; h <= 18; h++) hours.push(h);
+      var html = '<div class="cal27-week-head">';
+      for (var i = 0; i < 7; i++) {
+        var d = new Date(start);
+        d.setDate(start.getDate() + i);
+        html +=
+          '<div class="cal27-week-day-h"><strong>' +
+          weekdays[i] +
+          '</strong><span>' +
+          (d.getMonth() + 1) +
+          '/' +
+          d.getDate() +
+          '</span></div>';
+      }
+      html += '</div><div class="cal27-week-body">';
+      hours.forEach(function (hour) {
+        html += '<div class="cal27-week-row"><div class="cal27-week-time">' + hour + ':00</div>';
+        for (var c = 0; c < 7; c++) {
+          var dd = new Date(start);
+          dd.setDate(start.getDate() + c);
+          var evs = eventsFor(dd.getFullYear(), dd.getMonth(), dd.getDate());
+          var hit = evs.filter(function (e) {
+            return e.time && parseInt(e.time, 10) === hour;
           });
-          cell.classList.add('is-selected');
+          html +=
+            '<div class="cal27-week-cell' +
+            (hit.length ? ' has-ev' : '') +
+            '">' +
+            hit
+              .map(function (e) {
+                return '<div class="cal27-ev timed ' + (e.c || 'blue') + '"><span class="cal27-ev-t">' + e.t + '</span></div>';
+              })
+              .join('') +
+            '</div>';
+        }
+        html += '</div>';
+      });
+      html += '</div>';
+      gridEl.innerHTML = html;
+      if (titleEl) {
+        var end = new Date(start);
+        end.setDate(start.getDate() + 6);
+        titleEl.textContent =
+          monthNames[start.getMonth()].slice(0, 3) +
+          ' ' +
+          start.getDate() +
+          ' – ' +
+          monthNames[end.getMonth()].slice(0, 3) +
+          ' ' +
+          end.getDate() +
+          ', ' +
+          year;
+      }
+      gridEl.querySelectorAll('.cal27-week-cell').forEach(function (cell) {
+        cell.addEventListener('dblclick', function () {
           if (add) add.click();
         });
       });
-      gridEl.querySelectorAll('.cal27-ev').forEach(function (ev) {
-        ev.style.cursor = 'pointer';
-        ev.addEventListener('click', function (e) {
-          e.stopPropagation();
-          gridEl.querySelectorAll('.cal27-ev').forEach(function (x) {
-            x.classList.remove('is-selected');
+    }
+
+    function renderDay() {
+      if (!gridEl) return;
+      if (weekdaysEl) weekdaysEl.style.display = 'none';
+      gridEl.className = 'cal27-grid cal27-day-view';
+      var day = selectedDay || 17;
+      var evs = eventsFor(year, month, day);
+      var html = '<div class="cal27-day-list">';
+      for (var h = 8; h <= 20; h++) {
+        var label = (h > 12 ? h - 12 : h) + (h >= 12 ? ' PM' : ' AM');
+        if (h === 12) label = '12 PM';
+        var hit = evs.filter(function (e) {
+          return e.time && parseInt(e.time, 10) === h;
+        });
+        html +=
+          '<div class="cal27-day-row"><div class="cal27-day-time">' +
+          label +
+          '</div><div class="cal27-day-slot">' +
+          (hit.length
+            ? hit
+                .map(function (e) {
+                  return (
+                    '<div class="cal27-ev timed ' +
+                    (e.c || 'blue') +
+                    ' is-block"><span class="cal27-ev-t">' +
+                    e.t +
+                    '</span><span class="cal27-ev-time">' +
+                    e.time +
+                    '</span></div>'
+                  );
+                })
+                .join('')
+            : '') +
+          '</div></div>';
+      }
+      html += '</div>';
+      gridEl.innerHTML = html;
+      if (titleEl) titleEl.textContent = monthNames[month] + ' ' + day + ', ' + year;
+      gridEl.querySelectorAll('.cal27-day-slot').forEach(function (slot) {
+        slot.addEventListener('dblclick', function () {
+          if (add) add.click();
+        });
+      });
+    }
+
+    function renderYear() {
+      if (!gridEl) return;
+      if (weekdaysEl) weekdaysEl.style.display = 'none';
+      gridEl.className = 'cal27-grid cal27-year-view';
+      var html = '';
+      for (var m = 0; m < 12; m++) {
+        var dim = daysInMonth(year, m);
+        var pad = startPad(year, m);
+        html +=
+          '<button type="button" class="cal27-year-month' +
+          (m === month ? ' is-current' : '') +
+          '" data-m="' +
+          m +
+          '"><div class="cal27-year-mname">' +
+          monthNames[m].slice(0, 3) +
+          '</div><div class="cal27-year-mini">';
+        var i;
+        for (i = 0; i < pad; i++) html += '<span class="muted"></span>';
+        for (var d = 1; d <= dim; d++) {
+          var has = eventsFor(year, m, d).length > 0;
+          html +=
+            '<span class="' +
+            (has ? 'has-ev' : '') +
+            (m === month && d === selectedDay ? ' is-sel' : '') +
+            '">' +
+            d +
+            '</span>';
+        }
+        html += '</div></button>';
+      }
+      gridEl.innerHTML = html;
+      if (titleEl) titleEl.textContent = String(year);
+      gridEl.querySelectorAll('.cal27-year-month').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          month = parseInt(btn.getAttribute('data-m'), 10) || 0;
+          viewMode = 'Month';
+          el.querySelectorAll('.cal27-seg-btn').forEach(function (b) {
+            b.classList.toggle('is-active', (b.textContent || '').trim() === 'Month');
           });
-          ev.classList.add('is-selected');
+          renderMonth();
           sound('pop');
         });
       });
+    }
+
+    function renderView() {
+      if (gridWrap) gridWrap.style.display = '';
+      if (viewMode === 'Day') renderDay();
+      else if (viewMode === 'Week') renderWeek();
+      else if (viewMode === 'Year') renderYear();
+      else renderMonth();
     }
 
     el.querySelectorAll('.cal27-seg-btn').forEach(function (btn) {
@@ -2512,15 +2715,9 @@
           b.classList.remove('is-active');
         });
         btn.classList.add('is-active');
+        viewMode = (btn.textContent || '').trim() || 'Month';
+        renderView();
         sound('pop');
-        var view = (btn.textContent || '').trim();
-        if (view === 'Month') {
-          var wrap = el.querySelector('.cal27-grid-wrap');
-          if (wrap) wrap.style.display = '';
-          if (titleEl) titleEl.textContent = monthNames[month] + ' ' + year;
-        } else if (global.MacShell && MacShell.notify) {
-          MacShell.notify('Calendar', view + ' view', 'Showing ' + view + ' layout (demo)', 'now');
-        }
       });
     });
     var todayBtn = el.querySelector('.cal27-today');
@@ -2529,7 +2726,8 @@
         var now = new Date();
         year = now.getFullYear();
         month = now.getMonth();
-        renderMonth();
+        selectedDay = now.getDate();
+        renderView();
         sound('tink');
       });
     }
@@ -2640,28 +2838,75 @@
     var navs = el.querySelectorAll('.cal27-nav');
     if (navs[0]) {
       navs[0].addEventListener('click', function () {
-        month--;
-        if (month < 0) {
-          month = 11;
+        if (viewMode === 'Year') {
           year--;
+        } else if (viewMode === 'Day') {
+          selectedDay--;
+          if (selectedDay < 1) {
+            month--;
+            if (month < 0) {
+              month = 11;
+              year--;
+            }
+            selectedDay = daysInMonth(year, month);
+          }
+        } else if (viewMode === 'Week') {
+          selectedDay -= 7;
+          if (selectedDay < 1) {
+            month--;
+            if (month < 0) {
+              month = 11;
+              year--;
+            }
+            selectedDay = Math.max(1, daysInMonth(year, month) + selectedDay);
+          }
+        } else {
+          month--;
+          if (month < 0) {
+            month = 11;
+            year--;
+          }
         }
-        renderMonth();
+        renderView();
         sound('pop');
       });
     }
     if (navs[1]) {
       navs[1].addEventListener('click', function () {
-        month++;
-        if (month > 11) {
-          month = 0;
+        if (viewMode === 'Year') {
           year++;
+        } else if (viewMode === 'Day') {
+          selectedDay++;
+          if (selectedDay > daysInMonth(year, month)) {
+            selectedDay = 1;
+            month++;
+            if (month > 11) {
+              month = 0;
+              year++;
+            }
+          }
+        } else if (viewMode === 'Week') {
+          selectedDay += 7;
+          if (selectedDay > daysInMonth(year, month)) {
+            selectedDay = selectedDay - daysInMonth(year, month);
+            month++;
+            if (month > 11) {
+              month = 0;
+              year++;
+            }
+          }
+        } else {
+          month++;
+          if (month > 11) {
+            month = 0;
+            year++;
+          }
         }
-        renderMonth();
+        renderView();
         sound('pop');
       });
     }
-    /* use rendered month with events (re-binds after nav) */
-    renderMonth();
+    renderView();
 
     /* mini agenda: click sidebar events */
     el.querySelectorAll('.cal27-agenda-item, .cal27-side-ev, .cal27-upcoming li').forEach(function (item) {
