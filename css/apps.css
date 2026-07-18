@@ -3666,12 +3666,22 @@ tr.is-selected {
   justify-content: center;
   flex-wrap: wrap;
 }
-.vm-row[data-tts] strong::after {
-  content: ' · TTS';
-  font-size: 10px;
-  font-weight: 600;
-  opacity: 0.45;
-  margin-left: 4px;
+.vm-transcript {
+  margin: 0 16px 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.78);
+  background: rgba(120, 120, 128, 0.18);
+  border: 0.5px solid rgba(255, 255, 255, 0.1);
+  max-height: 72px;
+  overflow: auto;
+}
+html[data-theme='light'] .vm-transcript {
+  color: rgba(0, 0, 0, 0.72);
+  background: rgba(0, 0, 0, 0.05);
+  border-color: rgba(0, 0, 0, 0.08);
 }
 #vm-record.is-recording {
   background: #ff3b30;

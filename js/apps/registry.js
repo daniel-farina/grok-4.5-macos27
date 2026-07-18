@@ -5372,26 +5372,26 @@ return theGreeting</textarea>
         ${toolbar(`<strong>Voice Memos</strong><span class="muted">TTS playback · click Play</span>`)}
         <div class="vm-list">
           <div class="vm-row is-selected" data-tts="Remember to demo the Liquid Glass desktop, calendar day week year views, and the new right-click context menu.">
-            <strong>Meeting Ideas</strong><span class="muted">TTS · 0:12</span>
+            <strong>Meeting Ideas</strong><span class="muted">0:12</span>
           </div>
           <div class="vm-row" data-tts="Liquid glass, soft and bright. Desktop glow in morning light. macOS twenty seven takes flight.">
-            <strong>Song Hook</strong><span class="muted">TTS · 0:08</span>
+            <strong>Song Hook</strong><span class="muted">0:08</span>
           </div>
           <div class="vm-row" data-tts="You have three new messages. Mail, Maps satellite view, and Chess are ready to try.">
-            <strong>Voicemail Sample</strong><span class="muted">TTS · 0:07</span>
+            <strong>Voicemail Sample</strong><span class="muted">0:07</span>
           </div>
           <div class="vm-row" data-tts="Hi, this is a demo greeting. Press one for sales, two for support, or stay on the line for an operator.">
-            <strong>Greeting Script</strong><span class="muted">TTS · 0:09</span>
+            <strong>Greeting Script</strong><span class="muted">0:09</span>
           </div>
           <div class="vm-row" data-tts="Don't forget the App Store install of Chess, then play a full game against the computer.">
-            <strong>Todo Dictation</strong><span class="muted">TTS · 0:06</span>
+            <strong>Todo Dictation</strong><span class="muted">0:06</span>
           </div>
         </div>
         <div class="vm-record-bar">
           <button type="button" class="btn-primary" id="vm-play">▶ Play</button>
           <button type="button" class="btn-glass" id="vm-stop">Stop</button>
           <button type="button" class="btn-glass" id="vm-record">● Record</button>
-          <span class="muted" id="vm-status">Ready · select a memo and press Play for TTS</span>
+          <span class="muted" id="vm-status">Ready · select a memo and press Play</span>
         </div>
       </div>`;
     };

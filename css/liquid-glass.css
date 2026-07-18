@@ -904,24 +904,26 @@ html.dock-mag-off .dock-item[data-magnify] {
   transform: translateX(-50%) translateY(0);
 }
 
-/* Thin vertical separator (apps | trash) */
+/* Thin vertical separator (apps | trash) — match Tahoe glass dock */
 .dock-separator,
 .dock-sep {
   width: 1px;
-  height: 36px;
-  margin: 0 8px 10px;
-  align-self: center;
+  height: 40px;
+  margin: 0 10px 8px;
+  align-self: flex-end;
   flex-shrink: 0;
   border-radius: 1px;
   background: linear-gradient(
     180deg,
     transparent 0%,
-    rgba(255, 255, 255, 0.42) 18%,
-    rgba(255, 255, 255, 0.42) 82%,
+    rgba(255, 255, 255, 0.55) 20%,
+    rgba(255, 255, 255, 0.55) 80%,
     transparent 100%
   );
-  opacity: 0.85;
-  box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.04);
+  opacity: 1;
+  box-shadow:
+    0 0 0 0.5px rgba(0, 0, 0, 0.12),
+    0 0 6px rgba(255, 255, 255, 0.15);
 }
 
 /* Bounce animation for open — compose with current --scale */
@@ -1876,6 +1878,19 @@ html.dock-reflect {
   margin-top: 6px;
 }
 
+.widget-wx-hourly span {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 40px;
+}
+.widget-wx-hourly small {
+  font-size: 10px;
+  font-weight: 500;
+  opacity: 0.55;
+  letter-spacing: 0.02em;
+}
 .widget-wx-hourly {
   display: flex;
   justify-content: space-between;

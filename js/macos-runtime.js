@@ -8180,15 +8180,25 @@
         "Don't forget the App Store install of Chess, then play a full game against the computer.",
     };
 
+    var playTimer = null;
     function stopSpeech() {
       try {
         if (window.speechSynthesis) window.speechSynthesis.cancel();
       } catch (e) {}
       currentUtter = null;
       playing = false;
+      if (playTimer) {
+        clearInterval(playTimer);
+        playTimer = null;
+      }
       el.querySelectorAll('.vm-row').forEach(function (r) {
         r.classList.remove('is-playing');
       });
+      var panel = el.querySelector('.vm-transcript');
+      if (panel) {
+        panel.hidden = true;
+        panel.textContent = '';
+      }
     }
 
     function scriptFor(row) {
@@ -8224,54 +8234,121 @@
       });
     }
 
+    function showTranscript(text) {
+      var panel = el.querySelector('.vm-transcript');
+      if (!panel) {
+        panel = document.createElement('div');
+        panel.className = 'vm-transcript';
+        panel.setAttribute('aria-live', 'polite');
+        var bar = el.querySelector('.vm-record-bar');
+        if (bar && bar.parentNode) bar.parentNode.insertBefore(panel, bar);
+        else el.appendChild(panel);
+      }
+      panel.hidden = false;
+      panel.textContent = text || '';
+      return panel;
+    }
+
+    function hideTranscript() {
+      var panel = el.querySelector('.vm-transcript');
+      if (panel) {
+        panel.hidden = true;
+        panel.textContent = '';
+      }
+    }
+
+    function finishPlay(row, msg) {
+      playing = false;
+      if (row) row.classList.remove('is-playing');
+      if (status) status.textContent = msg || 'Ready';
+      currentUtter = null;
+      if (playTimer) {
+        clearInterval(playTimer);
+        playTimer = null;
+      }
+      sound('tink');
+    }
+
+    function simulatePlay(row, text, name) {
+      /* Waveform-style fallback when speech engine is blocked (headless / autoplay) */
+      showTranscript(text);
+      if (status) status.textContent = 'Playing · ' + name;
+      var words = (text || '').split(/\s+/).filter(Boolean);
+      var ms = Math.min(12000, Math.max(2200, words.length * 280));
+      var ticks = 0;
+      var maxTicks = Math.ceil(ms / 400);
+      if (playTimer) clearInterval(playTimer);
+      playTimer = setInterval(function () {
+        ticks++;
+        if (status) {
+          status.textContent =
+            'Playing · ' + name + ' · ' + Math.min(100, Math.round((ticks / maxTicks) * 100)) + '%';
+        }
+        if (ticks % 2 === 0) sound('volume');
+        if (ticks >= maxTicks) {
+          clearInterval(playTimer);
+          playTimer = null;
+          hideTranscript();
+          finishPlay(row, 'Ready · finished');
+        }
+      }, 400);
+    }
+
     function playRow(row) {
       stopSpeech();
+      hideTranscript();
       el.querySelectorAll('.vm-row').forEach(function (r) {
         r.classList.remove('is-playing', 'is-selected');
       });
       row.classList.add('is-playing', 'is-selected');
       playing = true;
       var title = row.querySelector('strong');
-      var name = title ? title.textContent : 'Recording';
+      var name = (title ? title.textContent : 'Recording').replace(/\s*·\s*TTS\s*$/i, '').trim();
       var text = scriptFor(row);
-      if (status) status.textContent = 'Speaking · ' + name;
+      if (status) status.textContent = 'Playing · ' + name;
       sound('funk');
+      showTranscript(text);
 
+      var usedSpeech = false;
       if (window.speechSynthesis && text) {
-        var u = new SpeechSynthesisUtterance(text);
-        u.rate = 1;
-        u.pitch = 1;
-        u.volume = 1;
-        currentUtter = u;
-        u.onend = function () {
-          playing = false;
-          row.classList.remove('is-playing');
-          if (status) status.textContent = 'Ready · TTS finished';
-          sound('tink');
-          currentUtter = null;
-        };
-        u.onerror = function () {
-          playing = false;
-          row.classList.remove('is-playing');
-          if (status) status.textContent = 'TTS unavailable · try Chrome/Safari';
-          sound('sosumi');
-        };
         try {
+          var u = new SpeechSynthesisUtterance(text);
+          u.rate = 1;
+          u.pitch = 1;
+          u.volume = 1;
+          currentUtter = u;
+          var settled = false;
+          u.onend = function () {
+            if (settled) return;
+            settled = true;
+            hideTranscript();
+            finishPlay(row, 'Ready · finished');
+          };
+          u.onerror = function () {
+            if (settled) return;
+            settled = true;
+            /* Fall back to simulated playback instead of a dead-end error */
+            simulatePlay(row, text, name);
+          };
           window.speechSynthesis.cancel();
           window.speechSynthesis.speak(u);
+          usedSpeech = true;
+          /* If the engine never starts (common in headless), fall back */
+          setTimeout(function () {
+            if (!settled && playing && window.speechSynthesis && !window.speechSynthesis.speaking) {
+              settled = true;
+              try {
+                window.speechSynthesis.cancel();
+              } catch (e2) {}
+              simulatePlay(row, text, name);
+            }
+          }, 700);
         } catch (err) {
-          if (status) status.textContent = 'TTS error';
-          sound('sosumi');
+          usedSpeech = false;
         }
-      } else {
-        /* Fallback beep sequence if no speech API */
-        if (status) status.textContent = 'No speechSynthesis · demo tone';
-        setTimeout(function () {
-          playing = false;
-          row.classList.remove('is-playing');
-          if (status) status.textContent = 'Ready';
-          sound('tink');
-        }, 1200);
+      }
+      if (!usedSpeech) {
+        simulatePlay(row, text, name);
       }
     }
 
