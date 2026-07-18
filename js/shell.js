@@ -819,9 +819,15 @@
     syncRunningFromWindows();
   }
 
+  /* v2: host-local left/top only. Drop legacy key so old shrink-wrap coords cannot hide icons. */
+  var DESKTOP_ICON_POS_KEY = 'macos-desktop-icons-v2';
+
   function loadDesktopIconPositions() {
     try {
-      return JSON.parse(localStorage.getItem('macos-desktop-icons') || '{}') || {};
+      try {
+        localStorage.removeItem('macos-desktop-icons');
+      } catch (e0) {}
+      return JSON.parse(localStorage.getItem(DESKTOP_ICON_POS_KEY) || '{}') || {};
     } catch (e) {
       return {};
     }
@@ -829,7 +835,7 @@
 
   function saveDesktopIconPositions(map) {
     try {
-      localStorage.setItem('macos-desktop-icons', JSON.stringify(map || {}));
+      localStorage.setItem(DESKTOP_ICON_POS_KEY, JSON.stringify(map || {}));
     } catch (e) {}
   }
 
@@ -933,9 +939,15 @@
           left = Math.max(8, hostW - 14 - iconW - col * colWidth);
           top = topPad + row * step;
         }
-        var style = 'left:' + left + 'px;top:' + top + 'px;right:auto;bottom:auto;';
+        /* width fixed so left+right never collapses the icon to zero size */
+        var style =
+          'left:' +
+          left +
+          'px;top:' +
+          top +
+          'px;right:auto;bottom:auto;width:88px;transform:none;';
         return (
-          '<button type="button" class="desktop-icon" data-key="' +
+          '<button type="button" class="desktop-icon" draggable="false" data-key="' +
           escapeHtml(it.key) +
           '" data-open="' +
           escapeHtml(it.id) +
@@ -948,7 +960,7 @@
           '">' +
           '<div class="desktop-icon-img kind-' +
           escapeHtml(it.kind) +
-          '">' +
+          '" draggable="false">' +
           desktopIconGlyph(it) +
           '</div>' +
           '<span class="desktop-icon-label">' +
@@ -980,6 +992,10 @@
           openDesktopIcon(btn);
         }
       });
+      /* Kill native HTML5 drag (images/buttons) which can hide the real icon */
+      btn.addEventListener('dragstart', function (e) {
+        e.preventDefault();
+      });
       enableDesktopIconDrag(btn, host);
     });
   }
@@ -991,6 +1007,8 @@
     var oy = 0;
     var startX = 0;
     var startY = 0;
+    var originX = 0;
+    var originY = 0;
     var moved = false;
 
     function hostRect() {
@@ -1002,20 +1020,25 @@
       var w = btn.offsetWidth || 88;
       var h = btn.offsetHeight || 72;
       /* Host-local coordinates (full-bleed #desktop-icons) */
-      var maxX = Math.max(8, (hr.width || host.clientWidth || 0) - w - 8);
-      var maxY = Math.max(36, (hr.height || host.clientHeight || 0) - h - 88);
+      var maxX = Math.max(8, (hr.width || host.clientWidth || window.innerWidth || 0) - w - 8);
+      var maxY = Math.max(36, (hr.height || host.clientHeight || window.innerHeight || 0) - h - 88);
       return {
         x: Math.max(8, Math.min(maxX, x)),
         y: Math.max(36, Math.min(maxY, y)),
       };
     }
 
-    function applyPos(x, y) {
+    /* Full style rewrite — avoids left/right/inset shorthand leaving icons at 0 size or off-host */
+    function commitPos(x, y) {
       var p = clampPos(x, y);
-      btn.style.left = p.x + 'px';
-      btn.style.top = p.y + 'px';
-      btn.style.right = 'auto';
-      btn.style.bottom = 'auto';
+      p.x = Math.round(p.x);
+      p.y = Math.round(p.y);
+      btn.style.cssText =
+        'left:' +
+        p.x +
+        'px;top:' +
+        p.y +
+        'px;right:auto;bottom:auto;width:88px;transform:none;';
       return p;
     }
 
@@ -1023,10 +1046,11 @@
       if (!dragging) return;
       if (pointerId != null && e.pointerId !== pointerId) return;
       var dist = Math.abs(e.clientX - startX) + Math.abs(e.clientY - startY);
-      if (dist > 5) {
+      if (dist > 4) {
         if (!moved) {
           moved = true;
           btn.classList.add('is-dragging');
+          host.classList.add('is-icon-dragging');
           btn._suppressClick = true;
           try {
             btn.setPointerCapture(e.pointerId);
@@ -1035,15 +1059,18 @@
       }
       if (!moved) return;
       e.preventDefault();
-      var hr = hostRect();
-      applyPos(e.clientX - ox - hr.left, e.clientY - oy - hr.top);
+      /* Live drag via transform from origin (stable; never fights inset shorthand) */
+      var dx = e.clientX - startX;
+      var dy = e.clientY - startY;
+      var p = clampPos(originX + dx, originY + dy);
+      btn.style.transform =
+        'translate(' + (p.x - originX) + 'px,' + (p.y - originY) + 'px)';
     }
 
     function endDrag(e) {
       if (!dragging) return;
       if (e && pointerId != null && e.pointerId != null && e.pointerId !== pointerId) return;
       dragging = false;
-      btn.classList.remove('is-dragging');
       document.removeEventListener('pointermove', onMove, true);
       document.removeEventListener('pointerup', endDrag, true);
       document.removeEventListener('pointercancel', endDrag, true);
@@ -1051,33 +1078,49 @@
         if (e && e.pointerId != null) btn.releasePointerCapture(e.pointerId);
       } catch (err) {}
       pointerId = null;
-      if (!moved) return;
+      host.classList.remove('is-icon-dragging');
+      btn.classList.remove('is-dragging');
+      if (!moved) {
+        btn.style.transform = 'none';
+        return;
+      }
       btn._suppressClick = true;
       var key = btn.getAttribute('data-key');
-      if (!key) return;
+      /* Prefer live geometry so transform is folded into left/top correctly */
       var hr = hostRect();
       var br = btn.getBoundingClientRect();
-      var p = applyPos(br.left - hr.left, br.top - hr.top);
-      var map = loadDesktopIconPositions();
-      map[key] = { x: p.x, y: p.y };
-      saveDesktopIconPositions(map);
+      var p = commitPos(br.left - hr.left, br.top - hr.top);
+      if (key) {
+        var map = loadDesktopIconPositions();
+        map[key] = { x: p.x, y: p.y };
+        saveDesktopIconPositions(map);
+      }
       setTimeout(function () {
         btn._suppressClick = false;
-      }, 120);
+      }, 160);
     }
 
     btn.addEventListener('pointerdown', function (e) {
       if (e.button !== 0) return;
-      /* Ignore if a window is under the pointer (icons are below windows in z) */
+      /* Do not start icon drag from under an open window hit-test (icons are z below windows) */
       dragging = true;
       moved = false;
       pointerId = e.pointerId;
+      var hr = hostRect();
       var r = btn.getBoundingClientRect();
+      originX = r.left - hr.left;
+      originY = r.top - hr.top;
       ox = e.clientX - r.left;
       oy = e.clientY - r.top;
       startX = e.clientX;
       startY = e.clientY;
-      /* Document capture so drag continues when pointer leaves the icon */
+      /* Anchor origin with clean left/top before any transform */
+      var anchored = commitPos(originX, originY);
+      originX = anchored.x;
+      originY = anchored.y;
+      try {
+        e.preventDefault();
+      } catch (err) {}
       document.addEventListener('pointermove', onMove, true);
       document.addEventListener('pointerup', endDrag, true);
       document.addEventListener('pointercancel', endDrag, true);
@@ -2523,6 +2566,7 @@
         /* Snap desktop icons back to default column */
         try {
           localStorage.removeItem('macos-desktop-icons');
+          localStorage.removeItem(DESKTOP_ICON_POS_KEY);
         } catch (e) {}
         renderDesktopIcons();
         notify('Desktop', 'Clean Up', 'Icons arranged', 'now');

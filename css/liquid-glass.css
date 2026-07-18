@@ -3493,10 +3493,15 @@ body.stage-manager-on .window.is-active:not(.is-minimized):not(.is-staged),
   touch-action: none;
   user-select: none;
 }
+#desktop-icons.is-icon-dragging {
+  /* Lift above windows while an icon is dragged (parent stacking context) */
+  z-index: 800;
+}
 .desktop-icon.is-dragging {
-  opacity: 0.9;
-  z-index: 50;
+  opacity: 0.95;
+  z-index: 10;
   cursor: grabbing;
+  will-change: transform;
 }
 .desktop-icon.is-selected {
   background: rgba(10, 132, 255, 0.35);

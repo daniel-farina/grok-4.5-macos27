@@ -344,7 +344,9 @@
 
 /* Desktop icons — full freeform layer (required for drag/drop positions).
    Do NOT shrink-wrap with left:auto/right:20 — that makes left:px drag coords
-   place icons outside the host so they disappear under #macos overflow. */
+   place icons outside the host so they disappear under #macos overflow.
+   While dragging, raise the whole layer above windows (still under menubar/dock)
+   so the icon stays visible — child z-index alone cannot escape parent stacking. */
 #desktop-icons {
   position: absolute !important;
   inset: 0 !important;
@@ -357,20 +359,36 @@
   overflow: visible !important;
   pointer-events: none !important;
 }
+#desktop-icons.is-icon-dragging {
+  z-index: 800 !important; /* above windows (~100+), below menubar(900)/dock(950) */
+}
 .desktop-icon {
   color: #fff !important;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45) !important;
   pointer-events: auto !important;
   position: absolute !important;
+  width: 88px !important;
+  box-sizing: border-box !important;
+  -webkit-user-drag: none !important;
+  user-select: none !important;
+}
+.desktop-icon *,
+.desktop-icon img,
+.desktop-icon svg {
+  -webkit-user-drag: none !important;
+  pointer-events: none !important; /* hits go to the button so drag is reliable */
 }
 .desktop-icon.is-dragging {
-  opacity: 0.92 !important;
-  z-index: 100 !important;
+  opacity: 0.95 !important;
+  z-index: 10 !important;
   cursor: grabbing !important;
+  will-change: transform !important;
+  filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.35)) !important;
 }
 .desktop-icon-label {
   background: transparent !important;
   font-size: 12px !important;
+  pointer-events: none !important;
 }
 
 /* -----------------------------------------------------------------------------
