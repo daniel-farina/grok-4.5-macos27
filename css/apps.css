@@ -3488,25 +3488,37 @@ tr.is-selected {
 }
 .chess-sq.light { background: #f0d9b5; }
 .chess-sq.dark { background: #b58863; }
-/* Piece contrast: solid filled glyphs colored cream vs near-black */
+/* Piece contrast: solid cream vs solid near-black (glyphs are filled set) */
+.chess-sq.piece-white,
+.chess-sq.piece-black {
+  position: relative;
+  z-index: 0;
+}
 .chess-sq.piece-white {
-  color: #fffaf2 !important;
-  -webkit-text-stroke: 0.6px #2a2118;
-  paint-order: stroke fill;
+  color: #fffdf8 !important;
+  /* Fat multi-offset shadow acts as a solid body + dark rim */
   text-shadow:
-    0 0 0.5px #2a2118,
-    0 1px 0 #1a1410,
+    0 0 0 #1a1410,
     1px 0 0 #1a1410,
-    0 -1px 0 #1a1410,
     -1px 0 0 #1a1410,
-    0 2px 4px rgba(0, 0, 0, 0.4);
+    0 1px 0 #1a1410,
+    0 -1px 0 #1a1410,
+    1px 1px 0 #1a1410,
+    -1px 1px 0 #1a1410,
+    1px -1px 0 #1a1410,
+    -1px -1px 0 #1a1410,
+    2px 0 0 #1a1410,
+    -2px 0 0 #1a1410,
+    0 2px 0 #1a1410,
+    0 -2px 0 #1a1410,
+    0 3px 4px rgba(0, 0, 0, 0.35);
+  filter: drop-shadow(0 0 0.4px #1a1410);
 }
 .chess-sq.piece-black {
-  color: #14100c !important;
-  -webkit-text-stroke: 0;
+  color: #0e0b09 !important;
   text-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.12),
-    0 2px 3px rgba(0, 0, 0, 0.28);
+    0 1px 0 rgba(255, 255, 255, 0.1),
+    0 2px 3px rgba(0, 0, 0, 0.3);
 }
 .chess-sq.is-selected {
   outline: 2px solid #0a84ff;
