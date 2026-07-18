@@ -4184,7 +4184,7 @@ html[data-theme='light'] .kbd-panel {
 .continuity-handoff {
   position: fixed;
   right: 118px;
-  bottom: calc(var(--dock-height, 72px) + 22px);
+  bottom: calc(var(--dock-height, 72px) + 28px);
   z-index: 9000;
   display: flex;
   align-items: center;

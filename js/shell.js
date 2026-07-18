@@ -3164,6 +3164,8 @@
         closeMenubarMenus();
         hideControlCenter();
         hideNotificationCenter();
+        /* stopPropagation would skip document dismiss — close context explicitly */
+        hideContextMenu();
         if (!wasOpen) {
           item.classList.add('is-open');
           item.setAttribute('aria-expanded', 'true');
