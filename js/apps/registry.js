@@ -1827,7 +1827,7 @@
           </div>
         </div>
         <div class="cal27-title-row">
-          <h1 class="cal27-month-title">April 2026</h1>
+          <h1 class="cal27-month-title">${['January','February','March','April','May','June','July','August','September','October','November','December'][new Date().getMonth()]} ${new Date().getFullYear()}</h1>
           <div class="cal27-title-nav">
             <button type="button" class="cal27-nav" aria-label="Previous">‹</button>
             <button type="button" class="cal27-today">Today</button>

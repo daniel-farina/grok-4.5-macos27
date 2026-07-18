@@ -886,15 +886,15 @@
     ];
     var pos = loadDesktopIconPositions();
     host.classList.add('is-freeform');
-    var topPad = 36;
-    var dockReserve = 110;
+    var topPad = 34;
+    var dockReserve = 118;
     var colWidth = 96;
-    var iconBlock = 74;
+    var iconBlock = 72;
     var vh = window.innerHeight || 800;
-    var avail = Math.max(260, vh - topPad - dockReserve);
+    var avail = Math.max(240, vh - topPad - dockReserve);
     /* Even spacing so the last icon clears the dock */
     var step = Math.floor((avail - iconBlock) / Math.max(items.length - 1, 1));
-    step = Math.min(82, Math.max(62, step));
+    step = Math.min(80, Math.max(58, step));
     var perCol = Math.max(1, Math.floor((avail - iconBlock) / step) + 1);
     host.innerHTML = items
       .map(function (it, i) {

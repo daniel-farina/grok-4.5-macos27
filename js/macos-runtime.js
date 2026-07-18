@@ -2466,24 +2466,32 @@
       'December',
     ];
     var weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    var year = 2026;
-    var month = 3; /* April 0-based */
-    var selectedDay = 17;
+    /* Open on real "today" so month matches widgets / menubar */
+    var _now = new Date();
+    var year = _now.getFullYear();
+    var month = _now.getMonth();
+    var selectedDay = _now.getDate();
     var viewMode = 'Month';
     var titleEl = el.querySelector('.cal27-month-title');
     var gridWrap = el.querySelector('.cal27-grid-wrap');
     var gridEl = el.querySelector('.cal27-grid');
     var weekdaysEl = el.querySelector('.cal27-weekdays');
-    var sampleEvents = {
-      /* month-day -> list */
-      '3-9': [{ t: 'Design Review', time: '10:00', c: 'blue' }],
-      '3-16': [
-        { t: 'Team Sync', time: '10:00', c: 'blue' },
-        { t: 'Ship Demo', time: '14:00', c: 'orange' },
-      ],
-      '3-17': [{ t: 'Focus Time', time: '09:00', c: 'green' }],
-      '3-22': [{ t: 'WWDC Watch', time: '11:00', c: 'purple' }],
-    };
+    /* Sample events keyed by month-day (0-based month) for current month */
+    var sampleEvents = {};
+    sampleEvents[month + '-' + Math.max(1, selectedDay - 8)] = [
+      { t: 'Design Review', time: '10:00', c: 'blue' },
+    ];
+    sampleEvents[month + '-' + Math.max(1, selectedDay - 1)] = [
+      { t: 'Team Sync', time: '10:00', c: 'blue' },
+      { t: 'Ship Demo', time: '14:00', c: 'orange' },
+    ];
+    sampleEvents[month + '-' + selectedDay] = [
+      { t: 'Focus Time', time: '09:00', c: 'green' },
+      { t: 'Team standup', time: '09:00', c: 'blue' },
+    ];
+    sampleEvents[month + '-' + Math.min(28, selectedDay + 5)] = [
+      { t: 'WWDC Watch', time: '11:00', c: 'purple' },
+    ];
 
     function daysInMonth(y, m) {
       return new Date(y, m + 1, 0).getDate();
@@ -2494,7 +2502,7 @@
     function eventsFor(y, m, d) {
       var key = m + '-' + d;
       var list = sampleEvents[key] ? sampleEvents[key].slice() : [];
-      if (y === 2026 && m === 3 && d === selectedDay && !list.length) {
+      if (y === year && m === month && d === selectedDay && !list.length) {
         list.push({ t: 'Selected day', time: 'All day', c: 'blue' });
       }
       return list;
@@ -2554,7 +2562,7 @@
       for (var d = 1; d <= dim; d++) {
         var isToday =
           today.getFullYear() === year && today.getMonth() === month && today.getDate() === d;
-        if (year === 2026 && month === 3 && d === 17) isToday = true;
+        /* isToday already from live Date above */
         var isSel = d === selectedDay;
         var evs = eventsFor(year, month, d);
         var evHtml = evs
@@ -10382,11 +10390,16 @@
         var light = ((view / 8) | 0) + (view % 8);
         sq.className = 'chess-sq ' + (light % 2 === 0 ? 'light' : 'dark');
         sq.dataset.i = String(view);
-        sq.textContent = GLYPH[board[view]] || '';
+        var piece = board[view];
+        sq.textContent = GLYPH[piece] || '';
+        sq.classList.remove('piece-white', 'piece-black');
+        if (piece && piece !== '.') {
+          sq.classList.add(piece === piece.toUpperCase() ? 'piece-white' : 'piece-black');
+        }
         if (view === selected) sq.classList.add('is-selected');
         if (legal.indexOf(view) >= 0) {
           sq.classList.add('is-legal');
-          if (board[view] !== '.') sq.classList.add('is-capture');
+          if (piece && piece !== '.') sq.classList.add('is-capture');
         }
         boardEl.appendChild(sq);
       }

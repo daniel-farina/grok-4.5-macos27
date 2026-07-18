@@ -149,17 +149,24 @@ html[data-theme='light'] .apps-more:hover {
 /* ── Category chip row ───────────────────────────────────────────────────── */
 .apps-categories {
   display: flex;
-  gap: 8px;
+  flex-wrap: wrap;
+  gap: 6px 8px;
   padding: 6px 20px 12px;
   overflow-x: auto;
+  overflow-y: visible;
   flex-shrink: 0;
   border-bottom: 0.5px solid rgba(255, 255, 255, 0.08);
-  scrollbar-width: none;
-  -ms-overflow-style: none;
+  scrollbar-width: thin;
+  -ms-overflow-style: auto;
+  max-height: none;
 }
 
 .apps-categories::-webkit-scrollbar {
-  display: none;
+  height: 4px;
+}
+.apps-categories::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
 }
 
 html[data-theme='light'] .apps-categories {

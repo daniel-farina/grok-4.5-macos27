@@ -3436,7 +3436,24 @@ tr.is-selected {
   cursor: pointer;
 }
 .chess-sq.light { background: #f0d9b5; }
-.chess-sq.dark { background: #b58863; color: #1a1a1a; }
+.chess-sq.dark { background: #b58863; }
+/* Piece contrast: white = cream with outline, black = solid dark */
+.chess-sq.piece-white {
+  color: #fff8ee !important;
+  text-shadow:
+    0 0 1px #2a2118,
+    0 1px 0 #2a2118,
+    1px 0 0 #2a2118,
+    0 -1px 0 #2a2118,
+    -1px 0 0 #2a2118,
+    0 2px 3px rgba(0, 0, 0, 0.35);
+}
+.chess-sq.piece-black {
+  color: #1a1410 !important;
+  text-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.18),
+    0 2px 3px rgba(0, 0, 0, 0.25);
+}
 .chess-sq.is-selected {
   outline: 2px solid #0a84ff;
   outline-offset: -2px;
