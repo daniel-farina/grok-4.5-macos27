@@ -886,15 +886,23 @@
     ];
     var pos = loadDesktopIconPositions();
     host.classList.add('is-freeform');
-    var topPad = 34;
-    var dockReserve = 118;
+    var topPad = 32;
+    var dockReserve = 128;
     var colWidth = 96;
-    var iconBlock = 72;
+    var iconBlock = 70;
     var vh = window.innerHeight || 800;
-    var avail = Math.max(240, vh - topPad - dockReserve);
-    /* Even spacing so the last icon clears the dock */
+    var avail = Math.max(220, vh - topPad - dockReserve);
+    /* Fit all icons so last bottom <= vh - dockReserve */
     var step = Math.floor((avail - iconBlock) / Math.max(items.length - 1, 1));
-    step = Math.min(80, Math.max(58, step));
+    step = Math.min(78, Math.max(54, step));
+    /* Safety: if last icon would still clip, tighten further */
+    while (
+      items.length > 1 &&
+      topPad + (items.length - 1) * step + iconBlock > vh - dockReserve &&
+      step > 52
+    ) {
+      step -= 2;
+    }
     var perCol = Math.max(1, Math.floor((avail - iconBlock) / step) + 1);
     host.innerHTML = items
       .map(function (it, i) {
