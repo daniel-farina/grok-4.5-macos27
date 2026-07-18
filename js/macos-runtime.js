@@ -4248,14 +4248,18 @@
   function wireCalculator(el) {
     if (!el || el.dataset.hist) return;
     el.dataset.hist = '1';
-    if (!el.querySelector('.calc-history')) {
+    /* Prefer the .calc root so inserts stay inside the calculator chrome */
+    var root = el.querySelector('.calc') || el;
+    if (!root.querySelector('.calc-history')) {
       var hist = document.createElement('div');
       hist.className = 'calc-history';
       hist.setAttribute('aria-label', 'History');
-      el.insertBefore(hist, el.firstChild);
+      var disp = root.querySelector('.calc-display, #calc-display');
+      if (disp) root.insertBefore(hist, disp);
+      else root.insertBefore(hist, root.firstChild);
     }
-    var histEl = el.querySelector('.calc-history');
-    var display = el.querySelector('#calc-display, .calc-display');
+    var histEl = root.querySelector('.calc-history');
+    var display = root.querySelector('#calc-display, .calc-display');
     function pushHistory(val) {
       if (!histEl || !val) return;
       var line = document.createElement('div');
@@ -4271,7 +4275,7 @@
       histEl.insertBefore(line, histEl.firstChild);
       while (histEl.children.length > 12) histEl.removeChild(histEl.lastChild);
     }
-    el.querySelectorAll('.calc-key[data-key="="]').forEach(function (eq) {
+    root.querySelectorAll('.calc-key[data-key="="]').forEach(function (eq) {
       eq.addEventListener('click', function () {
         setTimeout(function () {
           if (!display) return;
@@ -4295,7 +4299,7 @@
     }
     /* Keyboard support when window focused */
     function pressKey(k) {
-      var btn = el.querySelector('.calc-key[data-key="' + k + '"]');
+      var btn = root.querySelector('.calc-key[data-key="' + k + '"]');
       if (btn) {
         btn.classList.add('is-pressed');
         btn.click();
@@ -4305,7 +4309,7 @@
       }
     }
     /* Memory keys if missing — compact text buttons (not .calc-key circles) */
-    if (!el.querySelector('[data-key="MC"]') && !el.querySelector('.calc-mem')) {
+    if (!root.querySelector('[data-key="MC"]') && !root.querySelector('.calc-mem')) {
       var memBar = document.createElement('div');
       memBar.className = 'calc-mem';
       ['MC', 'MR', 'M+', 'M-'].forEach(function (k) {
@@ -4316,11 +4320,11 @@
         b.textContent = k;
         memBar.appendChild(b);
       });
-      var keysEl = el.querySelector('.calc-keys');
-      if (keysEl) el.insertBefore(memBar, keysEl);
-      else el.appendChild(memBar);
+      var keysEl = root.querySelector('.calc-keys');
+      if (keysEl && keysEl.parentNode) keysEl.parentNode.insertBefore(memBar, keysEl);
+      else root.appendChild(memBar);
       var mem = 0;
-      el.querySelectorAll('.calc-mem-btn').forEach(function (btn) {
+      root.querySelectorAll('.calc-mem-btn').forEach(function (btn) {
         btn.addEventListener('click', function () {
           var k = btn.getAttribute('data-key');
           var cur = parseFloat((display && display.textContent) || '0') || 0;
@@ -4332,8 +4336,8 @@
         });
       });
     }
-    el.tabIndex = 0;
-    el.addEventListener('keydown', function (e) {
+    root.tabIndex = 0;
+    root.addEventListener('keydown', function (e) {
       var map = {
         Enter: '=',
         '=': '=',
