@@ -346,6 +346,7 @@
    Do NOT shrink-wrap with left:auto/right:20 — that makes left:px drag coords
    place icons outside the host so they disappear under #macos overflow. */
 #desktop-icons {
+  position: absolute !important;
   inset: 0 !important;
   left: 0 !important;
   right: 0 !important;
@@ -353,10 +354,19 @@
   bottom: 0 !important;
   width: auto !important;
   height: auto !important;
+  overflow: visible !important;
+  pointer-events: none !important;
 }
 .desktop-icon {
   color: #fff !important;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45) !important;
+  pointer-events: auto !important;
+  position: absolute !important;
+}
+.desktop-icon.is-dragging {
+  opacity: 0.92 !important;
+  z-index: 100 !important;
+  cursor: grabbing !important;
 }
 .desktop-icon-label {
   background: transparent !important;

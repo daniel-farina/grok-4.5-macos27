@@ -887,48 +887,58 @@
     var topPad = 32;
     var dockReserve = 128;
     var colWidth = 96;
+    var iconW = 88;
     var iconBlock = 70;
     var vh = window.innerHeight || 800;
     var vw = window.innerWidth || 1280;
-    var avail = Math.max(220, vh - topPad - dockReserve);
-    /* Fit all icons so last bottom <= vh - dockReserve */
+    /* Prefer live host size once laid out (full-bleed freeform layer) */
+    var hostW = Math.max(host.clientWidth || 0, vw);
+    var hostH = Math.max(host.clientHeight || 0, vh);
+    var avail = Math.max(220, hostH - topPad - dockReserve);
+    /* Fit all icons so last bottom <= hostH - dockReserve */
     var step = Math.floor((avail - iconBlock) / Math.max(items.length - 1, 1));
     step = Math.min(78, Math.max(54, step));
     /* Safety: if last icon would still clip, tighten further */
     while (
       items.length > 1 &&
-      topPad + (items.length - 1) * step + iconBlock > vh - dockReserve &&
+      topPad + (items.length - 1) * step + iconBlock > hostH - dockReserve &&
       step > 52
     ) {
       step -= 2;
     }
     var perCol = Math.max(1, Math.floor((avail - iconBlock) / step) + 1);
-    /* Drop corrupt saved coords (from old shrink-wrapped host bug) */
+    /* Drop corrupt saved coords (from old shrink-wrapped host / viewport-coord bug) */
     var cleanPos = {};
     Object.keys(pos).forEach(function (k) {
       var p = pos[k];
       if (!p || typeof p.x !== 'number' || typeof p.y !== 'number') return;
-      if (p.x < -20 || p.y < 0 || p.x > vw - 40 || p.y > vh - 40) return;
+      if (!isFinite(p.x) || !isFinite(p.y)) return;
+      if (p.x < -20 || p.y < 0 || p.x > hostW - 40 || p.y > hostH - 40) return;
       cleanPos[k] = {
-        x: Math.max(8, Math.min(vw - 96, p.x)),
-        y: Math.max(36, Math.min(vh - 100, p.y)),
+        x: Math.max(8, Math.min(hostW - iconW - 8, p.x)),
+        y: Math.max(36, Math.min(hostH - 100, p.y)),
       };
     });
     if (Object.keys(cleanPos).length !== Object.keys(pos).length) {
       saveDesktopIconPositions(cleanPos);
     }
     pos = cleanPos;
+    /* Always position with left/top (never right) so drag never flips coordinate systems */
     host.innerHTML = items
       .map(function (it, i) {
         var p = pos[it.key];
-        var style;
+        var left;
+        var top;
         if (p && typeof p.x === 'number' && typeof p.y === 'number') {
-          style = 'left:' + p.x + 'px;top:' + p.y + 'px;right:auto;';
+          left = p.x;
+          top = p.y;
         } else {
           var col = Math.floor(i / perCol);
           var row = i % perCol;
-          style = 'right:' + (14 + col * colWidth) + 'px;top:' + (topPad + row * step) + 'px;left:auto;';
+          left = Math.max(8, hostW - 14 - iconW - col * colWidth);
+          top = topPad + row * step;
         }
+        var style = 'left:' + left + 'px;top:' + top + 'px;right:auto;bottom:auto;';
         return (
           '<button type="button" class="desktop-icon" data-key="' +
           escapeHtml(it.key) +
@@ -962,7 +972,7 @@
           b.classList.remove('is-selected');
         });
         btn.classList.add('is-selected');
-        /* Open on single click so desktop icons always respond (drag still works) */
+        /* Single-click opens (Finder-style desktop); drag sets _suppressClick */
         openDesktopIcon(btn);
       });
       btn.addEventListener('dblclick', function (e) {
@@ -981,20 +991,24 @@
 
   function enableDesktopIconDrag(btn, host) {
     var dragging = false;
-    var captured = false;
+    var pointerId = null;
     var ox = 0;
     var oy = 0;
     var startX = 0;
     var startY = 0;
     var moved = false;
 
+    function hostRect() {
+      return host.getBoundingClientRect();
+    }
+
     function clampPos(x, y) {
-      var hr = host.getBoundingClientRect();
+      var hr = hostRect();
       var w = btn.offsetWidth || 88;
       var h = btn.offsetHeight || 72;
-      /* Coordinates are relative to #desktop-icons host */
-      var maxX = Math.max(8, hr.width - w - 8);
-      var maxY = Math.max(36, hr.height - h - 88);
+      /* Host-local coordinates (full-bleed #desktop-icons) */
+      var maxX = Math.max(8, (hr.width || host.clientWidth || 0) - w - 8);
+      var maxY = Math.max(36, (hr.height || host.clientHeight || 0) - h - 88);
       return {
         x: Math.max(8, Math.min(maxX, x)),
         y: Math.max(36, Math.min(maxY, y)),
@@ -1010,67 +1024,68 @@
       return p;
     }
 
-    btn.addEventListener('pointerdown', function (e) {
-      if (e.button !== 0) return;
-      dragging = true;
-      captured = false;
-      moved = false;
-      var r = btn.getBoundingClientRect();
-      ox = e.clientX - r.left;
-      oy = e.clientY - r.top;
-      startX = e.clientX;
-      startY = e.clientY;
-    });
-    btn.addEventListener('pointermove', function (e) {
+    function onMove(e) {
       if (!dragging) return;
+      if (pointerId != null && e.pointerId !== pointerId) return;
       var dist = Math.abs(e.clientX - startX) + Math.abs(e.clientY - startY);
-      if (dist > 6) {
-        if (!captured) {
-          try {
-            btn.setPointerCapture(e.pointerId);
-          } catch (err) {}
-          captured = true;
+      if (dist > 5) {
+        if (!moved) {
           moved = true;
           btn.classList.add('is-dragging');
           btn._suppressClick = true;
+          try {
+            btn.setPointerCapture(e.pointerId);
+          } catch (err) {}
         }
       }
       if (!moved) return;
-      var hr = host.getBoundingClientRect();
-      /* Convert viewport pointer → host-local left/top */
-      var x = e.clientX - ox - hr.left;
-      var y = e.clientY - oy - hr.top;
-      applyPos(x, y);
-    });
+      e.preventDefault();
+      var hr = hostRect();
+      applyPos(e.clientX - ox - hr.left, e.clientY - oy - hr.top);
+    }
+
     function endDrag(e) {
       if (!dragging) return;
+      if (e && pointerId != null && e.pointerId != null && e.pointerId !== pointerId) return;
       dragging = false;
       btn.classList.remove('is-dragging');
-      if (captured) {
-        try {
-          if (e && e.pointerId != null) btn.releasePointerCapture(e.pointerId);
-        } catch (err) {}
-      }
-      captured = false;
+      document.removeEventListener('pointermove', onMove, true);
+      document.removeEventListener('pointerup', endDrag, true);
+      document.removeEventListener('pointercancel', endDrag, true);
+      try {
+        if (e && e.pointerId != null) btn.releasePointerCapture(e.pointerId);
+      } catch (err) {}
+      pointerId = null;
       if (!moved) return;
       btn._suppressClick = true;
       var key = btn.getAttribute('data-key');
       if (!key) return;
-      var hr = host.getBoundingClientRect();
+      var hr = hostRect();
       var br = btn.getBoundingClientRect();
-      /* Prefer live rect in case style parse fails */
       var p = applyPos(br.left - hr.left, br.top - hr.top);
       var map = loadDesktopIconPositions();
       map[key] = { x: p.x, y: p.y };
       saveDesktopIconPositions(map);
       setTimeout(function () {
         btn._suppressClick = false;
-      }, 80);
+      }, 120);
     }
-    btn.addEventListener('pointerup', endDrag);
-    btn.addEventListener('pointercancel', endDrag);
-    btn.addEventListener('lostpointercapture', function () {
-      if (dragging) endDrag({});
+
+    btn.addEventListener('pointerdown', function (e) {
+      if (e.button !== 0) return;
+      /* Ignore if a window is under the pointer (icons are below windows in z) */
+      dragging = true;
+      moved = false;
+      pointerId = e.pointerId;
+      var r = btn.getBoundingClientRect();
+      ox = e.clientX - r.left;
+      oy = e.clientY - r.top;
+      startX = e.clientX;
+      startY = e.clientY;
+      /* Document capture so drag continues when pointer leaves the icon */
+      document.addEventListener('pointermove', onMove, true);
+      document.addEventListener('pointerup', endDrag, true);
+      document.addEventListener('pointercancel', endDrag, true);
     });
   }
 
@@ -3931,10 +3946,17 @@
 
       if (options.skipBoot) {
         bootDone = true;
+        /* Re-layout after paint so host.clientWidth is real (drag coords) */
+        requestAnimationFrame(function () {
+          renderDesktopIcons();
+        });
         if (options.onReady) options.onReady();
         showContinuityHandoff();
       } else {
         runBoot(function () {
+          requestAnimationFrame(function () {
+            renderDesktopIcons();
+          });
           if (options.onReady) options.onReady();
           showContinuityHandoff();
         });
