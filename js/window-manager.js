@@ -54,16 +54,49 @@
     return 0;
   }
 
+  /**
+   * Bounds for window left/top/width/height.
+   * Windows live inside #desktop (inset below menubar, above dock), so
+   * coordinates are container-relative: top:0 is already under the menubar.
+   * Using viewport Y for min top double-counted the menubar and let cascaded
+   * windows extend over the dock.
+   */
   function desktopBounds() {
-    var top = menubarHeight();
     var left = stageManagerOffset();
+    var desktop = getContainer();
+    if (desktop && desktop.getBoundingClientRect) {
+      var r = desktop.getBoundingClientRect();
+      var w = Math.max(200, desktop.clientWidth || r.width || window.innerWidth);
+      var h = Math.max(200, desktop.clientHeight || r.height || 200);
+      /* Extra pad so window chrome clears the floating dock capsule */
+      var padBottom = 10;
+      var usable = Math.max(180, h - padBottom);
+      return {
+        left: left,
+        top: 0,
+        width: Math.max(200, w - left),
+        height: h,
+        usableHeight: usable,
+        viewportLeft: r.left + left,
+        viewportTop: r.top,
+        viewportRight: r.right,
+        viewportBottom: r.bottom - padBottom
+      };
+    }
+    var mb = menubarHeight();
+    var dockPad = 96;
     var width = Math.max(200, window.innerWidth - left);
+    var usable = Math.max(200, window.innerHeight - mb - dockPad);
     return {
       left: left,
-      top: top,
+      top: 0,
       width: width,
-      height: Math.max(200, window.innerHeight - top),
-      usableHeight: Math.max(200, window.innerHeight - top - 90)
+      height: usable,
+      usableHeight: usable,
+      viewportLeft: left,
+      viewportTop: mb,
+      viewportRight: window.innerWidth,
+      viewportBottom: window.innerHeight - dockPad
     };
   }
 
@@ -240,13 +273,15 @@
     function onMove(e) {
       if (dragging) {
         var bounds = desktopBounds();
-        state.x = clamp(ox + (e.clientX - sx), -state.width + 100, bounds.width - 80);
-        state.y = clamp(oy + (e.clientY - sy), bounds.top, bounds.height - 40);
+        state.x = clamp(ox + (e.clientX - sx), -state.width + 100, bounds.left + bounds.width - 80);
+        state.y = clamp(oy + (e.clientY - sy), 0, Math.max(0, bounds.usableHeight - 40));
         applyGeometry(state);
         var edge = 28;
-        el.classList.toggle('is-snap-left', e.clientX <= bounds.left + edge);
-        el.classList.toggle('is-snap-right', e.clientX >= bounds.left + bounds.width - edge);
-        el.classList.toggle('is-snap-top', e.clientY <= bounds.top + edge);
+        var vLeft = bounds.viewportLeft != null ? bounds.viewportLeft : bounds.left;
+        var vTop = bounds.viewportTop != null ? bounds.viewportTop : 0;
+        el.classList.toggle('is-snap-left', e.clientX <= vLeft + edge);
+        el.classList.toggle('is-snap-right', e.clientX >= vLeft + bounds.width - edge);
+        el.classList.toggle('is-snap-top', e.clientY <= vTop + edge);
       }
       if (resizing && rStart) {
         var dx = e.clientX - rStart.x;
@@ -277,7 +312,10 @@
           if (dir.indexOf('n') !== -1) top = rStart.top + (rStart.height - state.minHeight);
           h = state.minHeight;
         }
-        top = Math.max(bounds.top, top);
+        top = Math.max(0, top);
+        if (top + h > bounds.usableHeight) {
+          h = Math.max(state.minHeight, bounds.usableHeight - top);
+        }
 
         state.x = left;
         state.y = top;
@@ -296,30 +334,32 @@
           var bounds = desktopBounds();
           var edge = 28;
           var snapped = false;
-          if (e.clientX <= bounds.left + edge) {
+          var vLeft = bounds.viewportLeft != null ? bounds.viewportLeft : bounds.left;
+          var vTop = bounds.viewportTop != null ? bounds.viewportTop : 0;
+          if (e.clientX <= vLeft + edge) {
             state.x = bounds.left + 4;
-            state.y = bounds.top + 4;
+            state.y = 4;
             state.width = Math.floor(bounds.width / 2) - 10;
-            state.height = bounds.height - 8;
+            state.height = bounds.usableHeight - 8;
             applyGeometry(state);
             snapped = true;
-          } else if (e.clientX >= bounds.left + bounds.width - edge) {
+          } else if (e.clientX >= vLeft + bounds.width - edge) {
             state.width = Math.floor(bounds.width / 2) - 10;
             state.x = bounds.left + bounds.width - state.width - 4;
-            state.y = bounds.top + 4;
-            state.height = bounds.height - 8;
+            state.y = 4;
+            state.height = bounds.usableHeight - 8;
             applyGeometry(state);
             snapped = true;
-          } else if (e.clientY <= bounds.top + edge) {
+          } else if (e.clientY <= vTop + edge) {
             /* top edge → maximize */
             WindowManager.maximize(state.id);
             snapped = true;
           } else if (e.clientY >= window.innerHeight - edge - 20) {
             /* bottom edge → centered full height-ish */
             state.width = Math.min(bounds.width - 48, Math.max(state.width, Math.floor(bounds.width * 0.72)));
-            state.height = bounds.height - 16;
+            state.height = bounds.usableHeight - 16;
             state.x = bounds.left + Math.floor((bounds.width - state.width) / 2);
-            state.y = bounds.top + 8;
+            state.y = 8;
             applyGeometry(state);
             snapped = true;
           }
@@ -400,10 +440,13 @@
         : Math.max(bounds.left + 40, Math.floor((bounds.width - width) / 2) + offset);
       var y = options.y != null
         ? options.y
-        : Math.max(bounds.top + 16, Math.floor((bounds.usableHeight - height) / 3) + offset);
-      /* Clamp so bottom edge clears dock */
-      if (y + height > bounds.top + bounds.usableHeight) {
-        y = Math.max(bounds.top + 8, bounds.top + bounds.usableHeight - height);
+        : Math.max(12, Math.floor((bounds.usableHeight - height) / 3) + offset);
+      /* Clamp so bottom edge stays inside #desktop (above dock) */
+      if (y + height > bounds.usableHeight) {
+        y = Math.max(8, bounds.usableHeight - height);
+      }
+      if (x + width > bounds.left + bounds.width) {
+        x = Math.max(bounds.left + 8, bounds.left + bounds.width - width - 8);
       }
 
       var id = 'win-' + nextId++;
@@ -531,9 +574,9 @@
         state.maximized = true;
         state.el.classList.add('is-maximized');
         state.x = bounds.left;
-        state.y = bounds.top;
+        state.y = 0;
         state.width = bounds.width;
-        state.height = bounds.height;
+        state.height = bounds.usableHeight;
         state.el.style.left = state.x + 'px';
         state.el.style.top = state.y + 'px';
         state.el.style.width = state.width + 'px';

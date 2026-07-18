@@ -2363,6 +2363,14 @@
       case 'close':
         if (global.WindowManager) WindowManager.closeFocused();
         break;
+      case 'close-all':
+        if (global.WindowManager && WindowManager.getOpenWindows) {
+          WindowManager.getOpenWindows().slice().forEach(function (w) {
+            if (WindowManager.close) WindowManager.close(w.id);
+          });
+          syncRunningFromWindows();
+        }
+        break;
       case 'minimize':
         if (global.WindowManager) WindowManager.minimizeFocused();
         break;
