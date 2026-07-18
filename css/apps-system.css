@@ -2874,6 +2874,75 @@ html[data-theme='dark'] .maps27-btn.primary {
     radial-gradient(ellipse at 72% 30%, rgba(120, 180, 255, 0.28), transparent 40%),
     linear-gradient(165deg, #d4e8c8 0%, #c5dcc0 28%, #b8d4e8 55%, #c8d0c4 100%);
 }
+.maps27-canvas.maps-live {
+  background: #1a1a1e;
+}
+.maps-tile-layer,
+.maps-label-overlay {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  z-index: 0;
+  pointer-events: none;
+}
+.maps-tile,
+.maps-label-tile {
+  position: absolute;
+  display: block;
+  user-select: none;
+  -webkit-user-drag: none;
+  image-rendering: auto;
+}
+.maps-label-overlay {
+  z-index: 1;
+}
+.maps27-layers {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+html[data-theme='dark'] .maps27-layers {
+  background: rgba(40, 40, 44, 0.65);
+}
+.maps27-layer {
+  border: none;
+  background: transparent;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.7);
+  cursor: default;
+}
+html[data-theme='dark'] .maps27-layer {
+  color: rgba(255, 255, 255, 0.8);
+}
+.maps27-layer.active {
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+  color: #000;
+}
+html[data-theme='dark'] .maps27-layer.active {
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+}
+.maps27-directions {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 0.5px solid rgba(0, 0, 0, 0.1);
+  font-size: 13px;
+}
+.maps27-directions ol {
+  margin: 6px 0 8px 18px;
+  padding: 0;
+}
+.maps27-directions li {
+  margin: 4px 0;
+}
 html[data-theme='dark'] .maps27-canvas {
   background:
     radial-gradient(ellipse at 35% 45%, rgba(40, 90, 50, 0.55), transparent 42%),

@@ -1336,31 +1336,28 @@
             <input class="maps27-search" type="search" placeholder="Search Maps" value="Apple Park" />
             <button type="button" class="maps27-search-clear" aria-label="Clear">✕</button>
           </div>
+          <div class="maps27-layers">
+            <button type="button" class="maps27-layer active" data-layer="map">Map</button>
+            <button type="button" class="maps27-layer" data-layer="satellite">Satellite</button>
+            <button type="button" class="maps27-layer" data-layer="hybrid">Hybrid</button>
+          </div>
           <div class="maps27-modes">
-            <button type="button" class="maps27-mode active" title="Drive">🚗</button>
-            <button type="button" class="maps27-mode" title="Walk">🚶</button>
-            <button type="button" class="maps27-mode" title="Transit">🚇</button>
-            <button type="button" class="maps27-mode" title="Ride">🚕</button>
+            <button type="button" class="maps27-mode active" title="Drive" data-travel="drive">🚗</button>
+            <button type="button" class="maps27-mode" title="Walk" data-travel="walk">🚶</button>
+            <button type="button" class="maps27-mode" title="Transit" data-travel="transit">🚇</button>
+            <button type="button" class="maps27-mode" title="Ride" data-travel="ride">🚕</button>
           </div>
           <button type="button" class="maps27-btn primary">Directions</button>
         </div>
         <div class="maps27-body">
-          <div class="maps27-canvas">
-            <div class="maps27-terrain"></div>
-            <div class="maps27-water"></div>
-            <div class="maps27-park"></div>
-            <div class="maps27-roads"></div>
-            <div class="maps27-labels">
-              <span style="left:18%;top:28%">Stevens Creek</span>
-              <span style="left:62%;top:58%">Infinite Loop</span>
-              <span style="left:40%;top:72%">Wolfe Rd</span>
-            </div>
-            <div class="maps27-pin" title="Apple Park">
+          <div class="maps27-canvas maps-live" data-layer="map">
+            <div class="maps-tile-layer" id="maps-tiles" aria-hidden="true"></div>
+            <div class="maps-label-overlay" id="maps-labels" hidden></div>
+            <div class="maps27-pin" title="Apple Park" style="left:50%;top:50%">
               <div class="maps27-pin-head"></div>
               <div class="maps27-pin-point"></div>
               <div class="maps27-pin-shadow"></div>
             </div>
-            <div class="maps27-route"></div>
             <div class="maps27-controls">
               <button type="button" class="maps27-ctrl" title="Current Location">◎</button>
               <div class="maps27-zoom">
@@ -1379,13 +1376,13 @@
               </div>
               <div class="maps27-card-actions">
                 <button type="button" class="maps27-chip primary">Directions</button>
-                <button type="button" class="maps27-chip">Call</button>
+                <button type="button" class="maps27-chip maps-sat-chip" data-layer="satellite">Satellite</button>
                 <button type="button" class="maps27-chip">Share</button>
                 <button type="button" class="maps27-chip">More</button>
               </div>
               <div class="maps27-card-eta">
                 <span class="maps27-eta-dot"></span>
-                <span>12 min · 3.4 mi via N De Anza Blvd</span>
+                <span class="maps27-coords">37.3349° N, 122.0090° W · Zoom 15</span>
               </div>
             </div>
           </div>
@@ -2116,10 +2113,17 @@
           </div>
           <h3 class="section-title">Must-Have Apps</h3>
           <div class="store-list">
-            ${['Final Cut Pro', 'Logic Pro', 'Xcode', 'Pixelmator Pro', 'Craft']
+            ${[
+              { n: 'Chess', c: 'Games · Play vs computer' },
+              { n: 'Maps', c: 'Travel · Satellite included' },
+              { n: 'Mail', c: 'Productivity' },
+              { n: 'Final Cut Pro', c: 'Creativity' },
+              { n: 'Logic Pro', c: 'Creativity' },
+              { n: 'Xcode', c: 'Developer Tools' },
+            ]
               .map(
-                (n) =>
-                  `<div class="store-row"><div class="store-icon"></div><div><strong>${n}</strong><div class="muted">Productivity</div></div><button class="btn-get">GET</button></div>`
+                (a) =>
+                  `<div class="store-row"><div class="store-icon"></div><div><strong>${a.n}</strong><div class="muted">${a.c}</div></div><button class="btn-get">GET</button></div>`
               )
               .join('')}
           </div>
@@ -5163,31 +5167,24 @@ Save stores a demo document name from the first line.</div>
     };
   }
 
-  // Chess gets a real board UI override
+  // Chess gets a real playable board
   if (APPS.chess) {
+    APPS.chess.width = 560;
+    APPS.chess.height = 680;
     APPS.chess.open = function () {
-      const back = ['♜', '♞', '♝', '♛', '♚', '♝', '♞', '♜'];
-      const pawns = Array(8).fill('♟');
-      const empty = Array(8).fill('');
-      const ranks = [
-        back,
-        pawns,
-        empty,
-        empty,
-        empty,
-        empty,
-        pawns.map(() => '♙'),
-        ['♖', '♘', '♗', '♕', '♔', '♗', '♘', '♖'],
-      ];
-      let board = '<div class="chess-board">';
-      for (let r = 0; r < 8; r++) {
-        for (let c = 0; c < 8; c++) {
-          const light = (r + c) % 2 === 0;
-          board += `<div class="chess-sq ${light ? 'light' : 'dark'}">${ranks[r][c]}</div>`;
-        }
-      }
-      board += '</div>';
-      return `<div class="app-layout col chess-app">${toolbar(`<strong>Chess</strong><span class="muted">White to move</span>`)}${board}</div>`;
+      return `<div class="app-layout col chess-app">
+        <div class="chess-wrap">
+          <div class="chess-toolbar">
+            <h3 style="margin:0;flex:1">Chess</h3>
+            <button type="button" class="btn-glass" id="chess-flip">Flip</button>
+            <button type="button" class="btn-glass" id="chess-undo">Undo</button>
+            <button type="button" class="btn-primary" id="chess-new">New Game</button>
+          </div>
+          <p class="muted" id="chess-status">White to move · click a piece, then a highlighted square</p>
+          <div class="chess-board" id="chess-board"></div>
+          <p class="muted chess-hint">You are White · computer plays Black · legal moves only</p>
+        </div>
+      </div>`;
     };
   }
 
@@ -5377,14 +5374,29 @@ return theGreeting</textarea>
   if (APPS['voice-memos']) {
     APPS['voice-memos'].open = function () {
       return `<div class="app-layout col" id="voice-memos-app">
-        ${toolbar(`<strong>Voice Memos</strong>`)}
+        ${toolbar(`<strong>Voice Memos</strong><span class="muted">TTS playback · click Play</span>`)}
         <div class="vm-list">
-          <div class="vm-row"><strong>Meeting Ideas</strong><span class="muted">0:42</span></div>
-          <div class="vm-row"><strong>Song Hook</strong><span class="muted">1:18</span></div>
+          <div class="vm-row is-selected" data-tts="Remember to demo the Liquid Glass desktop, calendar day week year views, and the new right-click context menu.">
+            <strong>Meeting Ideas</strong><span class="muted">TTS · 0:12</span>
+          </div>
+          <div class="vm-row" data-tts="Liquid glass, soft and bright. Desktop glow in morning light. macOS twenty seven takes flight.">
+            <strong>Song Hook</strong><span class="muted">TTS · 0:08</span>
+          </div>
+          <div class="vm-row" data-tts="You have three new messages. Mail, Maps satellite view, and Chess are ready to try.">
+            <strong>Voicemail Sample</strong><span class="muted">TTS · 0:07</span>
+          </div>
+          <div class="vm-row" data-tts="Hi, this is a demo greeting. Press one for sales, two for support, or stay on the line for an operator.">
+            <strong>Greeting Script</strong><span class="muted">TTS · 0:09</span>
+          </div>
+          <div class="vm-row" data-tts="Don't forget the App Store install of Chess, then play a full game against the computer.">
+            <strong>Todo Dictation</strong><span class="muted">TTS · 0:06</span>
+          </div>
         </div>
         <div class="vm-record-bar">
-          <button type="button" class="btn-primary" id="vm-record">● Record</button>
-          <span class="muted" id="vm-status">Ready</span>
+          <button type="button" class="btn-primary" id="vm-play">▶ Play</button>
+          <button type="button" class="btn-glass" id="vm-stop">Stop</button>
+          <button type="button" class="btn-glass" id="vm-record">● Record</button>
+          <span class="muted" id="vm-status">Ready · select a memo and press Play for TTS</span>
         </div>
       </div>`;
     };

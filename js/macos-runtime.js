@@ -1966,12 +1966,14 @@
         emailEl.textContent =
           '<' + from.textContent.toLowerCase().replace(/\s+/g, '.') + '@example.com>';
       if (dateEl && date) dateEl.textContent = date.textContent;
-      if (body && preview) {
+      if (body) {
+        var full = row.getAttribute('data-body') || (preview && preview.textContent) || '';
         body.innerHTML =
           '<p>Hello,</p><p></p><p></p><p class="mail27-signoff">— ' +
           (from ? from.textContent : 'Sender') +
           '</p>';
-        body.querySelectorAll('p')[1].textContent = preview.textContent;
+        var paras = body.querySelectorAll('p');
+        if (paras[1]) paras[1].textContent = full;
       }
       sound('pop');
       var meta = el.querySelector('.mail27-list-meta');
@@ -2075,20 +2077,26 @@
       modal.querySelector('.mail-c-send').addEventListener('click', function () {
         var sub = modal.querySelector('.mail-c-sub').value || '(no subject)';
         var to = modal.querySelector('.mail-c-to').value || 'friend@example.com';
+        var bodyText = (modal.querySelector('.mail-c-body') || {}).value || '';
+        var safeSub = sub.replace(/</g, '');
+        var toName = to.split('@')[0] || 'friend';
         if (list) {
           var row = document.createElement('div');
           row.className = 'mail27-row';
           row.setAttribute('data-folder', 'Sent');
+          row.setAttribute('data-body', bodyText.slice(0, 400));
           row.innerHTML =
             '<span class="mail27-dot" aria-hidden="true"></span>' +
             '<div class="mail27-row-main"><div class="mail27-row-top">' +
             '<span class="mail27-from">Me → ' +
-            to.split('@')[0] +
+            toName +
             '</span><span class="mail27-date">Just now</span></div>' +
             '<div class="mail27-subject">' +
-            sub.replace(/</g, '') +
+            safeSub +
             '</div>' +
-            '<div class="mail27-preview">Sent from Mail</div></div>';
+            '<div class="mail27-preview">' +
+            (bodyText.slice(0, 80) || 'Sent from Mail').replace(/</g, '') +
+            '</div></div>';
           var head = list.querySelector('.mail27-list-head');
           if (head && head.nextSibling) list.insertBefore(row, head.nextSibling);
           else list.appendChild(row);
@@ -2112,8 +2120,59 @@
         modal.remove();
         sound('messageSent');
         if (global.MacShell && MacShell.notify) {
-          MacShell.notify('Mail', 'Message Sent', sub, 'now');
+          MacShell.notify('Mail', 'Message Sent', safeSub, 'now');
         }
+        /* Simulated reply lands in Inbox after a short delay */
+        setTimeout(function () {
+          if (!list || !el.isConnected) return;
+          var replySub =
+            safeSub.indexOf('Re:') === 0 ? safeSub : 'Re: ' + safeSub;
+          var replies = [
+            'Thanks for your note! Got it and will follow up shortly.',
+            'Appreciate the message - looping in the team now.',
+            'Received. Love the macOS 27 demo, by the way.',
+            'Thanks! I will take a look and reply with details.',
+          ];
+          var replyBody =
+            replies[Math.floor(Math.random() * replies.length)] +
+            (bodyText
+              ? '\n\nRegarding: “' + bodyText.trim().slice(0, 100) + '”'
+              : '');
+          var reply = document.createElement('div');
+          reply.className = 'mail27-row unread';
+          reply.setAttribute('data-folder', 'Inbox');
+          reply.setAttribute('data-body', replyBody);
+          reply.innerHTML =
+            '<span class="mail27-dot" aria-hidden="true"></span>' +
+            '<div class="mail27-row-main"><div class="mail27-row-top">' +
+            '<span class="mail27-from">' +
+            toName.charAt(0).toUpperCase() +
+            toName.slice(1) +
+            '</span><span class="mail27-date">Just now</span></div>' +
+            '<div class="mail27-subject">' +
+            replySub.replace(/</g, '') +
+            '</div>' +
+            '<div class="mail27-preview">' +
+            replyBody.slice(0, 90).replace(/</g, '') +
+            '</div></div>';
+          var head2 = list.querySelector('.mail27-list-head');
+          if (head2 && head2.nextSibling) list.insertBefore(reply, head2.nextSibling);
+          else list.appendChild(reply);
+          reply.addEventListener('click', function () {
+            selectRow(reply);
+          });
+          applyMailFilters();
+          var inboxCount = el.querySelector(
+            '.mail27-side-item[data-folder="Inbox"] .mail27-side-count'
+          );
+          if (inboxCount) {
+            inboxCount.textContent = String((parseInt(inboxCount.textContent, 10) || 0) + 1);
+          }
+          sound('glass');
+          if (global.MacShell && MacShell.notify) {
+            MacShell.notify('Mail', 'New Message', replySub, 'now', { force: true });
+          }
+        }, 1600);
       });
       sound('pop');
     }
@@ -2929,17 +2988,167 @@
     var cardTitle = el.querySelector('.maps27-card-info strong');
     var cardSub = el.querySelector('.maps27-card-info .muted, .maps27-card-info p');
     var pin = el.querySelector('.maps27-pin');
+    var canvas = el.querySelector('.maps27-canvas');
+    var tilesEl = el.querySelector('#maps-tiles') || el.querySelector('.maps-tile-layer');
+    var coordsEl = el.querySelector('.maps27-coords');
     var lastPlace = 'Apple Park';
-    var places = {
-      'apple park': { sub: 'Cupertino · Infinite Loop area', x: 48, y: 42 },
-      coffee: { sub: 'Nearby cafés', x: 36, y: 55 },
-      park: { sub: 'City park · Open space', x: 62, y: 38 },
-      airport: { sub: 'International Airport', x: 22, y: 60 },
-      museum: { sub: 'City Museum · Culture district', x: 55, y: 48 },
-      library: { sub: 'Central Library', x: 40, y: 35 },
-      hotel: { sub: 'Grand Hotel · Downtown', x: 58, y: 58 },
-      grocery: { sub: 'Market · Open until 10 PM', x: 44, y: 62 },
+    var travel = 'drive';
+    /* Apple Park, Cupertino */
+    var state = {
+      lat: 37.3349,
+      lon: -122.009,
+      z: 15,
+      layer: 'map',
     };
+    var KNOWN = {
+      'apple park': { lat: 37.3349, lon: -122.009, sub: '1 Apple Park Way, Cupertino, CA' },
+      cupertino: { lat: 37.323, lon: -122.0322, sub: 'Cupertino, California' },
+      'san francisco': { lat: 37.7749, lon: -122.4194, sub: 'San Francisco, CA' },
+      'golden gate': { lat: 37.8199, lon: -122.4783, sub: 'Golden Gate Bridge' },
+      'new york': { lat: 40.7128, lon: -74.006, sub: 'New York, NY' },
+      london: { lat: 51.5074, lon: -0.1278, sub: 'London, UK' },
+      tokyo: { lat: 35.6762, lon: 139.6503, sub: 'Tokyo, Japan' },
+      paris: { lat: 48.8566, lon: 2.3522, sub: 'Paris, France' },
+      seattle: { lat: 47.6062, lon: -122.3321, sub: 'Seattle, WA' },
+      airport: { lat: 37.3639, lon: -121.9289, sub: 'San Jose Mineta International' },
+      coffee: { lat: 37.332, lon: -122.031, sub: 'Cafés near Cupertino' },
+    };
+
+    function lon2tile(lon, z) {
+      return ((lon + 180) / 360) * Math.pow(2, z);
+    }
+    function lat2tile(lat, z) {
+      var r = (lat * Math.PI) / 180;
+      return (
+        ((1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2) * Math.pow(2, z)
+      );
+    }
+    function tileUrl(z, x, y, layer) {
+      var max = Math.pow(2, z);
+      x = ((x % max) + max) % max;
+      if (y < 0 || y >= max) return '';
+      if (layer === 'satellite' || layer === 'hybrid') {
+        return (
+          'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/' +
+          z +
+          '/' +
+          y +
+          '/' +
+          x
+        );
+      }
+      return 'https://tile.openstreetmap.org/' + z + '/' + x + '/' + y + '.png';
+    }
+    function labelTileUrl(z, x, y) {
+      var max = Math.pow(2, z);
+      x = ((x % max) + max) % max;
+      if (y < 0 || y >= max) return '';
+      return (
+        'https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/' +
+        z +
+        '/' +
+        y +
+        '/' +
+        x
+      );
+    }
+
+    function renderTiles() {
+      if (!tilesEl || !canvas) return;
+      var rect = canvas.getBoundingClientRect();
+      var w = rect.width || 800;
+      var h = rect.height || 500;
+      var tileSize = 256;
+      var cx = lon2tile(state.lon, state.z);
+      var cy = lat2tile(state.lat, state.z);
+      var tilesX = Math.ceil(w / tileSize) + 2;
+      var tilesY = Math.ceil(h / tileSize) + 2;
+      var startX = Math.floor(cx - tilesX / 2);
+      var startY = Math.floor(cy - tilesY / 2);
+      var offsetX = (cx - startX) * tileSize - w / 2;
+      var offsetY = (cy - startY) * tileSize - h / 2;
+      var html = '';
+      var labels = '';
+      for (var ty = 0; ty < tilesY; ty++) {
+        for (var tx = 0; tx < tilesX; tx++) {
+          var x = startX + tx;
+          var y = startY + ty;
+          var url = tileUrl(state.z, x, y, state.layer);
+          if (!url) continue;
+          var left = tx * tileSize - offsetX;
+          var top = ty * tileSize - offsetY;
+          html +=
+            '<img class="maps-tile" draggable="false" alt="" src="' +
+            url +
+            '" style="left:' +
+            left +
+            'px;top:' +
+            top +
+            'px;width:' +
+            tileSize +
+            'px;height:' +
+            tileSize +
+            'px" />';
+          if (state.layer === 'hybrid') {
+            var lu = labelTileUrl(state.z, x, y);
+            if (lu) {
+              labels +=
+                '<img class="maps-tile maps-label-tile" draggable="false" alt="" src="' +
+                lu +
+                '" style="left:' +
+                left +
+                'px;top:' +
+                top +
+                'px;width:' +
+                tileSize +
+                'px;height:' +
+                tileSize +
+                'px" />';
+            }
+          }
+        }
+      }
+      tilesEl.innerHTML = html;
+      var lab = el.querySelector('#maps-labels');
+      if (lab) {
+        lab.hidden = state.layer !== 'hybrid';
+        lab.innerHTML = labels;
+      }
+      if (pin) {
+        pin.style.left = '50%';
+        pin.style.top = '50%';
+      }
+      if (coordsEl) {
+        coordsEl.textContent =
+          state.lat.toFixed(4) +
+          '° N, ' +
+          Math.abs(state.lon).toFixed(4) +
+          '° W · Zoom ' +
+          state.z +
+          (state.layer === 'satellite' || state.layer === 'hybrid' ? ' · Satellite' : '');
+      }
+      canvas.dataset.layer = state.layer;
+      canvas.classList.toggle('is-satellite', state.layer !== 'map');
+    }
+
+    function setLayer(layer) {
+      state.layer = layer || 'map';
+      el.querySelectorAll('.maps27-layer').forEach(function (b) {
+        b.classList.toggle('active', b.getAttribute('data-layer') === state.layer);
+      });
+      renderTiles();
+      sound('tink');
+    }
+
+    function setCenter(lat, lon, place, sub) {
+      state.lat = lat;
+      state.lon = lon;
+      lastPlace = place || lastPlace;
+      if (cardTitle) cardTitle.textContent = lastPlace;
+      if (cardSub) cardSub.textContent = sub || '';
+      renderTiles();
+    }
+
     function showDirections(dest) {
       var panel = el.querySelector('.maps27-directions');
       if (!panel) {
@@ -2950,7 +3159,7 @@
           '<ol class="maps27-steps"></ol>' +
           '<p class="muted maps27-eta"></p>' +
           '<button type="button" class="btn-glass maps27-end-route">End Route</button>';
-        var host = el.querySelector('.maps27-card, .maps27-side, .maps27-body') || el;
+        var host = el.querySelector('.maps27-card') || el;
         host.appendChild(panel);
         panel.querySelector('.maps27-end-route').addEventListener('click', function () {
           panel.hidden = true;
@@ -2959,55 +3168,89 @@
       }
       panel.hidden = false;
       var steps = [
-        'Head north on Infinite Loop',
-        'Turn right onto Demo Blvd',
-        'Continue 1.2 mi',
+        'Head north from current area',
+        travel === 'walk' ? 'Continue on foot 0.8 mi' : 'Merge onto Demo Blvd',
+        travel === 'transit' ? 'Board Line 22 · 3 stops' : 'Continue 1.2 mi',
         'Arrive at ' + dest,
       ];
       var ol = panel.querySelector('.maps27-steps');
       if (ol) {
-        ol.innerHTML = steps.map(function (s) {
-          return '<li></li>';
-        }).join('');
+        ol.innerHTML = steps
+          .map(function () {
+            return '<li></li>';
+          })
+          .join('');
         Array.prototype.forEach.call(ol.children, function (li, i) {
           li.textContent = steps[i];
         });
       }
       var eta = panel.querySelector('.maps27-eta');
-      if (eta) eta.textContent = '12 min · 3.4 mi · Avoiding tolls';
+      var etaText =
+        travel === 'walk'
+          ? '28 min · 1.4 mi · Walking'
+          : travel === 'transit'
+            ? '22 min · Transit'
+            : '12 min · 3.4 mi · Driving';
+      if (eta) eta.textContent = etaText;
     }
+
     function go(q) {
       if (!q) return;
       lastPlace = q;
-      var key = q.toLowerCase();
+      var key = q.toLowerCase().trim();
       var hit = null;
-      Object.keys(places).forEach(function (k) {
-        if (key.indexOf(k) >= 0) hit = places[k];
+      Object.keys(KNOWN).forEach(function (k) {
+        if (key.indexOf(k) >= 0) hit = KNOWN[k];
       });
-      if (cardTitle) cardTitle.textContent = q;
-      if (cardSub) cardSub.textContent = hit ? hit.sub : 'Search result · demo location';
-      if (pin) {
-        pin.style.left = (hit ? hit.x : 30 + Math.random() * 40) + '%';
-        pin.style.top = (hit ? hit.y : 30 + Math.random() * 40) + '%';
-        pin.classList.add('is-bounce');
-        setTimeout(function () {
-          pin.classList.remove('is-bounce');
-        }, 400);
+      if (hit) {
+        setCenter(hit.lat, hit.lon, q, hit.sub);
+        sound('pop');
+        if (global.MacShell && MacShell.notify) {
+          MacShell.notify('Maps', 'Location', q, 'now');
+        }
+        return;
       }
-      sound('pop');
-      if (global.MacShell && MacShell.notify) {
-        MacShell.notify('Maps', 'Location', q, 'now');
-      }
+      /* Nominatim geocode (public OSM) */
+      if (cardSub) cardSub.textContent = 'Searching…';
+      fetch(
+        'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' +
+          encodeURIComponent(q),
+        { headers: { Accept: 'application/json' } }
+      )
+        .then(function (r) {
+          return r.json();
+        })
+        .then(function (data) {
+          if (data && data[0]) {
+            setCenter(
+              parseFloat(data[0].lat),
+              parseFloat(data[0].lon),
+              q,
+              data[0].display_name || 'Search result'
+            );
+            sound('pop');
+            if (global.MacShell && MacShell.notify) {
+              MacShell.notify('Maps', 'Location', q, 'now');
+            }
+          } else {
+            if (cardTitle) cardTitle.textContent = q;
+            if (cardSub) cardSub.textContent = 'No results · try Apple Park, San Francisco…';
+            sound('sosumi');
+          }
+        })
+        .catch(function () {
+          /* Offline fallback: nudge map slightly */
+          setCenter(state.lat + 0.01, state.lon - 0.01, q, 'Approximate (offline demo)');
+          sound('tink');
+        });
     }
+
     if (search) {
       search.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter') go(search.value.trim());
-      });
-    }
-    var searchBtn = el.querySelector('.maps27-search-btn, [aria-label="Search"]');
-    if (searchBtn && search) {
-      searchBtn.addEventListener('click', function () {
-        go(search.value.trim() || 'Apple Park');
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          go(search.value.trim());
+        }
       });
     }
     var clear = el.querySelector('.maps27-search-clear');
@@ -3017,53 +3260,79 @@
         search.focus();
       });
     }
+
+    el.querySelectorAll('.maps27-layer, .maps-sat-chip').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        setLayer(btn.getAttribute('data-layer') || 'satellite');
+      });
+    });
+
     el.querySelectorAll('.maps27-mode').forEach(function (m) {
       m.addEventListener('click', function () {
         el.querySelectorAll('.maps27-mode').forEach(function (x) {
           x.classList.remove('active');
         });
         m.classList.add('active');
-        var mode = (m.textContent || '').trim();
-        if (canvas) {
-          canvas.dataset.mode = mode.toLowerCase();
-          canvas.style.filter =
-            /sat/i.test(mode) ? 'saturate(0.3) contrast(1.1)' : /transit/i.test(mode) ? 'hue-rotate(40deg)' : 'none';
-        }
+        travel = m.getAttribute('data-travel') || 'drive';
         sound('tink');
       });
     });
-    var canvas = el.querySelector('.maps27-canvas');
-    var scale = 1;
+
     el.querySelectorAll('.maps27-ctrl').forEach(function (btn) {
       btn.addEventListener('click', function () {
         var t = btn.getAttribute('title') || '';
-        if (t.indexOf('In') >= 0) scale = Math.min(2, scale + 0.15);
-        else if (t.indexOf('Out') >= 0) scale = Math.max(0.6, scale - 0.15);
-        if (canvas) canvas.style.transform = 'scale(' + scale + ')';
+        if (t.indexOf('In') >= 0) state.z = Math.min(18, state.z + 1);
+        else if (t.indexOf('Out') >= 0) state.z = Math.max(3, state.z - 1);
+        else if (t.indexOf('Location') >= 0) {
+          setCenter(37.3349, -122.009, 'Apple Park', 'Current location · demo');
+          if (search) search.value = 'Apple Park';
+          sound('hero');
+          return;
+        }
+        renderTiles();
         sound('volume');
       });
     });
+
     if (canvas) {
-      canvas.style.cursor = 'crosshair';
-      canvas.addEventListener('click', function (e) {
-        if (e.target.closest('.maps27-pin, button, a')) return;
-        var r = canvas.getBoundingClientRect();
-        var x = ((e.clientX - r.left) / r.width) * 100;
-        var y = ((e.clientY - r.top) / r.height) * 100;
-        if (pin) {
-          pin.style.left = x + '%';
-          pin.style.top = y + '%';
-          pin.classList.add('is-bounce');
-          setTimeout(function () {
-            pin.classList.remove('is-bounce');
-          }, 400);
-        }
-        lastPlace = 'Dropped Pin';
-        if (cardTitle) cardTitle.textContent = 'Dropped Pin';
-        if (cardSub) cardSub.textContent = x.toFixed(1) + '°, ' + y.toFixed(1) + '° · Custom location';
-        sound('tink');
+      canvas.style.cursor = 'grab';
+      var drag = null;
+      canvas.addEventListener('pointerdown', function (e) {
+        if (e.target.closest('button, a, .maps27-card, .maps27-controls')) return;
+        drag = { x: e.clientX, y: e.clientY, lat: state.lat, lon: state.lon };
+        canvas.setPointerCapture(e.pointerId);
+        canvas.style.cursor = 'grabbing';
       });
+      canvas.addEventListener('pointermove', function (e) {
+        if (!drag) return;
+        var dx = e.clientX - drag.x;
+        var dy = e.clientY - drag.y;
+        var scale = 360 / Math.pow(2, state.z) / 256;
+        state.lon = drag.lon - dx * scale;
+        state.lat = Math.max(
+          -85,
+          Math.min(85, drag.lat + dy * scale * Math.cos((drag.lat * Math.PI) / 180))
+        );
+        renderTiles();
+      });
+      canvas.addEventListener('pointerup', function () {
+        drag = null;
+        canvas.style.cursor = 'grab';
+      });
+      canvas.addEventListener('dblclick', function (e) {
+        if (e.target.closest('button, .maps27-card')) return;
+        state.z = Math.min(18, state.z + 1);
+        renderTiles();
+        sound('pop');
+      });
+      canvas.addEventListener('wheel', function (e) {
+        e.preventDefault();
+        if (e.deltaY < 0) state.z = Math.min(18, state.z + 1);
+        else state.z = Math.max(3, state.z - 1);
+        renderTiles();
+      }, { passive: false });
     }
+
     el.querySelectorAll('.maps27-btn.primary, .maps27-chip.primary').forEach(function (btn) {
       btn.addEventListener('click', function () {
         showDirections(lastPlace);
@@ -3073,13 +3342,22 @@
         }
       });
     });
-    el.querySelectorAll('.maps27-fav, .maps27-suggest, .maps27-place').forEach(function (item) {
-      item.style.cursor = 'pointer';
-      item.addEventListener('click', function () {
-        var t = item.getAttribute('data-place') || item.textContent.trim();
-        if (search) search.value = t;
-        go(t);
-      });
+
+    /* Ensure tile host exists if old markup */
+    if (!tilesEl && canvas) {
+      tilesEl = document.createElement('div');
+      tilesEl.className = 'maps-tile-layer';
+      tilesEl.id = 'maps-tiles';
+      canvas.insertBefore(tilesEl, canvas.firstChild);
+    }
+
+    renderTiles();
+    window.addEventListener('resize', function onResize() {
+      if (!el.isConnected) {
+        window.removeEventListener('resize', onResize);
+        return;
+      }
+      renderTiles();
     });
   }
 
@@ -4847,12 +5125,13 @@
             if (global.MacShell && MacShell.notify) {
               var name = btn.closest('.store-row, .game-card, .store-card');
               var titleEl = name && name.querySelector('strong');
-              MacShell.notify(
-                'App Store',
-                'Download Complete',
-                titleEl ? titleEl.textContent : 'App',
-                'now'
-              );
+              var titleText = titleEl ? titleEl.textContent : 'App';
+              MacShell.notify('App Store', 'Download Complete', titleText, 'now');
+              if (/chess/i.test(titleText) && global.MacShell.openApp) {
+                setTimeout(function () {
+                  MacShell.openApp('chess');
+                }, 400);
+              }
             }
           }
         }, 180);
@@ -7801,7 +8080,7 @@
     }
   }
 
-  /* ── Voice Memos ────────────────────────────────────── */
+  /* ── Voice Memos (TTS examples via speechSynthesis) ─── */
   function wireVoiceMemos(el) {
     if (!el || el.dataset.wired) return;
     el.dataset.wired = '1';
@@ -7812,16 +8091,57 @@
     var playing = false;
     var t0 = 0;
     var timer = null;
-    var playTimer = null;
     var recCount = 0;
+    var currentUtter = null;
+
+    var DEFAULT_TTS = {
+      'Meeting Ideas':
+        'Remember to demo the Liquid Glass desktop, calendar day week year views, and the new right-click context menu.',
+      'Song Hook':
+        'Liquid glass, soft and bright. Desktop glow in morning light. macOS twenty seven takes flight.',
+      'Voicemail Sample':
+        'You have three new messages. Mail, Maps satellite view, and Chess are ready to try.',
+      'Greeting Script':
+        'Hi, this is a demo greeting. Press one for sales, two for support, or stay on the line for an operator.',
+      'Todo Dictation':
+        "Don't forget the App Store install of Chess, then play a full game against the computer.",
+    };
+
+    function stopSpeech() {
+      try {
+        if (window.speechSynthesis) window.speechSynthesis.cancel();
+      } catch (e) {}
+      currentUtter = null;
+      playing = false;
+      el.querySelectorAll('.vm-row').forEach(function (r) {
+        r.classList.remove('is-playing');
+      });
+    }
+
+    function scriptFor(row) {
+      if (!row) return '';
+      var tts = row.getAttribute('data-tts');
+      if (tts) return tts;
+      var title = row.querySelector('strong');
+      var name = title ? title.textContent.trim() : '';
+      if (DEFAULT_TTS[name]) return DEFAULT_TTS[name];
+      return name
+        ? 'This is a voice memo titled ' + name + '.'
+        : 'This is a voice memo recording.';
+    }
 
     function wireRow(row) {
       if (!row || row.dataset.vm) return;
       row.dataset.vm = '1';
       row.style.cursor = 'pointer';
+      if (!row.getAttribute('data-tts')) {
+        var title = row.querySelector('strong');
+        var name = title ? title.textContent.trim() : '';
+        if (DEFAULT_TTS[name]) row.setAttribute('data-tts', DEFAULT_TTS[name]);
+      }
       row.addEventListener('click', function () {
         el.querySelectorAll('.vm-row').forEach(function (r) {
-          r.classList.remove('is-selected', 'is-playing');
+          r.classList.remove('is-selected');
         });
         row.classList.add('is-selected');
         sound('pop');
@@ -7832,32 +8152,54 @@
     }
 
     function playRow(row) {
-      if (playTimer) clearInterval(playTimer);
+      stopSpeech();
       el.querySelectorAll('.vm-row').forEach(function (r) {
-        r.classList.remove('is-playing');
+        r.classList.remove('is-playing', 'is-selected');
       });
       row.classList.add('is-playing', 'is-selected');
       playing = true;
       var title = row.querySelector('strong');
       var name = title ? title.textContent : 'Recording';
-      var elapsed = 0;
-      var durText = (row.querySelector('.muted') || {}).textContent || '0:30';
-      var parts = durText.split(':');
-      var dur = (parseInt(parts[0], 10) || 0) * 60 + (parseInt(parts[1], 10) || 30);
-      if (dur > 20) dur = 8;
-      if (status) status.textContent = 'Playing · ' + name;
+      var text = scriptFor(row);
+      if (status) status.textContent = 'Speaking · ' + name;
       sound('funk');
-      playTimer = setInterval(function () {
-        elapsed++;
-        if (status) status.textContent = 'Playing 0:' + (elapsed < 10 ? '0' : '') + elapsed;
-        if (elapsed >= dur) {
-          clearInterval(playTimer);
+
+      if (window.speechSynthesis && text) {
+        var u = new SpeechSynthesisUtterance(text);
+        u.rate = 1;
+        u.pitch = 1;
+        u.volume = 1;
+        currentUtter = u;
+        u.onend = function () {
+          playing = false;
+          row.classList.remove('is-playing');
+          if (status) status.textContent = 'Ready · TTS finished';
+          sound('tink');
+          currentUtter = null;
+        };
+        u.onerror = function () {
+          playing = false;
+          row.classList.remove('is-playing');
+          if (status) status.textContent = 'TTS unavailable · try Chrome/Safari';
+          sound('sosumi');
+        };
+        try {
+          window.speechSynthesis.cancel();
+          window.speechSynthesis.speak(u);
+        } catch (err) {
+          if (status) status.textContent = 'TTS error';
+          sound('sosumi');
+        }
+      } else {
+        /* Fallback beep sequence if no speech API */
+        if (status) status.textContent = 'No speechSynthesis · demo tone';
+        setTimeout(function () {
           playing = false;
           row.classList.remove('is-playing');
           if (status) status.textContent = 'Ready';
           sound('tink');
-        }
-      }, 1000);
+        }, 1200);
+      }
     }
 
     if (list) {
@@ -7866,10 +8208,7 @@
 
     if (rec) {
       rec.addEventListener('click', function () {
-        if (playing && playTimer) {
-          clearInterval(playTimer);
-          playing = false;
-        }
+        if (playing) stopSpeech();
         recording = !recording;
         if (recording) {
           rec.textContent = '■ Stop';
@@ -7885,7 +8224,7 @@
           rec.classList.remove('is-recording');
           if (timer) clearInterval(timer);
           var s = Math.floor((Date.now() - t0) / 1000);
-          if (status) status.textContent = 'Saved';
+          if (status) status.textContent = 'Saved · TTS attached';
           recCount++;
           if (list) {
             var row = document.createElement('div');
@@ -7893,10 +8232,18 @@
             list.querySelectorAll('.vm-row').forEach(function (r) {
               r.classList.remove('is-selected');
             });
-            row.innerHTML =
-              '<strong>New Recording ' +
+            var label = 'New Recording ' + recCount;
+            var script =
+              'This is recording number ' +
               recCount +
-              '</strong><span class="muted">0:' +
+              ', about ' +
+              s +
+              ' seconds long. Captured in Voice Memos on macOS twenty seven.';
+            row.setAttribute('data-tts', script);
+            row.innerHTML =
+              '<strong>' +
+              label +
+              '</strong><span class="muted">TTS · 0:' +
               (s < 10 ? '0' : '') +
               s +
               '</span>';
@@ -7911,7 +8258,7 @@
       });
     }
     if (!el.querySelector('#vm-delete') && list) {
-      var bar = rec && rec.parentNode;
+      var bar = (rec && rec.parentNode) || el.querySelector('.vm-record-bar');
       var del = document.createElement('button');
       del.type = 'button';
       del.className = 'btn-glass';
@@ -7925,6 +8272,7 @@
           sound('sosumi');
           return;
         }
+        if (sel.classList.contains('is-playing')) stopSpeech();
         sel.remove();
         if (status) status.textContent = 'Deleted';
         sound('emptyTrash');
@@ -7935,7 +8283,19 @@
       playBtn.addEventListener('click', function () {
         var sel = list && list.querySelector('.vm-row.is-selected');
         if (sel) playRow(sel);
-        else sound('sosumi');
+        else {
+          var first = list && list.querySelector('.vm-row');
+          if (first) playRow(first);
+          else sound('sosumi');
+        }
+      });
+    }
+    var stopBtn = el.querySelector('#vm-stop');
+    if (stopBtn) {
+      stopBtn.addEventListener('click', function () {
+        stopSpeech();
+        if (status) status.textContent = 'Stopped';
+        sound('pop');
       });
     }
   }
@@ -9404,11 +9764,38 @@
       }
       function launch() {
         var name = card.getAttribute('data-game') || 'Game';
-        sound('funk');
-        if (/chess/i.test(name) && global.MacShell && MacShell.openApp) {
-          MacShell.openApp('chess');
+        if (/chess/i.test(name)) {
+          var playBtn = card.querySelector('.game-play, .btn-get');
+          if (
+            playBtn &&
+            !playBtn.classList.contains('is-installed') &&
+            playBtn.textContent !== 'OPEN'
+          ) {
+            playBtn.textContent = '…';
+            var n = 0;
+            var t = setInterval(function () {
+              n += 25;
+              playBtn.textContent = n + '%';
+              if (n >= 100) {
+                clearInterval(t);
+                playBtn.textContent = 'OPEN';
+                playBtn.classList.add('is-installed');
+                sound('hero');
+                if (global.MacShell && MacShell.notify) {
+                  MacShell.notify('Games', 'Installed', 'Chess · ready to play', 'now');
+                }
+                setTimeout(function () {
+                  if (global.MacShell && MacShell.openApp) MacShell.openApp('chess');
+                }, 300);
+              }
+            }, 120);
+            return;
+          }
+          sound('pop');
+          if (global.MacShell && MacShell.openApp) MacShell.openApp('chess');
           return;
         }
+        sound('funk');
         var ov = document.createElement('div');
         ov.className = 'game-play-overlay';
         ov.innerHTML =
@@ -9717,181 +10104,379 @@
     }, 1200);
   }
 
-  /* ── Chess / Games simple interact ──────────────────── */
+  /* ── Chess (legal-move engine vs computer) ──────────── */
   function wireChess(el) {
     if (!el || el.dataset.wired) return;
     el.dataset.wired = '1';
-    var startPos = '♜♞♝♛♚♝♞♜♟♟♟♟♟♟♟♟                ♙♙♙♙♙♙♙♙♖♘♗♕♔♗♘♖';
-    function buildBoard(pieces) {
-      var board = el.querySelector('.chess-board');
-      if (!board) {
-        board = document.createElement('div');
-        board.className = 'chess-board';
-        var wrap = el.querySelector('.chess-wrap');
-        if (!wrap) {
-          el.innerHTML =
-            '<div class="chess-wrap"><div class="chess-toolbar"></div><p class="muted">Click a piece, then a square · Computer replies</p></div>';
-          wrap = el.querySelector('.chess-wrap');
-        }
-        wrap.appendChild(board);
-      }
-      board.innerHTML = '';
-      for (var i = 0; i < 64; i++) {
-        var sq = document.createElement('button');
-        sq.type = 'button';
-        sq.className = 'chess-sq ' + ((Math.floor(i / 8) + i) % 2 ? 'dark' : 'light');
-        sq.dataset.i = String(i);
-        sq.textContent = pieces[i] === ' ' ? '' : pieces[i];
-        board.appendChild(sq);
-      }
-      return board;
-    }
-    if (!el.querySelector('.chess-board')) {
-      buildBoard(startPos);
-    }
-    var wrap = el.querySelector('.chess-wrap') || el;
-    var bar = wrap.querySelector('.chess-toolbar');
-    if (!bar) {
-      bar = document.createElement('div');
-      bar.className = 'chess-toolbar';
-      bar.innerHTML =
-        '<h3 style="margin:0;flex:1">Chess</h3>' +
-        '<button type="button" class="btn-glass" id="chess-flip">Flip</button>' +
-        '<button type="button" class="btn-glass" id="chess-undo">Undo</button>' +
-        '<button type="button" class="btn-primary" id="chess-new">New Game</button>';
-      wrap.insertBefore(bar, wrap.firstChild);
-    } else if (!el.querySelector('#chess-flip') && bar) {
-      var flipBtn = document.createElement('button');
-      flipBtn.type = 'button';
-      flipBtn.className = 'btn-glass';
-      flipBtn.id = 'chess-flip';
-      flipBtn.textContent = 'Flip';
-      var undoBtn = bar.querySelector('#chess-undo');
-      if (undoBtn) bar.insertBefore(flipBtn, undoBtn);
-      else bar.appendChild(flipBtn);
-    }
-    var flipped = false;
-    var selected = null;
+
+    var START =
+      'rnbqkbnr' +
+      'pppppppp' +
+      '........' +
+      '........' +
+      '........' +
+      '........' +
+      'PPPPPPPP' +
+      'RNBQKBNR';
+    var GLYPH = {
+      K: '♔',
+      Q: '♕',
+      R: '♖',
+      B: '♗',
+      N: '♘',
+      P: '♙',
+      k: '♚',
+      q: '♛',
+      r: '♜',
+      b: '♝',
+      n: '♞',
+      p: '♟',
+      '.': '',
+    };
+    var FROM_GLYPH = {};
+    Object.keys(GLYPH).forEach(function (k) {
+      if (GLYPH[k]) FROM_GLYPH[GLYPH[k]] = k;
+    });
+
+    var board = START.split('');
     var history = [];
-    function snapshot() {
-      var s = '';
-      el.querySelectorAll('.chess-sq').forEach(function (sq) {
-        s += sq.textContent || ' ';
-      });
-      return s;
+    var selected = -1;
+    var legal = [];
+    var flipped = false;
+    var gameOver = false;
+    var whiteTurn = true;
+
+    function isWhite(p) {
+      return p && p !== '.' && p === p.toUpperCase();
     }
-    function isWhite(ch) {
-      return '♙♖♘♗♕♔'.indexOf(ch) >= 0;
+    function isBlack(p) {
+      return p && p !== '.' && p === p.toLowerCase();
     }
-    function isBlack(ch) {
-      return '♟♜♞♝♛♚'.indexOf(ch) >= 0;
+    function enemy(p, white) {
+      return white ? isBlack(p) : isWhite(p);
     }
+    function friend(p, white) {
+      return white ? isWhite(p) : isBlack(p);
+    }
+    function idx(r, c) {
+      return r * 8 + c;
+    }
+    function rc(i) {
+      return { r: (i / 8) | 0, c: i % 8 };
+    }
+
+    function rayMoves(i, white, dirs, oneStep) {
+      var out = [];
+      var p0 = rc(i);
+      for (var d = 0; d < dirs.length; d++) {
+        var dr = dirs[d][0];
+        var dc = dirs[d][1];
+        var r = p0.r + dr;
+        var c = p0.c + dc;
+        while (r >= 0 && r < 8 && c >= 0 && c < 8) {
+          var j = idx(r, c);
+          var t = board[j];
+          if (t === '.') out.push(j);
+          else {
+            if (enemy(t, white)) out.push(j);
+            break;
+          }
+          if (oneStep) break;
+          r += dr;
+          c += dc;
+        }
+      }
+      return out;
+    }
+
+    function genMoves(i) {
+      var p = board[i];
+      if (!p || p === '.') return [];
+      var white = isWhite(p);
+      var kind = p.toUpperCase();
+      var p0 = rc(i);
+      var out = [];
+      if (kind === 'P') {
+        var dir = white ? -1 : 1;
+        var startRow = white ? 6 : 1;
+        var f1 = idx(p0.r + dir, p0.c);
+        if (p0.r + dir >= 0 && p0.r + dir < 8 && board[f1] === '.') {
+          out.push(f1);
+          if (p0.r === startRow) {
+            var f2 = idx(p0.r + dir * 2, p0.c);
+            if (board[f2] === '.') out.push(f2);
+          }
+        }
+        [-1, 1].forEach(function (dc) {
+          var r = p0.r + dir;
+          var c = p0.c + dc;
+          if (r < 0 || r > 7 || c < 0 || c > 7) return;
+          var j = idx(r, c);
+          if (enemy(board[j], white)) out.push(j);
+        });
+      } else if (kind === 'N') {
+        [
+          [-2, -1],
+          [-2, 1],
+          [-1, -2],
+          [-1, 2],
+          [1, -2],
+          [1, 2],
+          [2, -1],
+          [2, 1],
+        ].forEach(function (d) {
+          var r = p0.r + d[0];
+          var c = p0.c + d[1];
+          if (r < 0 || r > 7 || c < 0 || c > 7) return;
+          var j = idx(r, c);
+          if (!friend(board[j], white)) out.push(j);
+        });
+      } else if (kind === 'B') {
+        out = rayMoves(i, white, [
+          [-1, -1],
+          [-1, 1],
+          [1, -1],
+          [1, 1],
+        ]);
+      } else if (kind === 'R') {
+        out = rayMoves(i, white, [
+          [-1, 0],
+          [1, 0],
+          [0, -1],
+          [0, 1],
+        ]);
+      } else if (kind === 'Q') {
+        out = rayMoves(i, white, [
+          [-1, -1],
+          [-1, 1],
+          [1, -1],
+          [1, 1],
+          [-1, 0],
+          [1, 0],
+          [0, -1],
+          [0, 1],
+        ]);
+      } else if (kind === 'K') {
+        out = rayMoves(
+          i,
+          white,
+          [
+            [-1, -1],
+            [-1, 1],
+            [1, -1],
+            [1, 1],
+            [-1, 0],
+            [1, 0],
+            [0, -1],
+            [0, 1],
+          ],
+          true
+        );
+      }
+      return out;
+    }
+
+    function allMoves(white) {
+      var moves = [];
+      for (var i = 0; i < 64; i++) {
+        if ((white && isWhite(board[i])) || (!white && isBlack(board[i]))) {
+          genMoves(i).forEach(function (to) {
+            moves.push({ from: i, to: to });
+          });
+        }
+      }
+      return moves;
+    }
+
     function setStatus(msg) {
       var st = el.querySelector('#chess-status');
       if (!st) {
         st = document.createElement('p');
         st.id = 'chess-status';
         st.className = 'muted';
-        st.style.cssText = 'margin:8px 0 0';
         var wrap = el.querySelector('.chess-wrap') || el;
-        wrap.appendChild(st);
+        wrap.insertBefore(st, wrap.querySelector('.chess-board'));
       }
       st.textContent = msg;
     }
-    function computerMove() {
-      var squares = Array.prototype.slice.call(el.querySelectorAll('.chess-sq'));
-      var blackPieces = squares.filter(function (sq) {
-        return isBlack(sq.textContent);
+
+    function render() {
+      var boardEl = el.querySelector('.chess-board');
+      if (!boardEl) {
+        var wrap = el.querySelector('.chess-wrap');
+        if (!wrap) {
+          el.innerHTML =
+            '<div class="chess-wrap"><div class="chess-toolbar">' +
+            '<h3 style="margin:0;flex:1">Chess</h3>' +
+            '<button type="button" class="btn-glass" id="chess-flip">Flip</button>' +
+            '<button type="button" class="btn-glass" id="chess-undo">Undo</button>' +
+            '<button type="button" class="btn-primary" id="chess-new">New Game</button>' +
+            '</div><p class="muted" id="chess-status"></p><div class="chess-board"></div></div>';
+          wrap = el.querySelector('.chess-wrap');
+        }
+        boardEl = document.createElement('div');
+        boardEl.className = 'chess-board';
+        wrap.appendChild(boardEl);
+      }
+      boardEl.innerHTML = '';
+      boardEl.classList.toggle('is-flipped', flipped);
+      for (var i = 0; i < 64; i++) {
+        var view = flipped ? 63 - i : i;
+        var sq = document.createElement('button');
+        sq.type = 'button';
+        var light = ((view / 8) | 0) + (view % 8);
+        sq.className = 'chess-sq ' + (light % 2 === 0 ? 'light' : 'dark');
+        sq.dataset.i = String(view);
+        sq.textContent = GLYPH[board[view]] || '';
+        if (view === selected) sq.classList.add('is-selected');
+        if (legal.indexOf(view) >= 0) {
+          sq.classList.add('is-legal');
+          if (board[view] !== '.') sq.classList.add('is-capture');
+        }
+        boardEl.appendChild(sq);
+      }
+      boardEl.querySelectorAll('.chess-sq').forEach(function (sq) {
+        sq.addEventListener('click', function () {
+          onSquare(+sq.dataset.i);
+        });
       });
-      if (!blackPieces.length) {
-        setStatus('You win · no black pieces left');
+    }
+
+    function applyMove(from, to) {
+      history.push({ board: board.join(''), whiteTurn: whiteTurn });
+      var piece = board[from];
+      var cap = board[to];
+      board[to] = piece;
+      board[from] = '.';
+      /* promotion */
+      if (piece === 'P' && (to / 8) | 0 === 0) board[to] = 'Q';
+      if (piece === 'p' && (to / 8) | 0 === 7) board[to] = 'q';
+      return cap;
+    }
+
+    function onSquare(i) {
+      if (gameOver || !whiteTurn) return;
+      if (selected >= 0 && legal.indexOf(i) >= 0) {
+        var cap = applyMove(selected, i);
+        selected = -1;
+        legal = [];
+        whiteTurn = false;
+        render();
+        sound(cap && cap !== '.' ? 'hero' : 'tink');
+        if (cap === 'k') {
+          gameOver = true;
+          setStatus('You win · checkmate (king taken)');
+          sound('hero');
+          if (global.MacShell && MacShell.notify) {
+            MacShell.notify('Chess', 'Victory', 'You won the game', 'now');
+          }
+          return;
+        }
+        setStatus(cap && cap !== '.' ? 'Captured ' + (GLYPH[cap] || cap) + ' · computer thinking…' : 'Computer thinking…');
+        setTimeout(computerMove, 420);
+        return;
+      }
+      if (isWhite(board[i])) {
+        selected = i;
+        legal = genMoves(i);
+        render();
+        sound('pop');
+        setStatus('Select a highlighted square · ' + legal.length + ' move' + (legal.length === 1 ? '' : 's'));
+      } else {
+        selected = -1;
+        legal = [];
+        render();
+        if (board[i] !== '.') sound('sosumi');
+      }
+    }
+
+    function computerMove() {
+      if (gameOver) return;
+      var moves = allMoves(false);
+      if (!moves.length) {
+        gameOver = true;
+        setStatus('You win · Black has no moves');
         sound('hero');
         return;
       }
-      /* prefer captures, then random */
-      var captures = [];
-      blackPieces.forEach(function (from) {
-        squares.forEach(function (to) {
-          if (to !== from && isWhite(to.textContent)) {
-            captures.push([from, to]);
-          }
-        });
+      /* Prefer captures, then center moves */
+      var captures = moves.filter(function (m) {
+        return board[m.to] !== '.';
       });
-      var from;
-      var to;
-      if (captures.length && Math.random() < 0.7) {
-        var pick = captures[Math.floor(Math.random() * captures.length)];
-        from = pick[0];
-        to = pick[1];
-      } else {
-        for (var attempt = 0; attempt < 50; attempt++) {
-          from = blackPieces[Math.floor(Math.random() * blackPieces.length)];
-          to = squares[Math.floor(Math.random() * 64)];
-          if (to === from) continue;
-          if (to.textContent && isBlack(to.textContent)) continue;
-          break;
-        }
+      var pool = captures.length && Math.random() < 0.75 ? captures : moves;
+      /* slight preference for advancing pawns / center */
+      pool.sort(function (a, b) {
+        var sa = board[a.to] !== '.' ? 10 : 0;
+        var sb = board[b.to] !== '.' ? 10 : 0;
+        sa += 4 - Math.abs(3.5 - (a.to % 8));
+        sb += 4 - Math.abs(3.5 - (b.to % 8));
+        return sb - sa + (Math.random() - 0.5);
+      });
+      var pick = pool[0];
+      var cap = applyMove(pick.from, pick.to);
+      whiteTurn = true;
+      selected = -1;
+      legal = [];
+      render();
+      sound(cap && cap !== '.' ? 'hero' : 'tink');
+      if (cap === 'K') {
+        gameOver = true;
+        setStatus('Computer wins · your king was taken');
+        sound('sosumi');
+        return;
       }
-      if (!from || !to || (to.textContent && isBlack(to.textContent))) return;
-      history.push(snapshot());
-      var cap = to.textContent;
-      to.textContent = from.textContent;
-      from.textContent = '';
-      sound(cap ? 'hero' : 'tink');
-      setStatus(cap ? 'Computer captured ' + cap : 'Computer moved · your turn');
-      if (cap && global.MacShell && MacShell.notify) {
-        MacShell.notify('Chess', 'Computer', 'Captured ' + cap, 'now');
+      var reply = allMoves(true);
+      if (!reply.length) {
+        gameOver = true;
+        setStatus('Computer wins · no legal moves for White');
+        sound('sosumi');
+        return;
+      }
+      setStatus(
+        cap && cap !== '.'
+          ? 'Computer captured ' + (GLYPH[cap] || cap) + ' · your turn'
+          : 'Your turn · white to move'
+      );
+    }
+
+    function ensureChrome() {
+      var wrap = el.querySelector('.chess-wrap');
+      if (!wrap) {
+        el.innerHTML =
+          '<div class="chess-wrap"><div class="chess-toolbar">' +
+          '<h3 style="margin:0;flex:1">Chess</h3>' +
+          '<button type="button" class="btn-glass" id="chess-flip">Flip</button>' +
+          '<button type="button" class="btn-glass" id="chess-undo">Undo</button>' +
+          '<button type="button" class="btn-primary" id="chess-new">New Game</button>' +
+          '</div><p class="muted" id="chess-status"></p><div class="chess-board"></div>' +
+          '<p class="muted chess-hint">You are White · legal moves highlighted</p></div>';
+      } else if (!el.querySelector('.chess-toolbar')) {
+        var bar = document.createElement('div');
+        bar.className = 'chess-toolbar';
+        bar.innerHTML =
+          '<h3 style="margin:0;flex:1">Chess</h3>' +
+          '<button type="button" class="btn-glass" id="chess-flip">Flip</button>' +
+          '<button type="button" class="btn-glass" id="chess-undo">Undo</button>' +
+          '<button type="button" class="btn-primary" id="chess-new">New Game</button>';
+        wrap.insertBefore(bar, wrap.firstChild);
       }
     }
-    function bindSquares() {
-      selected = null;
-      el.querySelectorAll('.chess-sq').forEach(function (sq) {
-        sq.addEventListener('click', function () {
-          if (selected && selected !== sq) {
-            if (selected.textContent) {
-              if (sq.textContent && isWhite(sq.textContent) && isWhite(selected.textContent)) {
-                selected.classList.remove('is-selected');
-                selected = sq;
-                sq.classList.add('is-selected');
-                sound('pop');
-                return;
-              }
-              history.push(snapshot());
-              var captured = sq.textContent;
-              sq.textContent = selected.textContent;
-              selected.textContent = '';
-              sound(captured ? 'hero' : 'tink');
-              if (captured && global.MacShell && MacShell.notify) {
-                MacShell.notify('Chess', 'Capture', captured + ' taken', 'now');
-              }
-              selected.classList.remove('is-selected');
-              selected = null;
-              setTimeout(computerMove, 380);
-            } else {
-              selected.classList.remove('is-selected');
-              selected = null;
-            }
-          } else if (sq.textContent && isWhite(sq.textContent)) {
-            if (selected) selected.classList.remove('is-selected');
-            selected = sq;
-            sq.classList.add('is-selected');
-            sound('pop');
-          } else if (sq.textContent) {
-            sound('sosumi');
-          }
-        });
-      });
-    }
-    bindSquares();
+
+    ensureChrome();
+    render();
+    setStatus('White to move · click a piece, then a highlighted square');
+
     var neu = el.querySelector('#chess-new');
     if (neu) {
       neu.addEventListener('click', function () {
+        board = START.split('');
         history = [];
+        selected = -1;
+        legal = [];
+        gameOver = false;
+        whiteTurn = true;
         flipped = false;
-        var board = el.querySelector('.chess-board');
-        if (board) board.style.transform = '';
-        buildBoard(startPos);
-        bindSquares();
+        render();
         setStatus('New game · white to move');
         sound('hero');
       });
@@ -9903,10 +10488,23 @@
           sound('sosumi');
           return;
         }
+        /* undo player + computer if needed */
         var prev = history.pop();
-        buildBoard(prev);
-        bindSquares();
-        setStatus('Undid move');
+        if (history.length && !prev.whiteTurn) {
+          /* after computer move whiteTurn true; pop one more for player */
+        }
+        board = prev.board.split('');
+        whiteTurn = prev.whiteTurn;
+        if (!whiteTurn && history.length) {
+          prev = history.pop();
+          board = prev.board.split('');
+          whiteTurn = true;
+        }
+        selected = -1;
+        legal = [];
+        gameOver = false;
+        render();
+        setStatus('Undid move · white to move');
         sound('pop');
       });
     }
@@ -9914,15 +10512,10 @@
     if (flip) {
       flip.addEventListener('click', function () {
         flipped = !flipped;
-        var board = el.querySelector('.chess-board');
-        if (board) board.style.transform = flipped ? 'rotate(180deg)' : '';
-        el.querySelectorAll('.chess-sq').forEach(function (sq) {
-          sq.style.transform = flipped ? 'rotate(180deg)' : '';
-        });
+        render();
         sound('tink');
       });
     }
-    setStatus('White to move · click a piece, then a square');
   }
 
   /* ── Patch AppRegistry apps ─────────────────────────── */
@@ -10186,7 +10779,7 @@
         if (id === 'news') wireMediaList(body, 'News');
         if (id === 'books') wireMediaList(body, 'Books');
         if (id === 'disk-utility') wireDiskUtility(body);
-        if (id === 'chess' || id === 'games') wireChess(body);
+        if (id === 'chess') wireChess(body);
         if (id === 'siri') wireSiri(body);
         if (id === 'dictionary') wireDictionary(body);
         if (id === 'grapher') wireGrapher(body);
