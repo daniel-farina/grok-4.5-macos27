@@ -10268,13 +10268,15 @@
       '........' +
       'PPPPPPPP' +
       'RNBQKBNR';
+    /* Use filled (black-set) glyphs for both sides - outline white glyphs
+       render poorly on light squares. Color via .piece-white / .piece-black. */
     var GLYPH = {
-      K: '♔',
-      Q: '♕',
-      R: '♖',
-      B: '♗',
-      N: '♘',
-      P: '♙',
+      K: '♚',
+      Q: '♛',
+      R: '♜',
+      B: '♝',
+      N: '♞',
+      P: '♟',
       k: '♚',
       q: '♛',
       r: '♜',

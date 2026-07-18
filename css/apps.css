@@ -3488,22 +3488,25 @@ tr.is-selected {
 }
 .chess-sq.light { background: #f0d9b5; }
 .chess-sq.dark { background: #b58863; }
-/* Piece contrast: white = cream with outline, black = solid dark */
+/* Piece contrast: solid filled glyphs colored cream vs near-black */
 .chess-sq.piece-white {
-  color: #fff8ee !important;
+  color: #fffaf2 !important;
+  -webkit-text-stroke: 0.6px #2a2118;
+  paint-order: stroke fill;
   text-shadow:
-    0 0 1px #2a2118,
-    0 1px 0 #2a2118,
-    1px 0 0 #2a2118,
-    0 -1px 0 #2a2118,
-    -1px 0 0 #2a2118,
-    0 2px 3px rgba(0, 0, 0, 0.35);
+    0 0 0.5px #2a2118,
+    0 1px 0 #1a1410,
+    1px 0 0 #1a1410,
+    0 -1px 0 #1a1410,
+    -1px 0 0 #1a1410,
+    0 2px 4px rgba(0, 0, 0, 0.4);
 }
 .chess-sq.piece-black {
-  color: #1a1410 !important;
+  color: #14100c !important;
+  -webkit-text-stroke: 0;
   text-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.18),
-    0 2px 3px rgba(0, 0, 0, 0.25);
+    0 1px 0 rgba(255, 255, 255, 0.12),
+    0 2px 3px rgba(0, 0, 0, 0.28);
 }
 .chess-sq.is-selected {
   outline: 2px solid #0a84ff;
