@@ -3477,8 +3477,8 @@ Save stores a demo document name from the first line.</div>
     id: 'calculator',
     name: 'Calculator',
     category: 'Utilities',
-    width: 268,
-    height: 430,
+    width: 280,
+    height: 480,
     resizable: false,
     open() {
       // macOS Calculator: C/±/% (gray), operators (orange), digits (dark), 0 wide
