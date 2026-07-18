@@ -391,6 +391,9 @@
       var resizable = options.resizable !== false;
 
       var bounds = desktopBounds();
+      /* Keep windows inside usable desktop (above dock) */
+      width = Math.min(width, Math.max(minWidth, bounds.width - 24));
+      height = Math.min(height, Math.max(minHeight, bounds.usableHeight - 12));
       var offset = cascadeOffset();
       var x = options.x != null
         ? options.x
@@ -398,6 +401,10 @@
       var y = options.y != null
         ? options.y
         : Math.max(bounds.top + 16, Math.floor((bounds.usableHeight - height) / 3) + offset);
+      /* Clamp so bottom edge clears dock */
+      if (y + height > bounds.top + bounds.usableHeight) {
+        y = Math.max(bounds.top + 8, bounds.top + bounds.usableHeight - height);
+      }
 
       var id = 'win-' + nextId++;
       var state = {

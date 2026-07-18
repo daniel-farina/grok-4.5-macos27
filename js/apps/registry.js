@@ -1544,8 +1544,8 @@
     name: 'Calendar',
     category: 'Productivity',
     dock: true,
-    width: 1080,
-    height: 720,
+    width: 1000,
+    height: 640,
     open() {
       /**
        * Month layout matched to real macOS Calendar April 2026 screenshot
@@ -3477,8 +3477,8 @@ Save stores a demo document name from the first line.</div>
     id: 'calculator',
     name: 'Calculator',
     category: 'Utilities',
-    width: 280,
-    height: 480,
+    width: 292,
+    height: 520,
     resizable: false,
     open() {
       // macOS Calculator: C/±/% (gray), operators (orange), digits (dark), 0 wide
