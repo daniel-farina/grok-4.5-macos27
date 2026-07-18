@@ -1333,13 +1333,14 @@
         <div class="maps27-toolbar">
           <div class="maps27-search-wrap">
             <span class="maps27-search-ico" aria-hidden="true">⌕</span>
-            <input class="maps27-search" type="search" placeholder="Search Maps" value="Apple Park" />
+            <input class="maps27-search" type="search" placeholder="Search OpenStreetMap…" value="Apple Park" />
             <button type="button" class="maps27-search-clear" aria-label="Clear">✕</button>
           </div>
-          <div class="maps27-layers">
-            <button type="button" class="maps27-layer active" data-layer="map">Map</button>
-            <button type="button" class="maps27-layer" data-layer="satellite">Satellite</button>
-            <button type="button" class="maps27-layer" data-layer="hybrid">Hybrid</button>
+          <div class="maps27-layers" role="group" aria-label="Map style">
+            <button type="button" class="maps27-layer active" data-layer="map" title="OpenStreetMap">Map</button>
+            <button type="button" class="maps27-layer" data-layer="satellite" title="Satellite imagery">Satellite</button>
+            <button type="button" class="maps27-layer" data-layer="hybrid" title="Satellite + labels">Hybrid</button>
+            <button type="button" class="maps27-layer" data-layer="topo" title="OpenTopoMap">Topo</button>
           </div>
           <div class="maps27-modes">
             <button type="button" class="maps27-mode active" title="Drive" data-travel="drive">🚗</button>
@@ -1351,13 +1352,7 @@
         </div>
         <div class="maps27-body">
           <div class="maps27-canvas maps-live" data-layer="map">
-            <div class="maps-tile-layer" id="maps-tiles" aria-hidden="true"></div>
-            <div class="maps-label-overlay" id="maps-labels" hidden></div>
-            <div class="maps27-pin" title="Apple Park" style="left:50%;top:50%">
-              <div class="maps27-pin-head"></div>
-              <div class="maps27-pin-point"></div>
-              <div class="maps27-pin-shadow"></div>
-            </div>
+            <div id="maps-leaflet" class="maps-leaflet-host" role="application" aria-label="Open map"></div>
             <div class="maps27-controls">
               <button type="button" class="maps27-ctrl" title="Current Location">◎</button>
               <div class="maps27-zoom">
@@ -1370,19 +1365,19 @@
                 <div class="maps27-card-thumb" aria-hidden="true"></div>
                 <div class="maps27-card-info">
                   <strong>Apple Park</strong>
-                  <span class="maps27-card-rating">★ 4.7 · Landmark</span>
+                  <span class="maps27-card-rating">OpenStreetMap · Leaflet</span>
                   <span class="muted">1 Apple Park Way, Cupertino, CA</span>
                 </div>
               </div>
               <div class="maps27-card-actions">
                 <button type="button" class="maps27-chip primary">Directions</button>
                 <button type="button" class="maps27-chip maps-sat-chip" data-layer="satellite">Satellite</button>
-                <button type="button" class="maps27-chip">Share</button>
-                <button type="button" class="maps27-chip">More</button>
+                <button type="button" class="maps27-chip maps-map-chip" data-layer="map">Map</button>
+                <a class="maps27-chip maps-osm-link" href="https://www.openstreetmap.org/#map=16/37.3349/-122.0090" target="_blank" rel="noopener">Open OSM</a>
               </div>
               <div class="maps27-card-eta">
                 <span class="maps27-eta-dot"></span>
-                <span class="maps27-coords">37.3349° N, 122.0090° W · Zoom 15</span>
+                <span class="maps27-coords">37.3349° N, 122.0090° W · © OpenStreetMap</span>
               </div>
             </div>
           </div>

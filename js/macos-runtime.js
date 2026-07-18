@@ -2980,26 +2980,65 @@
     });
   }
 
-  /* ── Maps: search, modes, zoom ──────────────────────── */
+  /* ── Maps: Leaflet + OpenStreetMap + satellite ─────── */
+  function loadLeaflet(cb) {
+    if (global.L && global.L.map) {
+      cb(null, global.L);
+      return;
+    }
+    if (loadLeaflet._loading) {
+      loadLeaflet._queue.push(cb);
+      return;
+    }
+    loadLeaflet._loading = true;
+    loadLeaflet._queue = [cb];
+    function done(err) {
+      loadLeaflet._loading = false;
+      var q = loadLeaflet._queue || [];
+      loadLeaflet._queue = [];
+      q.forEach(function (fn) {
+        fn(err, global.L);
+      });
+    }
+    if (!document.querySelector('link[data-leaflet]')) {
+      var link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+      link.setAttribute('data-leaflet', '1');
+      document.head.appendChild(link);
+    }
+    var script = document.createElement('script');
+    script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    script.async = true;
+    script.onload = function () {
+      done(null);
+    };
+    script.onerror = function () {
+      done(new Error('Leaflet failed to load'));
+    };
+    document.head.appendChild(script);
+  }
+
   function wireMaps(el) {
     if (!el || el.dataset.wired) return;
     el.dataset.wired = '1';
     var search = el.querySelector('.maps27-search');
     var cardTitle = el.querySelector('.maps27-card-info strong');
     var cardSub = el.querySelector('.maps27-card-info .muted, .maps27-card-info p');
-    var pin = el.querySelector('.maps27-pin');
+    var cardRating = el.querySelector('.maps27-card-rating');
     var canvas = el.querySelector('.maps27-canvas');
-    var tilesEl = el.querySelector('#maps-tiles') || el.querySelector('.maps-tile-layer');
+    var host = el.querySelector('#maps-leaflet') || el.querySelector('.maps-leaflet-host');
     var coordsEl = el.querySelector('.maps27-coords');
+    var osmLink = el.querySelector('.maps-osm-link');
     var lastPlace = 'Apple Park';
     var travel = 'drive';
-    /* Apple Park, Cupertino */
-    var state = {
-      lat: 37.3349,
-      lon: -122.009,
-      z: 15,
-      layer: 'map',
-    };
+    var layerKey = 'map';
+    var map = null;
+    var marker = null;
+    var baseLayers = {};
+    var activeBase = null;
+    var hybridGroup = null;
+
     var KNOWN = {
       'apple park': { lat: 37.3349, lon: -122.009, sub: '1 Apple Park Way, Cupertino, CA' },
       cupertino: { lat: 37.323, lon: -122.0322, sub: 'Cupertino, California' },
@@ -3011,142 +3050,109 @@
       paris: { lat: 48.8566, lon: 2.3522, sub: 'Paris, France' },
       seattle: { lat: 47.6062, lon: -122.3321, sub: 'Seattle, WA' },
       airport: { lat: 37.3639, lon: -121.9289, sub: 'San Jose Mineta International' },
-      coffee: { lat: 37.332, lon: -122.031, sub: 'Cafés near Cupertino' },
     };
 
-    function lon2tile(lon, z) {
-      return ((lon + 180) / 360) * Math.pow(2, z);
-    }
-    function lat2tile(lat, z) {
-      var r = (lat * Math.PI) / 180;
-      return (
-        ((1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2) * Math.pow(2, z)
-      );
-    }
-    function tileUrl(z, x, y, layer) {
-      var max = Math.pow(2, z);
-      x = ((x % max) + max) % max;
-      if (y < 0 || y >= max) return '';
-      if (layer === 'satellite' || layer === 'hybrid') {
-        return (
-          'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/' +
-          z +
-          '/' +
-          y +
-          '/' +
-          x
-        );
-      }
-      return 'https://tile.openstreetmap.org/' + z + '/' + x + '/' + y + '.png';
-    }
-    function labelTileUrl(z, x, y) {
-      var max = Math.pow(2, z);
-      x = ((x % max) + max) % max;
-      if (y < 0 || y >= max) return '';
-      return (
-        'https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/' +
-        z +
-        '/' +
-        y +
-        '/' +
-        x
-      );
+    if (!host && canvas) {
+      host = document.createElement('div');
+      host.id = 'maps-leaflet';
+      host.className = 'maps-leaflet-host';
+      canvas.insertBefore(host, canvas.firstChild);
     }
 
-    function renderTiles() {
-      if (!tilesEl || !canvas) return;
-      var rect = canvas.getBoundingClientRect();
-      var w = rect.width || 800;
-      var h = rect.height || 500;
-      var tileSize = 256;
-      var cx = lon2tile(state.lon, state.z);
-      var cy = lat2tile(state.lat, state.z);
-      var tilesX = Math.ceil(w / tileSize) + 2;
-      var tilesY = Math.ceil(h / tileSize) + 2;
-      var startX = Math.floor(cx - tilesX / 2);
-      var startY = Math.floor(cy - tilesY / 2);
-      var offsetX = (cx - startX) * tileSize - w / 2;
-      var offsetY = (cy - startY) * tileSize - h / 2;
-      var html = '';
-      var labels = '';
-      for (var ty = 0; ty < tilesY; ty++) {
-        for (var tx = 0; tx < tilesX; tx++) {
-          var x = startX + tx;
-          var y = startY + ty;
-          var url = tileUrl(state.z, x, y, state.layer);
-          if (!url) continue;
-          var left = tx * tileSize - offsetX;
-          var top = ty * tileSize - offsetY;
-          html +=
-            '<img class="maps-tile" draggable="false" alt="" src="' +
-            url +
-            '" style="left:' +
-            left +
-            'px;top:' +
-            top +
-            'px;width:' +
-            tileSize +
-            'px;height:' +
-            tileSize +
-            'px" />';
-          if (state.layer === 'hybrid') {
-            var lu = labelTileUrl(state.z, x, y);
-            if (lu) {
-              labels +=
-                '<img class="maps-tile maps-label-tile" draggable="false" alt="" src="' +
-                lu +
-                '" style="left:' +
-                left +
-                'px;top:' +
-                top +
-                'px;width:' +
-                tileSize +
-                'px;height:' +
-                tileSize +
-                'px" />';
-            }
-          }
-        }
-      }
-      tilesEl.innerHTML = html;
-      var lab = el.querySelector('#maps-labels');
-      if (lab) {
-        lab.hidden = state.layer !== 'hybrid';
-        lab.innerHTML = labels;
-      }
-      if (pin) {
-        pin.style.left = '50%';
-        pin.style.top = '50%';
-      }
+    function updateCoords() {
+      if (!map) return;
+      var c = map.getCenter();
+      var z = map.getZoom();
+      var lat = c.lat;
+      var lon = c.lng;
+      var hemi = lat >= 0 ? 'N' : 'S';
+      var we = lon >= 0 ? 'E' : 'W';
+      var style =
+        layerKey === 'satellite'
+          ? 'Satellite'
+          : layerKey === 'hybrid'
+            ? 'Hybrid'
+            : layerKey === 'topo'
+              ? 'Topo'
+              : 'OpenStreetMap';
       if (coordsEl) {
         coordsEl.textContent =
-          state.lat.toFixed(4) +
-          '° N, ' +
-          Math.abs(state.lon).toFixed(4) +
-          '° W · Zoom ' +
-          state.z +
-          (state.layer === 'satellite' || state.layer === 'hybrid' ? ' · Satellite' : '');
+          Math.abs(lat).toFixed(4) +
+          '° ' +
+          hemi +
+          ', ' +
+          Math.abs(lon).toFixed(4) +
+          '° ' +
+          we +
+          ' · z' +
+          z +
+          ' · ' +
+          style;
       }
-      canvas.dataset.layer = state.layer;
-      canvas.classList.toggle('is-satellite', state.layer !== 'map');
+      if (osmLink) {
+        osmLink.href =
+          'https://www.openstreetmap.org/#map=' +
+          z +
+          '/' +
+          lat.toFixed(5) +
+          '/' +
+          lon.toFixed(5);
+      }
+      if (canvas) {
+        canvas.dataset.layer = layerKey;
+        canvas.classList.toggle('is-satellite', layerKey === 'satellite' || layerKey === 'hybrid');
+      }
     }
 
-    function setLayer(layer) {
-      state.layer = layer || 'map';
+    function setLayer(key) {
+      if (!map || !baseLayers) return;
+      layerKey = key || 'map';
       el.querySelectorAll('.maps27-layer').forEach(function (b) {
-        b.classList.toggle('active', b.getAttribute('data-layer') === state.layer);
+        b.classList.toggle('active', b.getAttribute('data-layer') === layerKey);
       });
-      renderTiles();
+      if (activeBase) map.removeLayer(activeBase);
+      if (hybridGroup) {
+        map.removeLayer(hybridGroup);
+        hybridGroup = null;
+      }
+      if (layerKey === 'hybrid' && baseLayers.satellite && baseLayers.labels) {
+        hybridGroup = global.L.layerGroup([baseLayers.satellite, baseLayers.labels]);
+        hybridGroup.addTo(map);
+        activeBase = hybridGroup;
+      } else if (baseLayers[layerKey]) {
+        baseLayers[layerKey].addTo(map);
+        activeBase = baseLayers[layerKey];
+      } else if (baseLayers.map) {
+        baseLayers.map.addTo(map);
+        activeBase = baseLayers.map;
+        layerKey = 'map';
+      }
+      if (cardRating) {
+        cardRating.textContent =
+          layerKey === 'satellite'
+            ? 'Satellite imagery · Esri'
+            : layerKey === 'hybrid'
+              ? 'Satellite + labels'
+              : layerKey === 'topo'
+                ? 'OpenTopoMap'
+                : 'OpenStreetMap · Leaflet';
+      }
+      updateCoords();
       sound('tink');
     }
 
-    function setCenter(lat, lon, place, sub) {
-      state.lat = lat;
-      state.lon = lon;
+    function setCenter(lat, lon, place, sub, zoom) {
       lastPlace = place || lastPlace;
       if (cardTitle) cardTitle.textContent = lastPlace;
       if (cardSub) cardSub.textContent = sub || '';
-      renderTiles();
+      if (!map) return;
+      var z = typeof zoom === 'number' ? zoom : Math.max(map.getZoom(), 14);
+      map.setView([lat, lon], z, { animate: true });
+      if (marker) {
+        marker.setLatLng([lat, lon]);
+        marker.bindPopup('<strong>' + lastPlace + '</strong><br/>' + (sub || '')).openPopup();
+      }
+      updateCoords();
     }
 
     function showDirections(dest) {
@@ -3159,8 +3165,8 @@
           '<ol class="maps27-steps"></ol>' +
           '<p class="muted maps27-eta"></p>' +
           '<button type="button" class="btn-glass maps27-end-route">End Route</button>';
-        var host = el.querySelector('.maps27-card') || el;
-        host.appendChild(panel);
+        var hostCard = el.querySelector('.maps27-card') || el;
+        hostCard.appendChild(panel);
         panel.querySelector('.maps27-end-route').addEventListener('click', function () {
           panel.hidden = true;
           sound('pop');
@@ -3169,8 +3175,8 @@
       panel.hidden = false;
       var steps = [
         'Head north from current area',
-        travel === 'walk' ? 'Continue on foot 0.8 mi' : 'Merge onto Demo Blvd',
-        travel === 'transit' ? 'Board Line 22 · 3 stops' : 'Continue 1.2 mi',
+        travel === 'walk' ? 'Continue on foot 0.8 mi' : 'Merge onto local roads',
+        travel === 'transit' ? 'Board transit · 3 stops' : 'Continue 1.2 mi',
         'Arrive at ' + dest,
       ];
       var ol = panel.querySelector('.maps27-steps');
@@ -3185,13 +3191,14 @@
         });
       }
       var eta = panel.querySelector('.maps27-eta');
-      var etaText =
-        travel === 'walk'
-          ? '28 min · 1.4 mi · Walking'
-          : travel === 'transit'
-            ? '22 min · Transit'
-            : '12 min · 3.4 mi · Driving';
-      if (eta) eta.textContent = etaText;
+      if (eta) {
+        eta.textContent =
+          travel === 'walk'
+            ? '28 min · 1.4 mi · Walking'
+            : travel === 'transit'
+              ? '22 min · Transit'
+              : '12 min · 3.4 mi · Driving';
+      }
     }
 
     function go(q) {
@@ -3203,15 +3210,14 @@
         if (key.indexOf(k) >= 0) hit = KNOWN[k];
       });
       if (hit) {
-        setCenter(hit.lat, hit.lon, q, hit.sub);
+        setCenter(hit.lat, hit.lon, q, hit.sub, 16);
         sound('pop');
         if (global.MacShell && MacShell.notify) {
           MacShell.notify('Maps', 'Location', q, 'now');
         }
         return;
       }
-      /* Nominatim geocode (public OSM) */
-      if (cardSub) cardSub.textContent = 'Searching…';
+      if (cardSub) cardSub.textContent = 'Searching OpenStreetMap…';
       fetch(
         'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' +
           encodeURIComponent(q),
@@ -3226,7 +3232,8 @@
               parseFloat(data[0].lat),
               parseFloat(data[0].lon),
               q,
-              data[0].display_name || 'Search result'
+              data[0].display_name || 'OpenStreetMap result',
+              15
             );
             sound('pop');
             if (global.MacShell && MacShell.notify) {
@@ -3234,16 +3241,119 @@
             }
           } else {
             if (cardTitle) cardTitle.textContent = q;
-            if (cardSub) cardSub.textContent = 'No results · try Apple Park, San Francisco…';
+            if (cardSub) cardSub.textContent = 'No results · try San Francisco or London';
             sound('sosumi');
           }
         })
         .catch(function () {
-          /* Offline fallback: nudge map slightly */
-          setCenter(state.lat + 0.01, state.lon - 0.01, q, 'Approximate (offline demo)');
-          sound('tink');
+          if (cardSub) cardSub.textContent = 'Search offline · try Apple Park, London…';
+          sound('sosumi');
         });
     }
+
+    function initMap(L) {
+      if (!host || map) return;
+      /* Open tile layers (no API key) */
+      baseLayers.map = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+        subdomains: 'abc',
+      });
+      /* Free worldwide satellite (Esri World Imagery — standard open-web basemap) */
+      baseLayers.satellite = L.tileLayer(
+        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+        {
+          maxZoom: 19,
+          attribution:
+            'Tiles &copy; Esri — Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community',
+        }
+      );
+      baseLayers.labels = L.tileLayer(
+        'https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png',
+        {
+          maxZoom: 19,
+          attribution: '&copy; OpenStreetMap, &copy; CARTO',
+          subdomains: 'abcd',
+          pane: 'overlayPane',
+        }
+      );
+      baseLayers.topo = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+        maxZoom: 17,
+        attribution:
+          'Map data: &copy; OpenStreetMap, SRTM | Map style: &copy; OpenTopoMap (CC-BY-SA)',
+        subdomains: 'abc',
+      });
+
+      map = L.map(host, {
+        center: [37.3349, -122.009],
+        zoom: 15,
+        zoomControl: false,
+        attributionControl: true,
+      });
+      baseLayers.map.addTo(map);
+      activeBase = baseLayers.map;
+
+      marker = L.marker([37.3349, -122.009], { title: 'Apple Park' })
+        .addTo(map)
+        .bindPopup('<strong>Apple Park</strong><br/>OpenStreetMap');
+
+      map.on('moveend zoomend', updateCoords);
+      map.on('click', function (e) {
+        if (marker) {
+          marker.setLatLng(e.latlng);
+          lastPlace = 'Dropped Pin';
+          if (cardTitle) cardTitle.textContent = 'Dropped Pin';
+          if (cardSub) {
+            cardSub.textContent =
+              e.latlng.lat.toFixed(5) + ', ' + e.latlng.lng.toFixed(5) + ' · OpenStreetMap';
+          }
+          marker
+            .bindPopup(
+              '<strong>Dropped Pin</strong><br/>' +
+                e.latlng.lat.toFixed(5) +
+                ', ' +
+                e.latlng.lng.toFixed(5)
+            )
+            .openPopup();
+        }
+        updateCoords();
+        sound('tink');
+      });
+
+      /* Fix grey tiles when window finishes animating open */
+      setTimeout(function () {
+        map.invalidateSize();
+        updateCoords();
+      }, 80);
+      setTimeout(function () {
+        map.invalidateSize();
+      }, 400);
+
+      var win = el.closest('.window');
+      if (win && typeof ResizeObserver !== 'undefined') {
+        var ro = new ResizeObserver(function () {
+          if (map) map.invalidateSize();
+        });
+        ro.observe(win);
+      }
+
+      updateCoords();
+    }
+
+    loadLeaflet(function (err, L) {
+      if (err || !L) {
+        if (host) {
+          host.innerHTML =
+            '<div class="maps-fallback">' +
+            '<p><strong>Open map unavailable</strong></p>' +
+            '<p class="muted">Could not load Leaflet. Check network, then reopen Maps.</p>' +
+            '<a class="btn-primary" href="https://www.openstreetmap.org" target="_blank" rel="noopener">Open OpenStreetMap</a>' +
+            '</div>';
+        }
+        return;
+      }
+      initMap(L);
+    });
 
     if (search) {
       search.addEventListener('keydown', function (e) {
@@ -3261,8 +3371,9 @@
       });
     }
 
-    el.querySelectorAll('.maps27-layer, .maps-sat-chip').forEach(function (btn) {
-      btn.addEventListener('click', function () {
+    el.querySelectorAll('.maps27-layer, .maps-sat-chip, .maps-map-chip').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.preventDefault();
         setLayer(btn.getAttribute('data-layer') || 'satellite');
       });
     });
@@ -3280,58 +3391,19 @@
 
     el.querySelectorAll('.maps27-ctrl').forEach(function (btn) {
       btn.addEventListener('click', function () {
+        if (!map) return;
         var t = btn.getAttribute('title') || '';
-        if (t.indexOf('In') >= 0) state.z = Math.min(18, state.z + 1);
-        else if (t.indexOf('Out') >= 0) state.z = Math.max(3, state.z - 1);
+        if (t.indexOf('In') >= 0) map.zoomIn();
+        else if (t.indexOf('Out') >= 0) map.zoomOut();
         else if (t.indexOf('Location') >= 0) {
-          setCenter(37.3349, -122.009, 'Apple Park', 'Current location · demo');
+          setCenter(37.3349, -122.009, 'Apple Park', 'Current location · demo', 16);
           if (search) search.value = 'Apple Park';
           sound('hero');
           return;
         }
-        renderTiles();
         sound('volume');
       });
     });
-
-    if (canvas) {
-      canvas.style.cursor = 'grab';
-      var drag = null;
-      canvas.addEventListener('pointerdown', function (e) {
-        if (e.target.closest('button, a, .maps27-card, .maps27-controls')) return;
-        drag = { x: e.clientX, y: e.clientY, lat: state.lat, lon: state.lon };
-        canvas.setPointerCapture(e.pointerId);
-        canvas.style.cursor = 'grabbing';
-      });
-      canvas.addEventListener('pointermove', function (e) {
-        if (!drag) return;
-        var dx = e.clientX - drag.x;
-        var dy = e.clientY - drag.y;
-        var scale = 360 / Math.pow(2, state.z) / 256;
-        state.lon = drag.lon - dx * scale;
-        state.lat = Math.max(
-          -85,
-          Math.min(85, drag.lat + dy * scale * Math.cos((drag.lat * Math.PI) / 180))
-        );
-        renderTiles();
-      });
-      canvas.addEventListener('pointerup', function () {
-        drag = null;
-        canvas.style.cursor = 'grab';
-      });
-      canvas.addEventListener('dblclick', function (e) {
-        if (e.target.closest('button, .maps27-card')) return;
-        state.z = Math.min(18, state.z + 1);
-        renderTiles();
-        sound('pop');
-      });
-      canvas.addEventListener('wheel', function (e) {
-        e.preventDefault();
-        if (e.deltaY < 0) state.z = Math.min(18, state.z + 1);
-        else state.z = Math.max(3, state.z - 1);
-        renderTiles();
-      }, { passive: false });
-    }
 
     el.querySelectorAll('.maps27-btn.primary, .maps27-chip.primary').forEach(function (btn) {
       btn.addEventListener('click', function () {
@@ -3341,23 +3413,6 @@
           MacShell.notify('Maps', 'Route', 'Directions to ' + lastPlace, 'now');
         }
       });
-    });
-
-    /* Ensure tile host exists if old markup */
-    if (!tilesEl && canvas) {
-      tilesEl = document.createElement('div');
-      tilesEl.className = 'maps-tile-layer';
-      tilesEl.id = 'maps-tiles';
-      canvas.insertBefore(tilesEl, canvas.firstChild);
-    }
-
-    renderTiles();
-    window.addEventListener('resize', function onResize() {
-      if (!el.isConnected) {
-        window.removeEventListener('resize', onResize);
-        return;
-      }
-      renderTiles();
     });
   }
 
