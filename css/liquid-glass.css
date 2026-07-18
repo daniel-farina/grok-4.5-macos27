@@ -416,6 +416,8 @@ ol {
   inset: var(--menubar-height) 0 var(--dock-height) 0;
   z-index: var(--z-windows);
   overflow: hidden;
+  /* Pass clicks/right-clicks through empty space to wallpaper + desktop icons */
+  pointer-events: none;
 }
 
 /* -----------------------------------------------------------------------------
@@ -974,6 +976,8 @@ html.dock-reflect {
   z-index: var(--z-windows);
   opacity: 1;
   transform: scale(1);
+  /* Windows layer has pointer-events:none; windows must capture again */
+  pointer-events: auto;
   transition:
     opacity var(--duration-window) var(--ease-out),
     transform var(--duration-window) var(--ease-out),
@@ -3004,6 +3008,7 @@ body.stage-manager-on .window.is-active:not(.is-minimized):not(.is-staged),
   box-shadow: var(--shadow-menu);
   opacity: 0;
   visibility: hidden;
+  pointer-events: none;
   transform: scale(0.96);
   transform-origin: top left;
   transition:
@@ -3015,6 +3020,7 @@ body.stage-manager-on .window.is-active:not(.is-minimized):not(.is-staged),
 #context-menu.is-open {
   opacity: 1;
   visibility: visible;
+  pointer-events: auto;
   transform: scale(1);
 }
 
@@ -3027,6 +3033,8 @@ body.stage-manager-on .window.is-active:not(.is-minimized):not(.is-staged),
   font-size: 13px;
   gap: 24px;
   color: var(--color-text);
+  cursor: default;
+  user-select: none;
 }
 
 .context-item:hover,
@@ -3409,11 +3417,11 @@ body.stage-manager-on .window.is-active:not(.is-minimized):not(.is-staged),
   }
 }
 
-/* Desktop icons — freeform positions, draggable */
+/* Desktop icons — freeform positions, draggable (above wallpaper, below windows) */
 #desktop-icons {
   position: absolute;
   inset: 0;
-  z-index: 2;
+  z-index: var(--z-desktop-icons);
   pointer-events: none;
 }
 #desktop-icons.is-freeform {

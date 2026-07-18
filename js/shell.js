@@ -1113,77 +1113,149 @@
     });
   }
 
-  function showDockContextMenu(x, y, appId) {
+  var DESKTOP_CONTEXT_HTML =
+    '<div class="context-item" data-action="new-folder" role="menuitem">New Folder</div>' +
+    '<div class="context-item" data-action="get-info" role="menuitem">Get Info</div>' +
+    '<div class="context-separator" role="separator"></div>' +
+    '<div class="context-item" data-action="change-wallpaper" role="menuitem">Change Wallpaper…</div>' +
+    '<div class="context-item" data-action="wallpaper" role="menuitem">Wallpaper Settings…</div>' +
+    '<div class="context-item" data-action="sort-by" role="menuitem">Sort By Name</div>' +
+    '<div class="context-separator" role="separator"></div>' +
+    '<div class="context-item" data-action="clean-up" role="menuitem">Clean Up</div>' +
+    '<div class="context-item" data-action="as-icons" role="menuitem">as Icons</div>' +
+    '<div class="context-item" data-action="show-path-bar" role="menuitem">Show Path Bar</div>' +
+    '<div class="context-separator" role="separator"></div>' +
+    '<div class="context-item" data-action="system-settings" role="menuitem">System Settings…</div>' +
+    '<div class="context-item" data-action="refresh" role="menuitem">Refresh Desktop</div>';
+
+  function positionContextMenu(menu, x, y) {
+    if (!menu) return;
+    var pad = 8;
+    /* Force layout so offsetWidth/Height are real while visible */
+    var mw = menu.offsetWidth || 220;
+    var mh = menu.offsetHeight || 240;
+    var left = Math.max(pad, Math.min(x, window.innerWidth - mw - pad));
+    var top = Math.max(pad, Math.min(y, window.innerHeight - mh - pad));
+    menu.style.left = left + 'px';
+    menu.style.top = top + 'px';
+  }
+
+  function openContextMenu(x, y, html) {
     var menu = $('#context-menu');
     if (!menu) return;
+    closeAllOverlays();
+    menu.innerHTML = html || DESKTOP_CONTEXT_HTML;
+    showOverlay(menu);
+    positionContextMenu(menu, x, y);
+    /* Reposition after paint in case content height differed */
+    requestAnimationFrame(function () {
+      positionContextMenu(menu, x, y);
+    });
+  }
+
+  function showDockContextMenu(x, y, appId) {
     var name = titleFor(appId);
     var isTrash = appId === 'trash';
-    menu.innerHTML =
+    var html =
       (isTrash
-        ? '<div class="context-item" data-action="dock-open-trash">Open Trash</div>' +
-          '<div class="context-item" data-action="empty-trash">Empty Trash</div>'
+        ? '<div class="context-item" data-action="dock-open-trash" role="menuitem">Open Trash</div>' +
+          '<div class="context-item" data-action="empty-trash" role="menuitem">Empty Trash</div>'
         : '<div class="context-item" data-action="dock-open" data-app="' +
           escapeHtml(appId) +
-          '">Open ' +
+          '" role="menuitem">Open ' +
           escapeHtml(name) +
           '</div>') +
       (runningApps[appId] && !isTrash
         ? '<div class="context-item" data-action="dock-quit" data-app="' +
           escapeHtml(appId) +
-          '">Quit</div>' +
+          '" role="menuitem">Quit</div>' +
           '<div class="context-item" data-action="dock-hide" data-app="' +
           escapeHtml(appId) +
-          '">Hide</div>'
+          '" role="menuitem">Hide</div>'
         : '') +
-      '<div class="context-separator"></div>' +
+      '<div class="context-separator" role="separator"></div>' +
       (isTrash
         ? ''
         : '<div class="context-item" data-action="dock-show-finder" data-app="' +
           escapeHtml(appId) +
-          '">Show in Finder</div>') +
-      '<div class="context-item" data-action="dock-options">Options</div>';
-    menu.style.left = x + 'px';
-    menu.style.top = y + 'px';
-    showOverlay(menu);
-    $$('[data-action]', menu).forEach(function (el) {
-      el.addEventListener('click', function () {
-        var a = el.getAttribute('data-action');
-        var id = el.getAttribute('data-app');
-        hideOverlay(menu);
-        if (a === 'dock-open') openApp(id);
-        if (a === 'dock-open-trash') {
-          openApp('finder');
-          setTimeout(function () {
-            var win =
-              global.WindowManager &&
-              WindowManager.getWindowByAppId &&
-              WindowManager.getWindowByAppId('finder');
-            var body = win && win.el && win.el.querySelector('.window-content');
-            var t = body && body.querySelector('.finder-sb-item[data-nav="trash"]');
-            if (t) t.click();
-          }, 100);
-        }
-        if (a === 'empty-trash') handleMenuAction('empty-trash');
-        if (a === 'dock-quit' && global.WindowManager) {
-          WindowManager.closeApp(id);
-          syncRunningFromWindows();
-        }
-        if (a === 'dock-hide' && global.WindowManager) {
-          var w = WindowManager.getWindowByAppId && WindowManager.getWindowByAppId(id);
-          if (w) WindowManager.minimize(w.id);
-        }
-        if (a === 'dock-show-finder') {
-          openApp('finder');
-          setTimeout(function () {
-            finderGo('apps');
-          }, 100);
-        }
-        if (a === 'dock-options') {
-          notify('Dock', 'Options', 'Keep in Dock · Open at Login (demo)', 'now');
-        }
-        if (global.MacSounds && MacSounds.play) MacSounds.play('pop');
-      });
+          '" role="menuitem">Show in Finder</div>') +
+      '<div class="context-item" data-action="dock-options" role="menuitem">Options</div>';
+    openContextMenu(x, y, html);
+  }
+
+  function showIconContextMenu(x, y, iconEl) {
+    if (!iconEl) {
+      openContextMenu(x, y, DESKTOP_CONTEXT_HTML);
+      return;
+    }
+    $$('.desktop-icon').forEach(function (b) {
+      b.classList.remove('is-selected');
     });
+    iconEl.classList.add('is-selected');
+    var label =
+      ((iconEl.querySelector('.desktop-icon-label') || {}).textContent || 'Item').trim();
+    var openId = iconEl.getAttribute('data-open') || '';
+    var nav = iconEl.getAttribute('data-nav') || '';
+    var kind = iconEl.getAttribute('data-kind') || '';
+    var html =
+      '<div class="context-item" data-action="icon-open" data-open="' +
+      escapeHtml(openId) +
+      '" data-nav="' +
+      escapeHtml(nav) +
+      '" role="menuitem">Open</div>' +
+      '<div class="context-item" data-action="get-info" role="menuitem">Get Info</div>' +
+      '<div class="context-separator" role="separator"></div>' +
+      (kind === 'trash'
+        ? '<div class="context-item" data-action="empty-trash" role="menuitem">Empty Trash</div>' +
+          '<div class="context-separator" role="separator"></div>'
+        : '') +
+      '<div class="context-item" data-action="clean-up" role="menuitem">Clean Up</div>' +
+      '<div class="context-item" data-action="change-wallpaper" role="menuitem">Change Wallpaper…</div>' +
+      '<div class="context-separator" role="separator"></div>' +
+      '<div class="context-item is-disabled" role="menuitem">' +
+      escapeHtml(label) +
+      '</div>';
+    openContextMenu(x, y, html);
+  }
+
+  function runDockContextAction(a, id) {
+    if (a === 'dock-open') openApp(id);
+    if (a === 'dock-open-trash') {
+      openApp('finder');
+      setTimeout(function () {
+        var win =
+          global.WindowManager &&
+          WindowManager.getWindowByAppId &&
+          WindowManager.getWindowByAppId('finder');
+        var body = win && win.el && win.el.querySelector('.window-content');
+        var t = body && body.querySelector('.finder-sb-item[data-nav="trash"]');
+        if (t) t.click();
+      }, 100);
+    }
+    if (a === 'empty-trash') handleMenuAction('empty-trash');
+    if (a === 'dock-quit' && global.WindowManager) {
+      WindowManager.closeApp(id);
+      syncRunningFromWindows();
+    }
+    if (a === 'dock-hide' && global.WindowManager) {
+      var w = WindowManager.getWindowByAppId && WindowManager.getWindowByAppId(id);
+      if (w) WindowManager.minimize(w.id);
+    }
+    if (a === 'dock-show-finder') {
+      openApp('finder');
+      setTimeout(function () {
+        finderGo('apps');
+      }, 100);
+    }
+    if (a === 'dock-options') {
+      notify('Dock', 'Options', 'Keep in Dock · Open at Login (demo)', 'now');
+    }
+    if (a === 'icon-open') {
+      var sel = document.querySelector('.desktop-icon.is-selected');
+      if (sel) openDesktopIcon(sel);
+      else if (id) openApp(id);
+    }
+    if (global.MacSounds && MacSounds.play) MacSounds.play('pop');
   }
 
   function bounceDock(appId) {
@@ -2889,15 +2961,7 @@
   }
 
   function showContextMenu(x, y) {
-    var menu = $('#context-menu');
-    if (!menu) return;
-    closeAllOverlays();
-    showOverlay(menu);
-    var pad = 8;
-    var mw = menu.offsetWidth || 220;
-    var mh = menu.offsetHeight || 200;
-    menu.style.left = Math.max(pad, Math.min(x, window.innerWidth - mw - pad)) + 'px';
-    menu.style.top = Math.max(pad, Math.min(y, window.innerHeight - mh - pad)) + 'px';
+    openContextMenu(x, y, DESKTOP_CONTEXT_HTML);
   }
 
   function hideContextMenu() {
@@ -3438,19 +3502,32 @@
       });
     }
 
-    // Desktop context menu
-    var desktop = $('#desktop-icons') || $('#desktop') || $('#macos');
-    var wallpaper = $('#wallpaper');
-    var widgets = $('#desktop-widgets');
-    function onContext(e) {
-      // Only when not on a window
-      if (e.target.closest('.window')) return;
-      e.preventDefault();
-      showContextMenu(e.clientX, e.clientY);
-    }
-    if (wallpaper) wallpaper.addEventListener('contextmenu', onContext);
-    if (desktop) desktop.addEventListener('contextmenu', onContext);
-    if (widgets) widgets.addEventListener('contextmenu', onContext);
+    // Desktop / icon / empty-space context menu (capture so windows layer never blocks it)
+    document.addEventListener(
+      'contextmenu',
+      function (e) {
+        if (e.defaultPrevented) return;
+        /* Native targets that own their own menus or should keep browser menu */
+        if (e.target.closest('#context-menu')) return;
+        if (e.target.closest('#dock, #dock-container')) return; /* dock handler uses stopPropagation */
+        if (e.target.closest('#menubar')) return;
+        if (e.target.closest('.window')) return;
+        if (e.target.closest('#spotlight, #launchpad, #mission-control, #control-center, #notification-center'))
+          return;
+        if (e.target.closest('input, textarea, select, [contenteditable="true"]')) return;
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        var icon = e.target.closest('.desktop-icon');
+        if (icon) {
+          showIconContextMenu(e.clientX, e.clientY, icon);
+          return;
+        }
+        showContextMenu(e.clientX, e.clientY);
+      },
+      true
+    );
 
     // Widget double-click opens related apps; single-click interactions
     if (widgets) {
@@ -3484,14 +3561,34 @@
       }
     }
 
-    // Context menu items
-    $$('#context-menu [data-action]').forEach(function (item) {
-      item.addEventListener('click', function (e) {
+    // Context menu items (delegation — works after dock/icon rebuild HTML)
+    var ctxMenu = $('#context-menu');
+    if (ctxMenu && !ctxMenu.dataset.wired) {
+      ctxMenu.dataset.wired = '1';
+      ctxMenu.addEventListener('click', function (e) {
+        var item = e.target.closest('[data-action]');
+        if (!item || item.classList.contains('is-disabled')) return;
+        e.preventDefault();
         e.stopPropagation();
-        handleMenuAction(item.getAttribute('data-action'));
+        var action = item.getAttribute('data-action');
+        var appId = item.getAttribute('data-app') || item.getAttribute('data-open');
         hideContextMenu();
+        if (
+          action &&
+          (action.indexOf('dock-') === 0 ||
+            action === 'icon-open' ||
+            action === 'empty-trash')
+        ) {
+          runDockContextAction(action, appId);
+          return;
+        }
+        handleMenuAction(action, item);
       });
-    });
+      ctxMenu.addEventListener('contextmenu', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      });
+    }
 
     // Keyboard shortcuts
     document.addEventListener('keydown', function (e) {
