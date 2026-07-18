@@ -10268,29 +10268,46 @@
       '........' +
       'PPPPPPPP' +
       'RNBQKBNR';
-    /* Compact SVG silhouettes - solid fill for both colors via CSS currentColor */
+    /* Compact SVG silhouettes - solid fill via CSS .piece-white / .piece-black */
     var PIECE_SVG = {
       K:
-        '<path d="M12 2l1.2 3.2H16l-2.6 2 1 3.2L12 8.6 9.6 10.4l1-3.2L8 5.2h2.8L12 2zm-5 9.5h10v1.2c0 1.2-.8 2.2-1.9 2.5l.7 5.3H7.2l.7-5.3A2.7 2.7 0 016 12.7v-1.2h1zm1.4 10h7.2v1.5H8.4V21.5z"/>',
+        '<path d="M11.5 2v2.2h-2V6h2v1.2c-2.4.4-4 2.2-4 4.6v.8h9v-.8c0-2.4-1.6-4.2-4-4.6V6h2V4.2h-2V2h-1zm-4 10.6v1c0 1 .6 1.8 1.5 2.1l-.6 4.8h7.2l-.6-4.8c.9-.3 1.5-1.1 1.5-2.1v-1H7.5zM9 21.5h6V23H9v-1.5z"/>',
       Q:
-        '<path d="M6 10.5l1.2-5.2 2.3 3.4L12 4l2.5 4.7 2.3-3.4L18 10.5c0 2.2-1.4 3.6-3.2 4.1l.6 5.4H8.6l.6-5.4C7.4 14.1 6 12.7 6 10.5zm2.4 11h7.2v1.5H8.4V21.5z"/>',
+        '<path d="M6 9.2l1.1-4.5 2.2 3.1L12 3.5l2.7 4.3 2.2-3.1L18 9.2c0 2.4-1.5 3.9-3.4 4.4l.5 5.9H8.9l.5-5.9C7.5 13.1 6 11.6 6 9.2zM9 21h6v1.5H9V21z"/>',
       R:
-        '<path d="M7 4h2v2h2V4h2v2h2V4h2v4.5H7V4zm0 5.5h10v2.2l-1 1.3v5.5H8V13l-1-1.3V9.5zm1.4 10h7.2v1.5H8.4V19.5z"/>',
+        '<path d="M6.5 3.5h2.2V5.2h2.1V3.5h2.4V5.2h2.1V3.5h2.2v4.2H6.5V3.5zm0 5.2h11v2l-1.1 1.4v6.2H7.6v-6.2L6.5 10.7v-2zM8.2 19.3h7.6V21H8.2v-1.7z"/>',
       B:
-        '<path d="M12 3c1.2 0 2.6 1.6 2.6 3.4 0 1.1-.5 2-1.2 2.7l3.1 5.4H7.5l3.1-5.4A3.3 3.3 0 019.4 6.4C9.4 4.6 10.8 3 12 3zm-1.1 4.2h2.2v1.1h-2.2V7.2zM8.4 16.5h7.2v1.2c0 .8-.5 1.3-1.2 1.5l.4 2.3H9.2l.4-2.3c-.7-.2-1.2-.7-1.2-1.5v-1.2z"/>',
+        '<path d="M12 2.8c1.4 0 3 1.8 3 3.8 0 1.2-.6 2.2-1.4 2.9L16.8 15H7.2l3.2-5.5c-.8-.7-1.4-1.7-1.4-2.9 0-2 1.6-3.8 3-3.8zm-1.2 4.5h2.4v1.2h-2.4V7.3zM8.2 16.2h7.6v1.3c0 .9-.6 1.4-1.3 1.6l.3 2.4H9.2l.3-2.4c-.7-.2-1.3-.7-1.3-1.6v-1.3z"/>',
       N:
-        '<path d="M7.2 20.5V18c0-2.2.7-3.8 2-5.1C10.4 11.7 11 10.2 11 8.6c0-1-.3-1.8-1.1-2.3l-.6-.4.3-1.4 2.2.3c1.6.2 2.8 1 3.6 2.1.7 1 1 2.2 1 3.5 0 1.6-.5 3-1.4 4.2-.7 1-1.1 2-1.1 3.4v2.5H7.2zm1.5-2.2h4.6c.1-1.3.6-2.3 1.3-3.3.7-1 1.1-2.1 1.1-3.4 0-1-.2-1.8-.7-2.5-.4-.6-1.1-1-2-1.2.5.7.7 1.5.7 2.4 0 1.8-.8 3.4-2.1 4.7-1 1.1-1.6 2.4-1.6 4.1 0 .3 0 .7.1 1.2H8.7z"/>',
+        '<path d="M7 21v-2.3c0-2.3.8-4 2.2-5.4 1.2-1.2 1.8-2.6 1.8-4.2 0-1.1-.4-2-1.3-2.6l-.7-.5.4-1.6 2.5.4c1.8.3 3.1 1.2 4 2.5.8 1.1 1.1 2.4 1.1 3.9 0 1.8-.6 3.3-1.6 4.6-.7 1-1.2 2.1-1.2 3.5V21H7zm1.7-2.3h5c.1-1.2.6-2.2 1.3-3.2.8-1.1 1.2-2.3 1.2-3.7 0-1.1-.3-2-.8-2.7-.5-.7-1.2-1.2-2.2-1.4.5.8.8 1.6.8 2.6 0 1.9-.8 3.6-2.2 5-1.1 1.1-1.7 2.4-1.7 4 0 .4 0 .8.1 1.3H8.7v-.9z"/>',
       P:
-        '<path d="M12 3.5a2.8 2.8 0 00-1.6 5.1A3.6 3.6 0 008.8 12c0 1.4.8 2.6 2 3.2l-.7 4.3h3.8l-.7-4.3a3.6 3.6 0 002-3.2 3.6 3.6 0 00-1.6-3.4A2.8 2.8 0 0012 3.5z"/>',
+        '<path d="M12 3a3 3 0 00-1.8 5.4A3.8 3.8 0 008.5 12c0 1.5.9 2.8 2.2 3.4L9.8 20h4.4l-.9-4.6c1.3-.6 2.2-1.9 2.2-3.4a3.8 3.8 0 00-1.7-3.2A3 3 0 0012 3z"/>',
     };
-    function pieceSvg(kind, isWhite) {
-      var path = PIECE_SVG[kind.toUpperCase()];
+    var PIECE_NAME = {
+      K: 'King',
+      Q: 'Queen',
+      R: 'Rook',
+      B: 'Bishop',
+      N: 'Knight',
+      P: 'Pawn',
+      k: 'King',
+      q: 'Queen',
+      r: 'Rook',
+      b: 'Bishop',
+      n: 'Knight',
+      p: 'Pawn',
+    };
+    function pieceSvg(kind) {
+      var path = PIECE_SVG[String(kind).toUpperCase()];
       if (!path) return '';
       return (
-        '<svg class="chess-piece-svg" viewBox="0 0 24 24" width="78%" height="78%" aria-hidden="true">' +
+        '<svg class="chess-piece-svg" viewBox="0 0 24 24" width="80%" height="80%" aria-hidden="true">' +
         path +
         '</svg>'
       );
+    }
+    function pieceLabel(p) {
+      return PIECE_NAME[p] || p || '';
     }
 
     var board = START.split('');
@@ -10488,7 +10505,8 @@
         if (piece && piece !== '.') {
           var white = piece === piece.toUpperCase();
           sq.classList.add(white ? 'piece-white' : 'piece-black');
-          sq.innerHTML = pieceSvg(piece, white);
+          sq.innerHTML = pieceSvg(piece);
+          sq.setAttribute('aria-label', (white ? 'White ' : 'Black ') + pieceLabel(piece));
         }
         if (view === selected) sq.classList.add('is-selected');
         if (legal.indexOf(view) >= 0) {
@@ -10534,7 +10552,11 @@
           }
           return;
         }
-        setStatus(cap && cap !== '.' ? 'Captured ' + (GLYPH[cap] || cap) + ' · computer thinking…' : 'Computer thinking…');
+        setStatus(
+          cap && cap !== '.'
+            ? 'Captured ' + pieceLabel(cap) + ' · computer thinking…'
+            : 'Computer thinking…'
+        );
         setTimeout(computerMove, 420);
         return;
       }
@@ -10596,7 +10618,7 @@
       }
       setStatus(
         cap && cap !== '.'
-          ? 'Computer captured ' + (GLYPH[cap] || cap) + ' · your turn'
+          ? 'Computer captured ' + pieceLabel(cap) + ' · your turn'
           : 'Your turn · white to move'
       );
     }

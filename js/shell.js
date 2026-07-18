@@ -3107,6 +3107,7 @@
       finished = true;
       overlay.classList.add('is-done');
       overlay.setAttribute('aria-hidden', 'true');
+      overlay.style.pointerEvents = 'none';
       setTimeout(function () {
         if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
         bootDone = true;
@@ -3963,6 +3964,15 @@
           if (options.onReady) options.onReady();
           showContinuityHandoff();
         });
+        /* Safety: ensure handoff appears even if boot UI was force-dismissed */
+        setTimeout(function () {
+          if (!bootDone) {
+            bootDone = true;
+            showContinuityHandoff();
+          } else if (!document.getElementById('continuity-handoff')) {
+            showContinuityHandoff();
+          }
+        }, 6000);
       }
       return this;
     },
