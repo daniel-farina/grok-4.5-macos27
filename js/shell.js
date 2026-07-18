@@ -889,6 +889,7 @@
     var colWidth = 96;
     var iconBlock = 70;
     var vh = window.innerHeight || 800;
+    var vw = window.innerWidth || 1280;
     var avail = Math.max(220, vh - topPad - dockReserve);
     /* Fit all icons so last bottom <= vh - dockReserve */
     var step = Math.floor((avail - iconBlock) / Math.max(items.length - 1, 1));
@@ -902,16 +903,31 @@
       step -= 2;
     }
     var perCol = Math.max(1, Math.floor((avail - iconBlock) / step) + 1);
+    /* Drop corrupt saved coords (from old shrink-wrapped host bug) */
+    var cleanPos = {};
+    Object.keys(pos).forEach(function (k) {
+      var p = pos[k];
+      if (!p || typeof p.x !== 'number' || typeof p.y !== 'number') return;
+      if (p.x < -20 || p.y < 0 || p.x > vw - 40 || p.y > vh - 40) return;
+      cleanPos[k] = {
+        x: Math.max(8, Math.min(vw - 96, p.x)),
+        y: Math.max(36, Math.min(vh - 100, p.y)),
+      };
+    });
+    if (Object.keys(cleanPos).length !== Object.keys(pos).length) {
+      saveDesktopIconPositions(cleanPos);
+    }
+    pos = cleanPos;
     host.innerHTML = items
       .map(function (it, i) {
         var p = pos[it.key];
         var style;
         if (p && typeof p.x === 'number' && typeof p.y === 'number') {
-          style = 'left:' + p.x + 'px;top:' + p.y + 'px;';
+          style = 'left:' + p.x + 'px;top:' + p.y + 'px;right:auto;';
         } else {
           var col = Math.floor(i / perCol);
           var row = i % perCol;
-          style = 'right:' + (14 + col * colWidth) + 'px;top:' + (topPad + row * step) + 'px;';
+          style = 'right:' + (14 + col * colWidth) + 'px;top:' + (topPad + row * step) + 'px;left:auto;';
         }
         return (
           '<button type="button" class="desktop-icon" data-key="' +
@@ -971,6 +987,29 @@
     var startX = 0;
     var startY = 0;
     var moved = false;
+
+    function clampPos(x, y) {
+      var hr = host.getBoundingClientRect();
+      var w = btn.offsetWidth || 88;
+      var h = btn.offsetHeight || 72;
+      /* Coordinates are relative to #desktop-icons host */
+      var maxX = Math.max(8, hr.width - w - 8);
+      var maxY = Math.max(36, hr.height - h - 88);
+      return {
+        x: Math.max(8, Math.min(maxX, x)),
+        y: Math.max(36, Math.min(maxY, y)),
+      };
+    }
+
+    function applyPos(x, y) {
+      var p = clampPos(x, y);
+      btn.style.left = p.x + 'px';
+      btn.style.top = p.y + 'px';
+      btn.style.right = 'auto';
+      btn.style.bottom = 'auto';
+      return p;
+    }
+
     btn.addEventListener('pointerdown', function (e) {
       if (e.button !== 0) return;
       dragging = true;
@@ -997,15 +1036,11 @@
         }
       }
       if (!moved) return;
-      var x = e.clientX - ox;
-      var y = e.clientY - oy;
-      var maxX = window.innerWidth - btn.offsetWidth - 8;
-      var maxY = window.innerHeight - btn.offsetHeight - 80;
-      x = Math.max(8, Math.min(maxX, x));
-      y = Math.max(36, Math.min(maxY, y));
-      btn.style.left = x + 'px';
-      btn.style.top = y + 'px';
-      btn.style.right = 'auto';
+      var hr = host.getBoundingClientRect();
+      /* Convert viewport pointer → host-local left/top */
+      var x = e.clientX - ox - hr.left;
+      var y = e.clientY - oy - hr.top;
+      applyPos(x, y);
     });
     function endDrag(e) {
       if (!dragging) return;
@@ -1013,7 +1048,7 @@
       btn.classList.remove('is-dragging');
       if (captured) {
         try {
-          btn.releasePointerCapture(e.pointerId);
+          if (e && e.pointerId != null) btn.releasePointerCapture(e.pointerId);
         } catch (err) {}
       }
       captured = false;
@@ -1021,18 +1056,22 @@
       btn._suppressClick = true;
       var key = btn.getAttribute('data-key');
       if (!key) return;
+      var hr = host.getBoundingClientRect();
+      var br = btn.getBoundingClientRect();
+      /* Prefer live rect in case style parse fails */
+      var p = applyPos(br.left - hr.left, br.top - hr.top);
       var map = loadDesktopIconPositions();
-      map[key] = {
-        x: parseInt(btn.style.left, 10) || 0,
-        y: parseInt(btn.style.top, 10) || 0,
-      };
+      map[key] = { x: p.x, y: p.y };
       saveDesktopIconPositions(map);
       setTimeout(function () {
         btn._suppressClick = false;
-      }, 50);
+      }, 80);
     }
     btn.addEventListener('pointerup', endDrag);
     btn.addEventListener('pointercancel', endDrag);
+    btn.addEventListener('lostpointercapture', function () {
+      if (dragging) endDrag({});
+    });
   }
 
   function wireDockInteractions(dock) {

@@ -342,11 +342,17 @@
   color: rgba(0, 0, 0, 0.5) !important;
 }
 
-/* Desktop icons — right side, white label with soft shadow like Tahoe */
+/* Desktop icons — full freeform layer (required for drag/drop positions).
+   Do NOT shrink-wrap with left:auto/right:20 — that makes left:px drag coords
+   place icons outside the host so they disappear under #macos overflow. */
 #desktop-icons {
-  right: 20px !important;
-  left: auto !important;
-  top: 48px !important;
+  inset: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  top: 0 !important;
+  bottom: 0 !important;
+  width: auto !important;
+  height: auto !important;
 }
 .desktop-icon {
   color: #fff !important;
