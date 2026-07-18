@@ -23,6 +23,12 @@
 #launchpad.is-open {
   opacity: 1 !important;
   visibility: visible !important;
+  pointer-events: auto !important;
+}
+
+/* Closed drawer must not intercept clicks (opacity:0 can still hit-test in some engines) */
+#launchpad:not(.is-open) {
+  pointer-events: none !important;
 }
 
 /* Hide legacy full-width search chrome if present */

@@ -3488,37 +3488,27 @@ tr.is-selected {
 }
 .chess-sq.light { background: #f0d9b5; }
 .chess-sq.dark { background: #b58863; }
-/* Piece contrast: solid cream vs solid near-black (glyphs are filled set) */
+/* SVG pieces: solid cream vs near-black fills */
 .chess-sq.piece-white,
 .chess-sq.piece-black {
   position: relative;
   z-index: 0;
 }
-.chess-sq.piece-white {
-  color: #fffdf8 !important;
-  /* Fat multi-offset shadow acts as a solid body + dark rim */
-  text-shadow:
-    0 0 0 #1a1410,
-    1px 0 0 #1a1410,
-    -1px 0 0 #1a1410,
-    0 1px 0 #1a1410,
-    0 -1px 0 #1a1410,
-    1px 1px 0 #1a1410,
-    -1px 1px 0 #1a1410,
-    1px -1px 0 #1a1410,
-    -1px -1px 0 #1a1410,
-    2px 0 0 #1a1410,
-    -2px 0 0 #1a1410,
-    0 2px 0 #1a1410,
-    0 -2px 0 #1a1410,
-    0 3px 4px rgba(0, 0, 0, 0.35);
-  filter: drop-shadow(0 0 0.4px #1a1410);
+.chess-sq .chess-piece-svg {
+  display: block;
+  pointer-events: none;
+  filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.35));
 }
-.chess-sq.piece-black {
-  color: #0e0b09 !important;
-  text-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.1),
-    0 2px 3px rgba(0, 0, 0, 0.3);
+.chess-sq.piece-white .chess-piece-svg {
+  fill: #fffaf2;
+  stroke: #1a1410;
+  stroke-width: 0.9;
+  paint-order: stroke fill;
+}
+.chess-sq.piece-black .chess-piece-svg {
+  fill: #14100c;
+  stroke: rgba(255, 255, 255, 0.12);
+  stroke-width: 0.4;
 }
 .chess-sq.is-selected {
   outline: 2px solid #0a84ff;

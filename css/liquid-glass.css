@@ -2016,37 +2016,38 @@ html.dock-reflect {
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 13px;
-  opacity: 1;
   flex-shrink: 0;
   color: rgba(255, 255, 255, 0.95);
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
 }
 
-.widget-music-controls button,
-.widget-music-controls span,
-.widget-music-controls .play {
+.widget-music-controls .wm-ctrl,
+.widget-music-controls button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 22px;
-  min-height: 22px;
+  width: 24px;
+  height: 24px;
   border: none;
-  background: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.18);
   border-radius: 50%;
   color: inherit;
   cursor: pointer;
   font-size: 11px;
   line-height: 1;
   padding: 0;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
 }
 
-.widget-music-controls .play,
-.widget-music-controls [data-action='play'] {
-  min-width: 26px;
-  min-height: 26px;
-  background: rgba(255, 255, 255, 0.28);
+.widget-music-controls .wm-ctrl.play,
+.widget-music-controls .play {
+  width: 28px;
+  height: 28px;
+  background: rgba(255, 255, 255, 0.3);
   font-size: 12px;
+}
+
+.widget-music-controls .wm-ctrl:hover {
+  background: rgba(255, 255, 255, 0.32);
 }
 
 @media (max-width: 900px) {

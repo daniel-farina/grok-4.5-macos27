@@ -402,19 +402,18 @@
     var music = root.querySelector('.widget-music');
     if (music) {
       var playing = false;
-      var playEl = music.querySelector('.play, .widget-music-controls .play, .widget-music-controls span:nth-child(2)');
       var controls = music.querySelector('.widget-music-controls');
       if (controls) {
-        controls.setAttribute('aria-hidden', 'false');
         controls.style.pointerEvents = 'auto';
-        controls.style.cursor = 'default';
-        $$('span', controls).forEach(function (span, i) {
-          span.style.cursor = 'pointer';
-          span.addEventListener('click', function (e) {
+        $$('button, span', controls).forEach(function (btn) {
+          btn.addEventListener('click', function (e) {
             e.stopPropagation();
-            if (i === 1 || span.classList.contains('play')) {
+            var act = btn.getAttribute('data-wm') || '';
+            var isPlay = act === 'play' || btn.classList.contains('play');
+            if (isPlay) {
               playing = !playing;
-              span.textContent = playing ? '❚❚' : '▶';
+              btn.textContent = playing ? '❚❚' : '▶';
+              btn.setAttribute('aria-label', playing ? 'Pause' : 'Play');
               if (global.MacSounds && MacSounds.play) MacSounds.play(playing ? 'funk' : 'pop');
             } else {
               if (global.MacSounds && MacSounds.play) MacSounds.play('tink');
@@ -425,10 +424,6 @@
           });
         });
       }
-      music.addEventListener('click', function (e) {
-        if (e.target.closest('.widget-music-controls')) return;
-        // single click selects feel
-      });
     }
 
     // Calendar widget click selects event / opens on dblclick already

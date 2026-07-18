@@ -5,16 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="macOS 27 Liquid Glass - Virtual Desktop" />
   <title>macOS 27</title>
-  <link rel="stylesheet" href="css/liquid-glass.css?v=1784328400" />
-  <link rel="stylesheet" href="css/apps.css?v=1784328400" />
-  <link rel="stylesheet" href="css/tahoe-match.css?v=1784328400" />
-  <link rel="stylesheet" href="css/theme.css?v=1784328400" />
-  <link rel="stylesheet" href="css/finder-27.css?v=1784328400" />
-  <link rel="stylesheet" href="css/control-center.css?v=1784328400" />
-  <link rel="stylesheet" href="css/apps-drawer.css?v=1784328400" />
-  <link rel="stylesheet" href="css/safari-27.css?v=1784328400" />
-  <link rel="stylesheet" href="css/apps-system.css?v=1784328400" />
-  <link rel="stylesheet" href="css/apps-utilities.css?v=1784328400" />
+  <link rel="stylesheet" href="css/liquid-glass.css?v=1784328500" />
+  <link rel="stylesheet" href="css/apps.css?v=1784328500" />
+  <link rel="stylesheet" href="css/tahoe-match.css?v=1784328500" />
+  <link rel="stylesheet" href="css/theme.css?v=1784328500" />
+  <link rel="stylesheet" href="css/finder-27.css?v=1784328500" />
+  <link rel="stylesheet" href="css/control-center.css?v=1784328500" />
+  <link rel="stylesheet" href="css/apps-drawer.css?v=1784328500" />
+  <link rel="stylesheet" href="css/safari-27.css?v=1784328500" />
+  <link rel="stylesheet" href="css/apps-system.css?v=1784328500" />
+  <link rel="stylesheet" href="css/apps-utilities.css?v=1784328500" />
   <script>
     /* Apply theme ASAP to avoid FOUC — mirrors MacShell appearance logic */
     (function () {
@@ -346,8 +346,10 @@
           <div class="widget-music-title">Liquid Glass</div>
           <div class="widget-music-artist">macOS Ensemble</div>
         </div>
-        <div class="widget-music-controls" aria-hidden="true">
-          <span>⏮</span><span class="play">▶</span><span>⏭</span>
+        <div class="widget-music-controls" role="group" aria-label="Playback">
+          <button type="button" class="wm-ctrl" data-wm="prev" aria-label="Previous">⏮</button>
+          <button type="button" class="wm-ctrl play" data-wm="play" aria-label="Play">▶</button>
+          <button type="button" class="wm-ctrl" data-wm="next" aria-label="Next">⏭</button>
         </div>
       </div>
     </div>
@@ -659,12 +661,12 @@
   -->
 
   <!-- Scripts: classic order, no bundler -->
-  <script src="js/icons.js?v=1784328400"></script>
-  <script src="js/window-manager.js?v=1784328400"></script>
-  <script src="js/sounds.js?v=1784328400"></script>
-  <script src="js/shell.js?v=1784328400"></script>
-  <script src="js/apps/registry.js?v=1784328400"></script>
-  <script src="js/macos-runtime.js?v=1784328400"></script>
-  <script src="js/main.js?v=1784328400"></script>
+  <script src="js/icons.js?v=1784328500"></script>
+  <script src="js/window-manager.js?v=1784328500"></script>
+  <script src="js/sounds.js?v=1784328500"></script>
+  <script src="js/shell.js?v=1784328500"></script>
+  <script src="js/apps/registry.js?v=1784328500"></script>
+  <script src="js/macos-runtime.js?v=1784328500"></script>
+  <script src="js/main.js?v=1784328500"></script>
 </body>
 </html>
