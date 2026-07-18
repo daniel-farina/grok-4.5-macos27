@@ -2996,51 +2996,60 @@
   /* ── Boot fade ─────────────────────────────────────── */
 
   function runBoot(cb) {
-    var root = $('#macos');
-    if (!root) {
-      bootDone = true;
-      if (cb) cb();
-      return;
+    /* Prefer static HTML overlay (first paint is black) so boot is never skipped while scripts load */
+    var overlay = document.getElementById('boot-overlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = 'boot-overlay';
+      overlay.className = 'boot-overlay';
+      overlay.setAttribute('role', 'progressbar');
+      overlay.setAttribute('aria-valuemin', '0');
+      overlay.setAttribute('aria-valuemax', '100');
+      overlay.setAttribute('aria-valuenow', '0');
+      overlay.setAttribute('aria-label', 'Starting macOS');
+      overlay.innerHTML =
+        '<div class="boot-logo" aria-hidden="true">' +
+        '<svg class="boot-apple" viewBox="0 0 17 20" width="72" height="86" fill="#fff">' +
+        '<path d="M14.23 10.66c-.03-2.55 2.08-3.78 2.17-3.84-1.18-1.73-3.02-1.97-3.68-2-1.56-.16-3.05.92-3.84.92-.79 0-2.01-.9-3.31-.87-1.7.02-3.28 1-4.15 2.53-1.77 3.07-.45 7.61 1.27 10.1.84 1.22 1.84 2.59 3.15 2.54 1.26-.05 1.74-.82 3.27-.82 1.52 0 1.95.82 3.29.79 1.36-.02 2.22-1.24 3.05-2.47.96-1.4 1.36-2.76 1.38-2.83-.03-.01-2.65-1.02-2.68-4.05zM11.7 2.9c.7-.84 1.17-2.01 1.04-3.18-1.01.04-2.23.67-2.95 1.52-.65.75-1.21 1.95-1.06 3.1 1.12.09 2.26-.57 2.97-1.44z"/>' +
+        '</svg></div>' +
+        '<div class="boot-progress" id="boot-bar-track">' +
+        '<div class="boot-progress-bar" id="boot-bar"></div></div>';
+      document.body.insertBefore(overlay, document.body.firstChild);
     }
-    var overlay = document.createElement('div');
-    overlay.id = 'boot-overlay';
-    overlay.className = 'boot-overlay';
-    overlay.setAttribute('role', 'progressbar');
-    overlay.setAttribute('aria-valuemin', '0');
-    overlay.setAttribute('aria-valuemax', '100');
-    overlay.setAttribute('aria-valuenow', '0');
-    overlay.setAttribute('aria-label', 'Starting macOS');
-    /* Real Mac boot: pure black, Apple logo, thin white progress bar under logo */
-    overlay.innerHTML =
-      '<div class="boot-logo" aria-hidden="true">' +
-      '<svg class="boot-apple" viewBox="0 0 17 20" width="72" height="86" fill="#fff">' +
-      '<path d="M14.23 10.66c-.03-2.55 2.08-3.78 2.17-3.84-1.18-1.73-3.02-1.97-3.68-2-1.56-.16-3.05.92-3.84.92-.79 0-2.01-.9-3.31-.87-1.7.02-3.28 1-4.15 2.53-1.77 3.07-.45 7.61 1.27 10.1.84 1.22 1.84 2.59 3.15 2.54 1.26-.05 1.74-.82 3.27-.82 1.52 0 1.95.82 3.29.79 1.36-.02 2.22-1.24 3.05-2.47.96-1.4 1.36-2.76 1.38-2.83-.03-.01-2.65-1.02-2.68-4.05zM11.7 2.9c.7-.84 1.17-2.01 1.04-3.18-1.01.04-2.23.67-2.95 1.52-.65.75-1.21 1.95-1.06 3.1 1.12.09 2.26-.57 2.97-1.44z"/>' +
-      '</svg></div>' +
-      '<div class="boot-progress" id="boot-bar-track">' +
-      '<div class="boot-progress-bar" id="boot-bar"></div></div>';
-    document.body.appendChild(overlay);
+    overlay.classList.remove('is-done');
+    overlay.style.opacity = '1';
+    overlay.style.pointerEvents = 'auto';
+    overlay.setAttribute('aria-hidden', 'false');
 
-    var bar = document.getElementById('boot-bar');
+    var bar = document.getElementById('boot-bar') || overlay.querySelector('.boot-progress-bar');
+    if (bar) {
+      bar.style.width = '0%';
+      bar.style.transitionDuration = '0ms';
+    }
+
+    /* ~3.2s staged fill (real Mac-like), still skippable after a short grace period */
     var stages = [
-      { p: 8, t: 120 },
-      { p: 22, t: 280 },
-      { p: 38, t: 420 },
-      { p: 55, t: 380 },
-      { p: 72, t: 450 },
-      { p: 88, t: 320 },
-      { p: 100, t: 280 },
+      { p: 6, t: 200 },
+      { p: 18, t: 360 },
+      { p: 34, t: 480 },
+      { p: 52, t: 420 },
+      { p: 68, t: 500 },
+      { p: 84, t: 380 },
+      { p: 96, t: 320 },
+      { p: 100, t: 260 },
     ];
     var i = 0;
-    var totalMs = 0;
-    stages.forEach(function (s) {
-      totalMs += s.t;
-    });
-
     var finished = false;
+    var canSkip = false;
+    setTimeout(function () {
+      canSkip = true;
+    }, 450);
+
     function finishBoot() {
       if (finished) return;
       finished = true;
       overlay.classList.add('is-done');
+      overlay.setAttribute('aria-hidden', 'true');
       setTimeout(function () {
         if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
         bootDone = true;
@@ -3050,28 +3059,29 @@
           } catch (e) {}
         }
         if (cb) cb();
-      }, 450);
+      }, 550);
     }
-    /* Click or Escape skips remaining boot animation */
-    overlay.addEventListener('click', finishBoot);
+
+    function trySkip() {
+      if (canSkip) finishBoot();
+    }
+    overlay.addEventListener('click', trySkip);
     document.addEventListener('keydown', function onBootKey(e) {
       if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') {
-        finishBoot();
-        document.removeEventListener('keydown', onBootKey);
+        trySkip();
+        if (finished) document.removeEventListener('keydown', onBootKey);
       }
     });
 
     function step() {
       if (finished) return;
       if (i >= stages.length) {
-        setTimeout(function () {
-          finishBoot();
-        }, 180);
+        setTimeout(finishBoot, 220);
         return;
       }
       var s = stages[i++];
       if (bar) {
-        bar.style.transitionDuration = Math.max(120, s.t - 40) + 'ms';
+        bar.style.transitionDuration = Math.max(140, s.t - 40) + 'ms';
         bar.style.width = s.p + '%';
       }
       overlay.setAttribute('aria-valuenow', String(s.p));
