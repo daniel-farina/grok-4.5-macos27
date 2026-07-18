@@ -861,9 +861,18 @@
     }
   }
 
+  function desktopIconGlyph(it) {
+    if (it.kind === 'app') return iconHtml(it.id);
+    if (it.kind === 'drive') return iconHtml('disk-utility');
+    if (it.kind === 'trash') return iconHtml('trash');
+    if (it.key === 'down') return iconHtml('downloads');
+    return iconHtml('folder');
+  }
+
   function renderDesktopIcons() {
     var host = $('#desktop-icons');
     if (!host) return;
+    /* Trash is Dock-only (Tahoe). Keep desktop icons above the dock. */
     var items = [
       { key: 'hd', id: 'finder', label: 'Macintosh HD', kind: 'drive', nav: 'drive' },
       { key: 'apps', id: 'finder', label: 'Applications', kind: 'folder', nav: 'apps' },
@@ -874,28 +883,30 @@
       { key: 'messages', id: 'messages', label: 'Messages', kind: 'app' },
       { key: 'notes', id: 'notes', label: 'Notes', kind: 'app' },
       { key: 'calendar', id: 'calendar', label: 'Calendar', kind: 'app' },
-      { key: 'music', id: 'music', label: 'Music', kind: 'app' },
-      { key: 'trash', id: 'trash', label: 'Trash', kind: 'trash', nav: 'trash' },
     ];
     var pos = loadDesktopIconPositions();
     host.classList.add('is-freeform');
+    var topPad = 36;
+    var dockReserve = 110;
+    var colWidth = 96;
+    var iconBlock = 74;
+    var vh = window.innerHeight || 800;
+    var avail = Math.max(260, vh - topPad - dockReserve);
+    /* Even spacing so the last icon clears the dock */
+    var step = Math.floor((avail - iconBlock) / Math.max(items.length - 1, 1));
+    step = Math.min(82, Math.max(62, step));
+    var perCol = Math.max(1, Math.floor((avail - iconBlock) / step) + 1);
     host.innerHTML = items
       .map(function (it, i) {
         var p = pos[it.key];
-        var left = p && typeof p.x === 'number' ? p.x : null;
-        var top = p && typeof p.y === 'number' ? p.y : null;
-        var style =
-          left != null && top != null
-            ? 'left:' + left + 'px;top:' + top + 'px;'
-            : 'right:12px;top:' + (48 + i * 88) + 'px;';
-        var iconInner =
-          it.kind === 'app'
-            ? iconHtml(it.id)
-            : it.kind === 'drive'
-              ? iconHtml('disk-utility')
-              : it.kind === 'trash'
-                ? iconHtml('trash')
-                : '';
+        var style;
+        if (p && typeof p.x === 'number' && typeof p.y === 'number') {
+          style = 'left:' + p.x + 'px;top:' + p.y + 'px;';
+        } else {
+          var col = Math.floor(i / perCol);
+          var row = i % perCol;
+          style = 'right:' + (14 + col * colWidth) + 'px;top:' + (topPad + row * step) + 'px;';
+        }
         return (
           '<button type="button" class="desktop-icon" data-key="' +
           escapeHtml(it.key) +
@@ -911,7 +922,7 @@
           '<div class="desktop-icon-img kind-' +
           escapeHtml(it.kind) +
           '">' +
-          iconInner +
+          desktopIconGlyph(it) +
           '</div>' +
           '<span class="desktop-icon-label">' +
           escapeHtml(it.label) +

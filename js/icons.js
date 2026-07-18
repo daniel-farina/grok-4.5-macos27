@@ -559,6 +559,35 @@
   MacIcons.phone = makeIcon('phone', ['#30d158', '#34c759'],
     '<path fill="#fff" d="M22 14c1 0 2 .5 2.5 1.5l2 4c.4.8.2 1.8-.5 2.3l-2 1.5c1.5 3 4 5.5 7 7l1.5-2c.5-.7 1.5-.9 2.3-.5l4 2c1 .5 1.5 1.5 1.5 2.5v3c0 1.5-1.3 2.7-2.8 2.5C25 36 16 27 14.5 14.8 14.3 13.3 15.5 12 17 12h5z"/>'
   );
+
+  /* Realistic desktop folder / downloads glyphs (folder shape, not app squircle) */
+  MacIcons.folder =
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="100%" height="100%" style="display:block">' +
+    '<defs><linearGradient id="g-folder-body" x1="0%" y1="0%" x2="0%" y2="100%">' +
+    '<stop offset="0%" stop-color="#5ac8fa"/><stop offset="100%" stop-color="#0a84ff"/></linearGradient>' +
+    '<linearGradient id="g-folder-tab" x1="0%" y1="0%" x2="0%" y2="100%">' +
+    '<stop offset="0%" stop-color="#7dd4fc"/><stop offset="100%" stop-color="#32ade6"/></linearGradient>' +
+    '<linearGradient id="g-folder-shine" x1="0%" y1="0%" x2="0%" y2="100%">' +
+    '<stop offset="0%" stop-color="#fff" stop-opacity="0.45"/><stop offset="50%" stop-color="#fff" stop-opacity="0"/></linearGradient>' +
+    '</defs>' +
+    '<path fill="url(#g-folder-tab)" d="M8 18c0-2.2 1.8-4 4-4h14l4 5h22c2.2 0 4 1.8 4 4v3H8v-8z"/>' +
+    '<path fill="url(#g-folder-body)" d="M8 24h48c2.2 0 4 1.8 4 4v22c0 2.2-1.8 4-4 4H8c-2.2 0-4-1.8-4-4V28c0-2.2 1.8-4 4-4z"/>' +
+    '<path fill="url(#g-folder-shine)" d="M8 24h48c2.2 0 4 1.8 4 4v6H4v-6c0-2.2 1.8-4 4-4z"/>' +
+    '<path fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="1" d="M8 24h48c2.2 0 4 1.8 4 4v22c0 2.2-1.8 4-4 4H8c-2.2 0-4-1.8-4-4V28c0-2.2 1.8-4 4-4z"/>' +
+    '</svg>';
+  MacIcons.downloads =
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="100%" height="100%" style="display:block">' +
+    '<defs><linearGradient id="g-dl-body" x1="0%" y1="0%" x2="0%" y2="100%">' +
+    '<stop offset="0%" stop-color="#5ac8fa"/><stop offset="100%" stop-color="#0071e3"/></linearGradient>' +
+    '<linearGradient id="g-dl-tab" x1="0%" y1="0%" x2="0%" y2="100%">' +
+    '<stop offset="0%" stop-color="#7dd4fc"/><stop offset="100%" stop-color="#32ade6"/></linearGradient>' +
+    '</defs>' +
+    '<path fill="url(#g-dl-tab)" d="M8 18c0-2.2 1.8-4 4-4h14l4 5h22c2.2 0 4 1.8 4 4v3H8v-8z"/>' +
+    '<path fill="url(#g-dl-body)" d="M8 24h48c2.2 0 4 1.8 4 4v22c0 2.2-1.8 4-4 4H8c-2.2 0-4-1.8-4-4V28c0-2.2 1.8-4 4-4z"/>' +
+    '<path fill="#fff" d="M30 30h4v10h6l-8 9-8-9h6V30z" opacity="0.95"/>' +
+    '</svg>';
+  MacIcons.documents = MacIcons.folder;
+  MacIcons.applications = MacIcons.folder;
   // ColorSync Utility alias used by some launchers
   MacIcons['colorsync-utility'] = MacIcons.colorsync;
   MacIcons['quicktime-player'] = MacIcons.quicktime;

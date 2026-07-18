@@ -3469,6 +3469,11 @@ body.stage-manager-on .window.is-active:not(.is-minimized):not(.is-staged),
   box-shadow: none;
   width: 52px;
   height: 52px;
+  filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.28));
+}
+.desktop-icon-img.kind-folder svg {
+  width: 52px;
+  height: 48px;
 }
 .desktop-icon-img svg,
 .desktop-icon-img img {
