@@ -4304,23 +4304,23 @@
         }, 80);
       }
     }
-    /* Memory keys if missing */
+    /* Memory keys if missing — compact text buttons (not .calc-key circles) */
     if (!el.querySelector('[data-key="MC"]') && !el.querySelector('.calc-mem')) {
       var memBar = document.createElement('div');
       memBar.className = 'calc-mem';
-      memBar.style.cssText = 'display:flex;gap:4px;padding:4px 8px;justify-content:flex-end';
       ['MC', 'MR', 'M+', 'M-'].forEach(function (k) {
         var b = document.createElement('button');
         b.type = 'button';
-        b.className = 'calc-key';
+        b.className = 'calc-mem-btn';
         b.setAttribute('data-key', k);
         b.textContent = k;
-        b.style.cssText = 'min-width:36px;font-size:11px';
         memBar.appendChild(b);
       });
-      el.insertBefore(memBar, histEl ? histEl.nextSibling : el.firstChild);
+      var keysEl = el.querySelector('.calc-keys');
+      if (keysEl) el.insertBefore(memBar, keysEl);
+      else el.appendChild(memBar);
       var mem = 0;
-      el.querySelectorAll('.calc-mem .calc-key').forEach(function (btn) {
+      el.querySelectorAll('.calc-mem-btn').forEach(function (btn) {
         btn.addEventListener('click', function () {
           var k = btn.getAttribute('data-key');
           var cur = parseFloat((display && display.textContent) || '0') || 0;
@@ -6368,15 +6368,17 @@
 
     /* Duplicate selected (⌘D style via button) */
     if (!el.querySelector('[data-duplicate]')) {
-      var tbDup = el.querySelector('.finder-toolbar .tb-right, .finder-toolbar');
+      var tbDup = el.querySelector('.finder-tb-right') || el.querySelector('.finder-toolbar');
       if (tbDup) {
         var dup = document.createElement('button');
         dup.type = 'button';
-        dup.className = 'tb-glass-btn';
+        dup.className = 'tb-glass-btn tb-text-btn';
         dup.title = 'Duplicate';
         dup.setAttribute('data-duplicate', '1');
         dup.textContent = 'Duplicate';
-        tbDup.appendChild(dup);
+        var searchWrap = tbDup.querySelector('.finder-search-wrap');
+        if (searchWrap) tbDup.insertBefore(dup, searchWrap);
+        else tbDup.appendChild(dup);
         dup.addEventListener('click', function () {
           var sel = el.querySelector('.finder-icon-item.is-selected');
           var host =
@@ -6407,15 +6409,19 @@
     /* New Folder toolbar */
     var newFolder = el.querySelector('.tb-glass-btn[title="New Folder"], [data-new-folder]');
     if (!newFolder) {
-      var tb = el.querySelector('.finder-toolbar .tb-right, .finder-toolbar, .tb-glass-group');
+      var tb = el.querySelector('.finder-tb-right') || el.querySelector('.finder-toolbar');
       if (tb && !el.querySelector('[data-new-folder]')) {
         newFolder = document.createElement('button');
         newFolder.type = 'button';
-        newFolder.className = 'tb-glass-btn';
+        newFolder.className = 'tb-glass-btn tb-text-btn';
         newFolder.title = 'New Folder';
         newFolder.setAttribute('data-new-folder', '1');
         newFolder.textContent = 'New Folder';
-        tb.appendChild(newFolder);
+        var sw = tb.querySelector('.finder-search-wrap');
+        var dupBtn = tb.querySelector('[data-duplicate]');
+        if (sw) tb.insertBefore(newFolder, sw);
+        else if (dupBtn && dupBtn.nextSibling) tb.insertBefore(newFolder, dupBtn.nextSibling);
+        else tb.appendChild(newFolder);
       }
     }
     function createNewFolder() {

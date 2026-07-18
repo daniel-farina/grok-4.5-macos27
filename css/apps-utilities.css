@@ -310,6 +310,42 @@ html[data-theme='dark'] .appearance-seg button.is-selected {
   filter: brightness(1.1);
 }
 
+/* Memory strip — compact text, never giant circles */
+.calc-mem {
+  display: flex;
+  flex-shrink: 0;
+  gap: 2px;
+  padding: 0 6px 2px;
+  justify-content: flex-end;
+  align-items: center;
+}
+.calc-mem-btn {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 12px;
+  font-weight: 500;
+  font-family: inherit;
+  padding: 4px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  line-height: 1;
+  min-width: 0;
+  aspect-ratio: auto;
+}
+.calc-mem-btn:hover {
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.08);
+}
+.calc-mem-btn:active {
+  background: rgba(255, 255, 255, 0.14);
+}
+.calc-history {
+  flex-shrink: 0;
+  max-height: 56px;
+}
+
 /* ---------- Clock ---------- */
 .clock-app {
   height: 100%;

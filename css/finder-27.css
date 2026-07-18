@@ -343,6 +343,7 @@ html[data-theme='light'] .tb-title-pill {
   color: rgba(255, 255, 255, 0.9);
   cursor: default;
   padding: 0;
+  flex-shrink: 0;
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
 }
@@ -352,10 +353,27 @@ html[data-theme='light'] .tb-title-pill {
   opacity: 0.95;
 }
 
+/* Text pills for Duplicate / New Folder — single line, no wrap */
+.tb-glass-btn.tb-text-btn {
+  width: auto;
+  min-width: 0;
+  height: 28px;
+  padding: 0 11px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  line-height: 1;
+}
+
 html[data-theme='light'] .tb-glass-btn {
   background: rgba(0, 0, 0, 0.05);
   border-color: rgba(0, 0, 0, 0.08);
   color: rgba(0, 0, 0, 0.75);
+}
+
+html[data-theme='light'] .tb-glass-btn.tb-text-btn {
+  color: rgba(0, 0, 0, 0.78);
 }
 
 .tb-glass-btn:hover,
