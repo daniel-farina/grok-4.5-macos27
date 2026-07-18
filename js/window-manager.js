@@ -418,9 +418,14 @@
       if (!multi) {
         var existing = this.getWindowByAppId(appId);
         if (existing) {
-          if (existing.minimized) this.restore(existing.id);
-          this.focus(existing.id);
-          return existing;
+          /* Ignore windows mid-close so reopen works immediately */
+          if (existing.closing || (existing.el && existing.el.classList.contains('is-closing'))) {
+            this.forceRemove(existing.id);
+          } else {
+            if (existing.minimized) this.restore(existing.id);
+            this.focus(existing.id);
+            return existing;
+          }
         }
       }
 
@@ -480,28 +485,68 @@
       return state;
     },
 
-    close: function (windowId) {
+    /**
+     * Immediately drop a window from the registry (and DOM if still present).
+     * Used when reopen races the close animation.
+     */
+    forceRemove: function (windowId) {
       var state = windows[windowId];
       if (!state) return;
+      state.closing = true;
+      if (state._closeTimer) {
+        clearTimeout(state._closeTimer);
+        state._closeTimer = null;
+      }
+      if (state._cleanup) {
+        try {
+          state._cleanup();
+        } catch (e) {}
+        state._cleanup = null;
+      }
+      var el = state.el;
+      if (el && el.parentNode) el.parentNode.removeChild(el);
+      delete windows[windowId];
+      if (focusedId === windowId) {
+        focusedId = null;
+        var top = this.getTopmostVisible();
+        if (top) this.focus(top.id);
+        else setFocusStyles();
+      }
+      emit('window:close', { windowId: windowId, appId: state.appId });
+    },
 
+    close: function (windowId) {
+      var state = windows[windowId];
+      if (!state || state.closing) return;
+
+      state.closing = true;
       var el = state.el;
       var appId = state.appId;
-      el.classList.add('is-closing');
-      el.classList.remove('is-opening');
+      if (el) {
+        el.classList.add('is-closing');
+        el.classList.remove('is-opening');
+      }
+
+      /* Detach from registry immediately so open(appId) can create a fresh window */
+      delete windows[windowId];
+      if (focusedId === windowId) {
+        focusedId = null;
+        var top = this.getTopmostVisible();
+        if (top) this.focus(top.id);
+        else setFocusStyles();
+      }
 
       var finish = function () {
-        if (state._cleanup) state._cleanup();
-        if (el.parentNode) el.parentNode.removeChild(el);
-        delete windows[windowId];
-        if (focusedId === windowId) {
-          focusedId = null;
-          var top = WindowManager.getTopmostVisible();
-          if (top) WindowManager.focus(top.id);
-          else setFocusStyles();
+        if (state._cleanup) {
+          try {
+            state._cleanup();
+          } catch (e) {}
+          state._cleanup = null;
         }
+        if (el && el.parentNode) el.parentNode.removeChild(el);
         emit('window:close', { windowId: windowId, appId: appId });
       };
-      setTimeout(finish, 200);
+      state._closeTimer = setTimeout(finish, 200);
     },
 
     focus: function (windowId) {
@@ -638,7 +683,9 @@
     getWindowByAppId: function (appId) {
       var ids = Object.keys(windows);
       for (var i = 0; i < ids.length; i++) {
-        if (windows[ids[i]].appId === appId) return windows[ids[i]];
+        var s = windows[ids[i]];
+        if (!s || s.closing) continue;
+        if (s.appId === appId) return s;
       }
       return null;
     },
@@ -664,16 +711,18 @@
       var top = null;
       Object.keys(windows).forEach(function (id) {
         var s = windows[id];
-        if (s.minimized) return;
+        if (!s || s.closing || s.minimized) return;
         if (!top || s.zIndex > top.zIndex) top = s;
       });
       return top;
     },
 
     closeApp: function (appId) {
-      Object.keys(windows).forEach(function (id) {
-        if (windows[id].appId === appId) WindowManager.close(id);
-      });
+      Object.keys(windows)
+        .slice()
+        .forEach(function (id) {
+          if (windows[id] && windows[id].appId === appId) WindowManager.close(id);
+        });
     },
 
     closeFocused: function () {
