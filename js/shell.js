@@ -3565,6 +3565,7 @@
     );
 
     // Widget double-click opens related apps; single-click interactions
+    var widgets = $('#desktop-widgets');
     if (widgets) {
       widgets.addEventListener('dblclick', function (e) {
         var w = e.target.closest('[data-widget]');
